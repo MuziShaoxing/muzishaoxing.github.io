@@ -1,74 +1,130 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="zh-CN">
 	<head>
-		<title>少星—引导页</title>
-		<meta name="keywords" content="引导页，网盘，博客，少星，教程">
-        <meta name="description" content="引导页，网盘，博客，少星，教程">
-        <link rel="shortcut icon" href="favicon.ico">
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="css/main.css" />
-		<noscript><link rel="stylesheet" href="css/noscript.css" /></noscript>
+		<title>个人引导页</title>   
+		<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="KEYWords" contect="少星博客,个人主页,个人引导页">
+		<meta name="DEscription" contect="少星博客少星.icu的个人引导页">
+		<meta name="Author" contect="少星">
+		<meta name="Robots" contect= "all">
+		<link rel="stylesheet"  href="style.css">
 	</head>
-	<body onselectstart="return false" oncontextmenu=self.event.returnValue=false> 
-
-		<!-- Wrapper -->
-			<div id="wrapper">
-
-				<!-- Header -->
-					<header id="header">
-						<div class="logo">
-							<font size="8">🧐</font>
-										</div>
-						<div class="content">
-							<div class="inner">
-								<h1>少星部落阁</h1>
-								<p><a href="https://少星.icu">少星.icu</a>								</p>
-							</div>
-						</div>
-						<nav>
+	<body>
+		<div class="container"><!-- 主体开始 -->
+			<div class="hander"><!-- 导航开始 -->
+				<nav id="nav-menu">
+					<a href="#" data-rel="home-me-section" class="active">首页</a>
+					<a href="#" data-rel="about-exp-section">关于</a>
+					<a href="#" data-rel="course-exp-section">历程</a>
+					<a href="#" data-rel="website-exp-section">站点</a>
+					</nav>
+				</div><!-- 导航结束 -->
+			<div class="content"><!-- 内容开始 -->
+				<section class="home-me-section active-section"><!-- 首页开始 -->
+					<div class="main"><!-- 首页内容 -->
+						<img src="img/bgo.jpg" class="bgo" />
+						<img src="img/tx.png" class="ato" onclick="alert('戳我干嘛 ￣へ￣')" />
+						<div class="name" onclick="javascript:this.innerHTML=(this.innerHTML=='少星°'?'Shaoxing°':'少星°');">少星°</div>
+						<div class="motto" onclick="javascript:this.innerHTML=(this.innerHTML=='心存敬畏 行有所止'?'Be in awe and stop':'心存敬畏 行有所止');">心存敬畏 行有所止</div>
+						<div class="navo">
 							<ul>
-								<li><a href="https://blog.少星.icu/" target="_blank"><i class="fa fa-home"></i>博客</a></li>
-								<li><a href="http://xinglu.xyz/" target="_blank"><i class="fa fa-cloud"></i>网盘</a></li>
-								<li><a href="https://pan.xinglu.xyz/"target="_blank"><i class="fa fa-cloud"></i>公开盘</a></li>
-								<li><a href="https://github.com/muzishaoxing/" target="_blank"><i class="fa fa-github"></i>github</a></li>
-								<li><a href="https://daohang.少星.icu" target="_blank"><i class="fa fa-heart-o"></i>收藏</a></li>
-								<li><a href="http://wpa.qq.com/msgrd?v=3&uin=262782714&site=qq&menu=yes"target="_blank"><i class="fa fa-qq"></i>QQ</a></li>
-
-
-								
+								<li><a href="https://github.com/muzishaoxing/" target="_blank"><i class="fab fa-github"></i></a></li><!-- github -->
+								<li><a href="http://wpa.qq.com/msgrd?v=3&uin=262782714&site=qq&menu=yes" target="_blank"><i class="fab fa-qq"></i></a></li><!-- QQ -->
+								<li><a href="mailto:shaoxing@xinglu.xyz" target="_blank"><i class="fa-solid fa-envelope"></i></a></li><!-- 邮箱 -->
+								<li><a href="http://xinglu.xyz/" target="_blank"><i class="fa-solid fa-cloud-arrow-up"></i></a></li><!-- 星盘 -->
+								<li><a href="https://pan.xinglu.xyz" target="_blank"><i class="fa-solid fa-cloud-arrow-down"></i></a></li><!-- 星源 -->
+								<li><a href="http://blog.xinglu.xyz" target="_blank"><i class="fa-solid fa-house"></i></a></li><!-- 主页 -->
 							</ul>
-						</nav>
-					</header>
-
-				<!-- Footer -->
-					<footer id="footer">
-						<p class="copyright">©2022 <a href="https://少星.icu" target="_blank">by—少星</a> 版权所有</p>
-
-					</footer>
-
-			</div>
-
-		<!-- BG -->
-			<div id="bg"></div>
-
-		<!-- Scripts -->
-			<script src="js/jquery.min.js" ></script>
-			<script src="js/skel.min.js" ></script>
-			<script src="js/util.js" ></script>
-			<script src="js/main.js" ></script>
-            <script src="js/su.js"></script>
-            <script type="text/javascript">jQuery(document).ready(function($){
-               $('body').wpSuperSnow({
-    flakes: ['https://cdn.jsdelivr.net/gh/muzishaoxing/picture@main/shaoxing/20220215/ gE97iB /1878985.png', 'https://cdn.jsdelivr.net/gh/muzishaoxing/picture@main/shaoxing/20220215/ Jj20hs /360455.png', 'https://cdn.jsdelivr.net/gh/muzishaoxing/picture@main/shaoxing/20220215/oWfmDv/1879015.png', 'https://cdn.jsdelivr.net/gh/muzishaoxing/picture@main/shaoxing/20220215/3NIAIS/629520.png', ],
-    totalFlakes: '90',
-    zIndex: '999999',
-    maxSize: '30',
-    maxDuration: '20',
-    useFlakeTrans: false
-});
-});
-</script>
-	<audio id="mom" src="1.mp3" autoplay="autoplay" loop="-1" preload="auto" type="audio/mp3"></audio>
+						</div>
+					</div><!-- 首页内容结束 -->
+					</section><!-- 首页结束 -->
+				<section class="about-exp-section"><!-- 关于开始 -->
+					<div class="main"><!-- 关于内容 -->
+						<img src="img/bgt.jpg" class="bgt" />
+						<img src="img/tx.png" class="ats" />
+						<div class="about">
+							<p>>_我就喜欢瞎搞！
+							<br>>_喜欢研究收录，好玩好用的玩意。
+							</p>
+						</div>
+						<div class="about" style="margin-top:20px;">
+							<p>这条路我才刚刚迈开了我的第一步
+							<br>路上的坎一定会非常多，但
+							<br>在我眼里
+							<br>没有什么问题是尝试不能解决的，
+							<br>即使前方的路看似绝境，也要有硬生生给自己开出一条路的勇气</p>
+						</div>
+					</div><!-- 关于内容结束 -->
+					</section><!-- 关于结束 -->
+				<section class="course-exp-section"><!-- 历程开始 -->
+					<div class="main"><!-- 历程内容 -->
+						<img src="img/bgt.jpg" class="bgt" />
+						<img src="img/tx.png" class="ats" />
+						<div class="box">
+							<div id="boxs">
+								<div class="track-list"><!-- 时间轴开始 -->
+								<ul>
+									<li>
+										<i class="node-icon"><img src="img/tbl.svg"></i>
+										<span class="time" style="color:#2ECC71">2022-2-14</span>
+										<span class="txt" style="color:#2ECC71">创建<a href="https://少星.icu">「个人引导页」</a></span>
+									</li>
+									<li>
+										<i class="node-icon"><img src="img/tb.svg"></i>
+										<span class="time">2022-2-14</span>
+										<span class="txt">创建<a href="https://pan.xinglu.xyz">「星途分享站」</a></span>
+									</li>
+									<li>
+										<i class="node-icon"><img src="img/tb.svg"></i>
+										<span class="time">2022-1-1</span>
+										<span class="txt">创建<a href="https://xinglu.xyz">「星途私有云」</a></span>
+									</li>
+									<li>
+										<i class="node-icon"><img src="img/tb.svg"></i>
+										<span class="time">2021-4-5</span>
+										<span class="txt">插件<a href="https://教程.少星.icu">「Hackintool」</a></span>
+									</li>
+									<li>
+										<i class="node-icon"><img src="img/tb.svg"></i>
+										<span class="time">2021-2-14</span>
+										<span class="txt">创建<a href="https://blog.少星.icu">「少星部落阁」</a></span>
+									</li>
+								</ul>
+							</div><!-- 时间轴结束 -->
+						</div>
+					</div>
+						<div style="color:#aaa;text-align:center;font-size:12px">
+								注: 上下滑动查看历史进程
+							</div>
+						</div><!-- 历程内容结束 -->
+					</section><!-- 历程结束 -->
+				<section class="website-exp-section"><!-- 站点开始 -->
+					<div class="main"><!-- 历程内容 -->
+						<img src="img/bgt.jpg" class="bgt" />
+						<img src="img/tx.png" class="ats" />
+							<div id="boxs">
+								<div class="track-list"><!-- 时间轴开始 -->
+							<a href="https://blog.少星.icu" target="_blank"><div class="web">「少星部落阁」</div></a><!-- 站点1 -->
+							<a href="https://xinglu.xyz" target="_blank"><div class="web">「星途私有云」</div></a><!-- 站点2 -->
+							<a href="https://pan.xinglu.xyz" target="_blank"><div class="web">「星途分享站」</div></a><!-- 站点3 -->
+							<!-- <a href="#" target="_blank"><div class="web">引导页</div></a> 跳转网页事例 -->
+							<!-- <div class="web" onclick="alert('敬请期待')">敬请期待</div>--> 
+						</div><!-- 站点内容结束 -->
+					</div>
+						<div style="color:#aaa;text-align:center;font-size:12px">
+							<div  onclick="alert('🤔都告诉你正常了。。。你咋还点？')">👉🏻所有站点均正常运行👈🏻</div>
+					</section><!-- 站点结束 -->
+				</div><!-- 内容结束 -->
+			</div><!-- 主体结束 -->
+		<div class="footer"><!-- 底部版权 -->
+			<script type="text/javascript" src="https://www.iowen.cn/jitang/api/?format=js&charset=utf-8"></script>
+			<div id="zha"><script>hitokoto()</script></div>
+							<span id="sitetime"></span><!-- 运行时间 -->
+				<br>©️ <a href="https://少星.icu">少星°</a>
+			</div><!-- 版权结束 -->
+		<script src="js/index.js"></script><!-- 核心插件 -->
+		<script src="https://kit.fontawesome.com/f9c9cd400f.js" crossorigin="anonymous"></script>
+		<script src="js/Sitetime.js"></script><!-- 运行时间 -->
+		<script src="js/Mouse.js"></script><!-- 点击烟花特效 -->
 	</body>
 </html>
