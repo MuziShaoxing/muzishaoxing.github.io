@@ -6,11 +6,7 @@ def generate_timeline(folder_path):
     <div class="track-list"><!-- 时间轴开始 -->
     """
     
-    # 定义文件夹的自定义排序顺序
-    folder_order = ["Android", "ios", "Chrome扩展", "Mac", "Windows"]
-    
-    # 获取所有文件夹和文件
-    all_folders = []
+    # 递归获取文件夹下的所有文件（包括子文件夹中的文件）
     for root, dirs, files in os.walk(folder_path):
         # 忽略以 . 开头的文件夹
         if os.path.basename(root).startswith('.'):
@@ -23,33 +19,24 @@ def generate_timeline(folder_path):
         else:
             folder_title = relative_folder_path
         
-        # 获取文件夹中的文件
-        folder_files = []
-        for file in files:
-            if file.startswith('.'):
-                continue
-            file_path = os.path.join(root, file)
-            relative_path = os.path.relpath(file_path, folder_path)
-            display_name = os.path.basename(relative_path)
-            folder_files.append((relative_path, display_name))
-        
-        # 对文件按名称排序
-        folder_files.sort(key=lambda x: x[1])
-        
-        # 添加文件夹和文件到列表
-        all_folders.append((folder_title, folder_files))
-    
-    # 对文件夹按自定义顺序排序
-    all_folders.sort(key=lambda x: folder_order.index(x[0]) if x[0] in folder_order else len(folder_order))
-    
-    # 生成HTML
-    for folder_title, folder_files in all_folders:
+        # 添加文件夹标题（作为分栏标题）
         timeline_html += f"""
             <i class="folder-icon"></i>
-           <i class="fa-solid fa-compact-disc"></i>
+            <i class="node-icon"><img src="./img/tb.svg"></i>
             <span class="txt">{folder_title}</span><br>
         """
-        for relative_path, display_name in folder_files:
+        
+        # 遍历文件夹中的文件
+        for file in files:
+            # 忽略以 . 开头的文件
+            if file.startswith('.'):
+                continue
+            
+            # 构建文件的相对路径
+            relative_path = os.path.relpath(os.path.join(root, file), folder_path)
+            display_name = os.path.basename(relative_path)
+            
+            # 构建文件项（作为分栏内的内容）
             timeline_html += f"""
             &emsp;&emsp;<span class="txt"><a href="./Downloads/{relative_path}">「{display_name}」</a></span><br>
             """

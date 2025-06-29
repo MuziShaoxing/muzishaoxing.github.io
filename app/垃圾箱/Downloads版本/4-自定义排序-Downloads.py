@@ -46,7 +46,7 @@ def generate_timeline(folder_path):
     for folder_title, folder_files in all_folders:
         timeline_html += f"""
             <i class="folder-icon"></i>
-           <i class="fa-solid fa-compact-disc"></i>
+            <i class="node-icon"><img src="./img/tb.svg"></i>
             <span class="txt">{folder_title}</span><br>
         """
         for relative_path, display_name in folder_files:
