@@ -7,7 +7,7 @@ def generate_timeline(folder_path):
     """
     
     # 定义文件夹的自定义排序顺序
-    folder_order = ["Android", "ios", "Chrome扩展", "Mac", "Windows"]
+    folder_order = ["Android", "ios", "Chrome扩展", "Mac", "Windows", "EFI", "其他"]
     
     # 获取所有文件夹和文件
     all_folders = []
@@ -33,6 +33,10 @@ def generate_timeline(folder_path):
             display_name = os.path.basename(relative_path)
             folder_files.append((relative_path, display_name))
         
+        # 如果文件夹为空，则跳过
+        if not folder_files:
+            continue
+        
         # 对文件按名称排序
         folder_files.sort(key=lambda x: x[1])
         
@@ -45,13 +49,17 @@ def generate_timeline(folder_path):
     # 生成HTML
     for folder_title, folder_files in all_folders:
         timeline_html += f"""
-            <i class="folder-icon"></i>
-           <i class="fa-solid fa-compact-disc"></i>
-            <span class="txt">{folder_title}</span><br>
+            <div class="category">
+                <i class="folder-icon"></i>
+                <i class="fa-solid fa-compact-disc"></i>
+                <span class="txt">{folder_title}</span>
+            </div>
         """
         for relative_path, display_name in folder_files:
             timeline_html += f"""
-            &emsp;&emsp;<span class="txt"><a href="./Downloads/{relative_path}">「{display_name}」</a></span><br>
+            <div class="item">
+                <span class="txt"><a href="./Downloads/{relative_path}">「{display_name}」</a></span>
+            </div>
             """
     
     timeline_html += """
