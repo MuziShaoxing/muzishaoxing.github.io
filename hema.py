@@ -57,7 +57,7 @@ def generate_timeline(folder_path):
         for relative_path, display_name in folder_files:
             timeline_html += f"""
             <div class="item">
-                <span class="txt"><a href="./Downloads/{relative_path}">「{display_name}」</a></span>
+                <span class="txt"><a href="./hema/{relative_path}">「{display_name}」</a></span>
             </div>
             """
     
@@ -68,15 +68,15 @@ def generate_timeline(folder_path):
     return timeline_html
 
 # 使用示例
-folder_path = os.path.abspath('./Downloads')  # 设置为Downloads文件夹的绝对路径
+folder_path = os.path.abspath('./hema')  # 设置为hema文件夹的绝对路径
 timeline_html = generate_timeline(folder_path)
 
-# 检查index.html文件是否存在
-if not os.path.exists('index.html'):
-    print("错误：index.html文件不存在")
+# 检查hema.html文件是否存在
+if not os.path.exists('hema.html'):
+    print("错误：hema.html文件不存在")
 else:
-    # 读取index.html文件内容
-    with open('index.html', 'r', encoding='utf-8') as f:
+    # 读取hema.html文件内容
+    with open('hema.html', 'r', encoding='utf-8') as f:
         html_content = f.read()
 
     # 使用正则表达式找到时间轴部分的起始和结束位置
@@ -90,10 +90,10 @@ else:
         # 替换时间轴部分
         new_html_content = html_content.replace(original_timeline, timeline_html)
         
-        # 将修改后的内容写回index.html文件
-        with open('index.html', 'w', encoding='utf-8') as f:
+        # 将修改后的内容写回hema.html文件
+        with open('hema.html', 'w', encoding='utf-8') as f:
             f.write(new_html_content)
         
-        print("时间轴HTML已更新到index.html文件中")
+        print("时间轴HTML已更新到hema.html文件中")
     else:
         print("未找到时间轴部分，无法更新")
