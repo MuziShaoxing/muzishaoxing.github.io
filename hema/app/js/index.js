@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const formattedDate = `${year}${month}${day}`;
 
             // 新文件名，格式为 "原文件名_YYMMDD.扩展名"
-            const newFileName = fileName.replace(/\.\w+$/, `_${formattedDate}$&`);
+            const newFileName = fileName.replace(/\.\w+$/, `-${formattedDate}$&`);
 
             // 创建一个新的隐身的 a 标签
             const tempLink = document.createElement('a');
