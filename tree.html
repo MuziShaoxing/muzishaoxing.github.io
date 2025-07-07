@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本地目录树生成器</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #4a6fa5;
+      --primary-light: #7da3e6;
+      --secondary-color: #6c8dcd;
+      --background-color: #f9fbff;
+      --surface-color: #ffffff;
+      --error-color: #d32f2f;
+      --text-primary: #1d2430;
+      --text-secondary: #4a5a7a;
+      --border-color: #e0ebff;
+      --hover-color: #f3f8ff;
+      --shadow-color: rgba(108, 141, 205, 0.15);
+      --success-color: #388e3c;
+      --border-radius: 12px;
+      --spacing: 20px;
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans SC', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: var(--background-color);
+      color: var(--text-primary);
+      padding: 20px;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+      width: 900px;
+      max-width: 95%;
+      padding: var(--spacing);
+      background-color: var(--surface-color);
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 20px var(--shadow-color);
+    }
+
+    /* 头部样式 */
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: var(--spacing);
+      padding-bottom: var(--spacing);
+      border-bottom: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background-color: var(--primary-color);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .logo-text {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .header-hint {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      max-width: 90%;
+    }
+
+    /* 操作区样式 */
+    .action-area {
+      margin-bottom: var(--spacing);
+    }
+
+    .folder-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: var(--spacing);
+    }
+
+    .btn {
+      padding: 16px 20px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 17px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: var(--transition);
+      width: 100%;
+    }
+
+    .btn:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px var(--shadow-color);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background-color: white;
+      color: var(--primary-color);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--hover-color);
+    }
+
+    /* 设置区样式 */
+    .settings {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: var(--spacing);
+      padding: 18px;
+      background-color: var(--hover-color);
+      border-radius: var(--border-radius);
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .setting-item label {
+      font-size: 16px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .setting-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* 预览区样式 */
+    .preview-area {
+      flex: 1;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      background-color: var(--surface-color);
+      margin-bottom: var(--spacing);
+      position: relative;
+    }
+
+    .preview-content {
+      padding: 20px;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .tree-preview {
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      white-space: pre;
+    }
+
+    .empty-state {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 17px;
+    }
+
+    /* 拖拽区域样式 */
+    .drag-over {
+      background-color: var(--hover-color);
+      border-color: var(--primary-color);
+    }
+
+    /* 底部样式 */
+    footer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .status {
+      font-size: 15px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 12px;
+      border-radius: var(--border-radius);
+      background-color: var(--hover-color);
+    }
+
+    .status.success {
+      color: var(--success-color);
+      background-color: rgba(56, 142, 60, 0.1);
+    }
+
+    .status.error {
+      color: var(--error-color);
+      background-color: rgba(211, 47, 47, 0.1);
+    }
+
+    /* 滚动条样式 */
+    .preview-content::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .preview-content::-webkit-scrollbar-track {
+      background: rgba(108, 141, 205, 0.05);
+      border-radius: 4px;
+    }
+
+    .preview-content::-webkit-scrollbar-thumb {
+      background: rgba(108, 141, 205, 0.2);
+      border-radius: 4px;
+    }
+
+    .preview-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(108, 141, 205, 0.3);
+    }
+
+    /* 加载动画 */
+    .loader {
+      display: none;
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(108, 141, 205, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 响应式调整 */
+    @media (min-width: 1200px) {
+      main {
+        width: 1000px;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 1199px) {
+      main {
+        width: 800px;
+        height: 90vh;
+      }
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --spacing: 12px;
+      }
+      
+      .btn, .setting-item label, .tree-preview {
+        font-size: 14px;
+      }
+      
+      .logo-text {
+        font-size: 20px;
+      }
+      
+      .header-hint {
+        font-size: 13px;
+      }
+      
+      main {
+        height: auto;
+        min-height: 80vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">
+          <span class="material-icons">folder</span>
+        </div>
+        <div class="logo-text">本地文件夹目录树生成器</div>
+      </div>
+      <div class="header-hint">
+        将HTML文件置于目标文件夹根目录，通过浏览器打开可直观展示文件夹结构，便捷高效管理文件，提升工作效率。
+      </div>
+      <div class="header-hint">
+        本页面纯本地运行，网页不联网收集传输任何内容
+      </div>
+    </header>
+
+    <section class="action-area">
+      <div class="folder-selector">
+        <button id="selectFolderBtn" class="btn" aria-label="选择要生成目录树的文件夹">
+          <span class="material-icons">folder_open</span>
+          选择文件夹
+        </button>
+        <button id="generateBtn" class="btn btn-secondary" disabled aria-label="生成目录树HTML文件">
+          <span class="material-icons">download</span>
+          生成HTML文件
+        </button>
+      </div>
+
+      <div class="settings">
+        <div class="setting-item">
+          <input type="checkbox" id="includeHidden" >
+          <label for="includeHidden">包含“隐藏“文件/文件夹</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview-area" id="dropArea">
+      <div class="preview-content">
+        <div id="treePreview" class="tree-preview"></div>
+        <div id="emptyState" class="empty-state">
+          <span class="material-icons" style="font-size: 70px; color: #e0ebff;">folder_open</span>
+          <p>请选择一个文件夹开始</p>
+          <p class="drag-hint" style="margin-top: 10px; color: var(--text-secondary);">或拖拽文件夹至此处</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div id="status" class="status" aria-live="polite"></div>
+      <div id="loader" class="loader"></div>
+    </footer>
+  </main>
+
+  <script src="./app/js/tree.js"></script>
+</body>
+</html>
