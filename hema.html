@@ -67,6 +67,7 @@
     
     
     
+    
     <div class="track-list"><!-- 时间轴开始 -->
     
             <div class="category">
@@ -110,7 +111,25 @@
                 <span class="txt"><a href="./hema/9-运力与排班1.0.xlsx">「9-运力与排班1.0.xlsx」</a></span>
             </div>
             
+            <div class="category">
+                <i class="fa-solid fa-compact-disc"></i>
+                <span class="txt">在线工具</span>
+            </div>
+        
+            <div class="item">
+                <span class="txt"><a href="./hema/在线工具/TXT转通讯录.html" target="_blank" rel="noopener noreferrer">「TXT转通讯录.html」</a> <span style="font-size:12px; color:#888;">(新窗口打开)</span></span>
+            </div>
+            
+            <div class="item">
+                <span class="txt"><a href="./hema/在线工具/文件目录树.html" target="_blank" rel="noopener noreferrer">「文件目录树.html」</a> <span style="font-size:12px; color:#888;">(新窗口打开)</span></span>
+            </div>
+            
+            <div class="item">
+                <span class="txt"><a href="./hema/在线工具/文字转语音.html" target="_blank" rel="noopener noreferrer">「文字转语音.html」</a> <span style="font-size:12px; color:#888;">(新窗口打开)</span></span>
+            </div>
+            
     </div><!-- 时间轴结束 -->
+    
     
     
     
@@ -171,6 +190,42 @@
 
         </div>
     </div>
+
+    <script>
+    // 修复所有HTML文件的链接，确保点击时跳转而非下载
+    (function() {
+        // 获取所有链接
+        var links = document.querySelectorAll('.item a');
+        
+        links.forEach(function(link) {
+            var href = link.getAttribute('href');
+            // 检查是否链接到HTML文件
+            if (href && href.toLowerCase().endsWith('.html')) {
+                // 修改链接行为：在新窗口打开或当前窗口跳转
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+                
+                // 添加点击事件处理，确保不会下载
+                link.addEventListener('click', function(e) {
+                    // 不阻止默认行为，让浏览器正常处理
+                    console.log('打开HTML文件:', href);
+                });
+            }
+        });
+        
+        // 备用方案：拦截所有下载请求，检测是否是HTML
+        if (typeof document.addEventListener === 'function') {
+            document.addEventListener('click', function(e) {
+                var target = e.target.closest('a');
+                if (target && target.href && target.href.toLowerCase().endsWith('.html')) {
+                    // 确保链接正常打开，不额外处理
+                    return true;
+                }
+            });
+        }
+    })();
+    </script>
+    
 
     <script>
     // 修复所有HTML文件的链接，确保点击时跳转而非下载
