@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>智能语音助手 - 音色切换自动重置 | 语速音调 | 循环间隔</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f7ff 0%, #e9eef5 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .card {
+            max-width: 960px;
+            width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(2px);
+            border-radius: 48px;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25);
+            padding: 28px 30px 38px;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            background: linear-gradient(135deg, #1e2b3c, #2c5a7a);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sub {
+            color: #4a627a;
+            margin-bottom: 28px;
+            font-size: 0.9rem;
+            border-left: 3px solid #3b82f6;
+            padding-left: 14px;
+            font-weight: 450;
+        }
+
+        .textarea-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #1f3a4b;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 1rem;
+            border-radius: 28px;
+            border: 1.5px solid #cfdfed;
+            background: white;
+            resize: vertical;
+            font-family: inherit;
+            transition: 0.2s;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 28px;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 130px;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c5a6e;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 40px;
+            border: 1px solid #cbdde9;
+            background: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f1f5f9;
+            padding: 5px 15px;
+            border-radius: 60px;
+        }
+        .slider-group span {
+            font-size: 0.85rem;
+            color: #2c5a6e;
+            font-weight: 500;
+            min-width: 45px;
+        }
+        input[type="range"] {
+            flex: 1;
+            padding: 0;
+            height: 5px;
+            -webkit-appearance: none;
+            background: #cbdde9;
+            border-radius: 5px;
+        }
+        input[type="range"]:focus {
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .value-display {
+            min-width: 35px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #1e4a76;
+        }
+
+        .interval-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 5px 15px 5px 10px;
+            border-radius: 60px;
+        }
+        .interval-row span {
+            font-size: 0.85rem;
+            color: #2c5a6e;
+            font-weight: 500;
+        }
+        input[type="number"] {
+            text-align: center;
+            padding: 8px 5px;
+        }
+
+        .play-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin: 25px 0 20px;
+            align-items: center;
+        }
+
+        button {
+            background: #1e2f3c;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        button i {
+            font-style: normal;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .btn-primary { background: #3b82f6; box-shadow: 0 8px 18px rgba(59,130,246,0.3); }
+        .btn-primary:hover { background: #2563eb; transform: scale(1.02); }
+        .btn-secondary { background: #4b5563; }
+        .btn-secondary:hover { background: #374151; }
+        .btn-stop { background: #dc2626; }
+        .btn-stop:hover { background: #b91c1c; }
+
+        .status {
+            background: #eef2ff;
+            border-radius: 40px;
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            color: #1e3a5f;
+            margin-top: 20px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .badge {
+            background: #ffffffcc;
+            backdrop-filter: blur(4px);
+            padding: 5px 14px;
+            border-radius: 50px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #0f2b3b;
+        }
+
+        .footer-note {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 28px;
+            color: #6c86a3;
+            border-top: 1px solid #e2edf7;
+            padding-top: 16px;
+        }
+        @media (max-width: 560px) {
+            .card { padding: 20px; }
+            button { padding: 8px 16px; font-size: 0.8rem; }
+            .slider-group { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>🎙️ 灵韵语音 · 音色联动版</h1>
+    <div class="sub">切换音色时自动重置语速/音调/音量 | 循环/间隔播放 | 多音色</div>
+
+    <div class="textarea-group">
+        <label>📝 输入文本 (支持中文、英文、数字混合)</label>
+        <textarea id="ttsText" rows="4" placeholder="示例：你好，欢迎使用专业语音助手。今天是 2026 年 4 月 15 日，天气晴朗。切换音色时会自动恢复语速和音调！"></textarea>
+    </div>
+
+    <!-- 第一行：音色 + 语速 + 音调 -->
+    <div class="controls">
+        <div class="control-group">
+            <label>🎤 音色选择</label>
+            <select id="voiceSelect">
+                <option value="">✨ 加载语音列表中...</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>⚡ 语速 (0.5 - 2.0)</label>
+            <div class="slider-group">
+                <span>🐢慢</span>
+                <input type="range" id="rateSlider" min="0.5" max="2.0" step="0.05" value="1.0">
+                <span id="rateValue" class="value-display">1.0</span>
+                <span>🐇快</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>🎵 音调 (0.5 - 2.0)</label>
+            <div class="slider-group">
+                <span>⬇️低</span>
+                <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.05" value="1.0">
+                <span id="pitchValue" class="value-display">1.0</span>
+                <span>⬆️高</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第二行：循环模式 + 间隔 + 音量 -->
+    <div class="controls">
+        <div class="control-group">
+            <label>🔄 循环模式</label>
+            <select id="loopMode">
+                <option value="off">关闭循环</option>
+                <option value="single">单次重播 (再播一遍)</option>
+                <option value="continuous">无限循环 (持续朗读)</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>⏱️ 间隔播放 (秒)</label>
+            <div class="interval-row">
+                <input type="number" id="intervalSec" value="2" min="0.5" max="30" step="0.5">
+                <span>秒</span>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>🔊 音量 (0 - 1)</label>
+            <div class="slider-group">
+                <span>🔇</span>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+                <span id="volumeValue" class="value-display">100%</span>
+                <span>🔊</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="play-panel">
+        <button id="playBtn" class="btn-primary">▶ 播放 / 开始循环</button>
+        <button id="pauseSpeechBtn" class="btn-secondary">⏸️ 暂停语音</button>
+        <button id="resumeSpeechBtn" class="btn-secondary">▶ 恢复播放</button>
+        <button id="stopBtn" class="btn-stop">⏹️ 停止 & 清空循环</button>
+    </div>
+
+    <div class="status" id="statusBar">
+        <span>🔎 状态: 就绪</span>
+        <span class="badge" id="loopStatusBadge">循环: 关闭</span>
+        <span class="badge" id="activeModeBadge">间隔: 2s</span>
+        <span class="badge" id="voiceInfoBadge">语速:1.0 | 音调:1.0</span>
+    </div>
+    <div class="footer-note">
+        💡 基于浏览器内置语音引擎 · 无需联网 · 支持中英数字混合 · 所有调节实时生效。<br>
+        🎯 切换音色时，语速、音调、音量会自动恢复为默认值 (1.0 / 1.0 / 100%)，让您听到最真实的声音效果。<br>
+        ⚡ 推荐 Edge 浏览器获得晓晓/云扬自然语音；Chrome/Firefox 亦可使用系统中文语音。
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- DOM 元素 ----------
+        const textarea = document.getElementById('ttsText');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const loopModeSelect = document.getElementById('loopMode');
+        const intervalSecInput = document.getElementById('intervalSec');
+        const rateSlider = document.getElementById('rateSlider');
+        const rateValue = document.getElementById('rateValue');
+        const pitchSlider = document.getElementById('pitchSlider');
+        const pitchValue = document.getElementById('pitchValue');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseSpeechBtn');
+        const resumeBtn = document.getElementById('resumeSpeechBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusSpan = document.querySelector('#statusBar span:first-child');
+        const loopStatusBadge = document.getElementById('loopStatusBadge');
+        const activeModeBadge = document.getElementById('activeModeBadge');
+        const voiceInfoBadge = document.getElementById('voiceInfoBadge');
+
+        // ---------- 全局状态 ----------
+        let currentUtterance = null;
+        let isPlayingNow = false;
+        let isPaused = false;
+        let loopTimer = null;
+        let isLoopSequenceActive = false;
+        let currentLoopActive = false;
+
+        // 默认值定义（用于音色切换重置）
+        const DEFAULT_RATE = 1.0;
+        const DEFAULT_PITCH = 1.0;
+        const DEFAULT_VOLUME = 1.0;
+
+        // 更新底部显示语速音调音量
+        function updateVoiceInfoBadge() {
+            const rate = parseFloat(rateSlider.value).toFixed(2);
+            const pitch = parseFloat(pitchSlider.value).toFixed(2);
+            const volPercent = Math.round(volumeSlider.value * 100);
+            voiceInfoBadge.innerHTML = `语速:${rate} | 音调:${pitch} | 音量:${volPercent}%`;
+        }
+
+        // 更新滑块数值显示及音量百分比
+        function bindSliders() {
+            rateSlider.addEventListener('input', () => {
+                rateValue.textContent = parseFloat(rateSlider.value).toFixed(2);
+                updateVoiceInfoBadge();
+            });
+            pitchSlider.addEventListener('input', () => {
+                pitchValue.textContent = parseFloat(pitchSlider.value).toFixed(2);
+                updateVoiceInfoBadge();
+            });
+            volumeSlider.addEventListener('input', () => {
+                const vol = Math.round(volumeSlider.value * 100);
+                volumeValue.textContent = `${vol}%`;
+                updateVoiceInfoBadge();
+            });
+            updateVoiceInfoBadge();
+        }
+        bindSliders();
+
+        // 辅助UI更新
+        function updateStatusUI(text, loopActive, loopModeVal, intervalVal) {
+            if(text) statusSpan.innerHTML = `🔎 状态: ${text}`;
+            if(loopActive !== undefined) {
+                if(loopActive) {
+                    const modeText = loopModeVal === 'single' ? '单次重播' : (loopModeVal === 'continuous' ? '无限循环' : '循环开');
+                    loopStatusBadge.innerHTML = `循环: ${modeText} 🌀`;
+                } else {
+                    loopStatusBadge.innerHTML = `循环: 关闭`;
+                }
+            }
+            if(intervalVal !== undefined) {
+                activeModeBadge.innerHTML = `间隔: ${intervalVal}秒`;
+            } else {
+                const interval = parseFloat(intervalSecInput.value);
+                if(!isNaN(interval)) activeModeBadge.innerHTML = `间隔: ${interval}秒`;
+            }
+        }
+
+        function clearLoopTimer() {
+            if(loopTimer) { clearTimeout(loopTimer); loopTimer = null; }
+        }
+
+        // 完全停止语音和循环 (内部清理)
+        function fullStopAndReset() {
+            if(isLoopSequenceActive) isLoopSequenceActive = false;
+            currentLoopActive = false;
+            clearLoopTimer();
+            if(window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            if(currentUtterance) {
+                currentUtterance.onend = null;
+                currentUtterance.onerror = null;
+                currentUtterance = null;
+            }
+            isPlayingNow = false;
+            isPaused = false;
+        }
+
+        // 重置语速、音调、音量到默认值（音色切换时调用）
+        function resetSpeechParamsToDefault() {
+            // 重置语速滑块
+            rateSlider.value = DEFAULT_RATE;
+            rateValue.textContent = DEFAULT_RATE.toFixed(2);
+            // 重置音调滑块
+            pitchSlider.value = DEFAULT_PITCH;
+            pitchValue.textContent = DEFAULT_PITCH.toFixed(2);
+            // 重置音量滑块
+            volumeSlider.value = DEFAULT_VOLUME;
+            volumeValue.textContent = "100%";
+            // 更新UI上的徽章
+            updateVoiceInfoBadge();
+            // 状态栏轻提示（不干扰主要状态）
+            updateStatusUI('音色已切换，语速/音调/音量已重置', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            // 3秒后恢复普通状态（不清除主要状态文字，只清提示？为了体验，2秒后自动恢复为当前播放状态文字）
+            setTimeout(() => {
+                if(!isPlayingNow && !isLoopSequenceActive) {
+                    updateStatusUI('就绪', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                } else if(isPlayingNow) {
+                    updateStatusUI('朗读中...', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                } else if(isLoopSequenceActive) {
+                    updateStatusUI(`循环进行中`, currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                }
+            }, 2000);
+        }
+
+        // 加载中文语音 (优先微软/优质)
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            if(!voices || voices.length === 0) {
+                setTimeout(loadVoices, 200);
+                return;
+            }
+            // 筛选中文语音
+            let chineseVoices = voices.filter(voice => 
+                voice.lang.toLowerCase().includes('zh') || 
+                voice.lang.toLowerCase().includes('cn')
+            );
+            if(chineseVoices.length === 0) chineseVoices = voices;
+            
+            // 去重
+            const uniqueMap = new Map();
+            chineseVoices.forEach(v => { if(!uniqueMap.has(v.name)) uniqueMap.set(v.name, v); });
+            let uniqueVoices = Array.from(uniqueMap.values());
+            
+            // 排序: 微软语音优先，自然语音靠前
+            uniqueVoices.sort((a,b) => {
+                const aScore = (a.name.toLowerCase().includes('microsoft') || a.name.toLowerCase().includes('xiaoxiao') || a.name.toLowerCase().includes('yunxi')) ? 1 : 0;
+                const bScore = (b.name.toLowerCase().includes('microsoft') || b.name.toLowerCase().includes('xiaoxiao') || b.name.toLowerCase().includes('yunxi')) ? 1 : 0;
+                return bScore - aScore;
+            });
+            
+            const currentSelection = voiceSelect.value;
+            voiceSelect.innerHTML = '<option value="">🌐 系统推荐中文音色</option>';
+            uniqueVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                let displayName = voice.name;
+                if(voice.name.toLowerCase().includes('xiaoxiao')) displayName = `🎤 ${voice.name} 【晓晓·自然】`;
+                else if(voice.name.toLowerCase().includes('yunxi')) displayName = `🎤 ${voice.name} 【云希·自然】`;
+                else if(voice.name.toLowerCase().includes('microsoft')) displayName = `✨ ${voice.name} 【微软语音】`;
+                option.textContent = `${displayName} (${voice.lang})`;
+                if(voice.name === currentSelection) option.selected = true;
+                voiceSelect.appendChild(option);
+            });
+            if(!currentSelection && uniqueVoices.length > 0 && voiceSelect.options.length > 1) {
+                voiceSelect.selectedIndex = 1; // 默认选中第一个高质量
+            }
+            updateStatusUI('音色就绪', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+        }
+
+        if(window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        } else {
+            alert("浏览器不支持语音合成API");
+        }
+
+        // 音色切换时：重置语速/音调/音量，同时可选停止当前播放（避免异常）
+        function onVoiceChange() {
+            // 停止当前正在播放的语音（如果有），保证切换音色后下次播放用新音色且重置参数
+            if(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+                window.speechSynthesis.cancel();
+            }
+            if(currentUtterance) {
+                currentUtterance.onend = null;
+                currentUtterance.onerror = null;
+                currentUtterance = null;
+            }
+            isPlayingNow = false;
+            isPaused = false;
+            // 如果当前在循环中，停止循环，避免旧循环使用旧音色
+            if(isLoopSequenceActive) {
+                stopLoopSequence(true);
+                updateStatusUI('音色切换，循环已停止', false, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            }
+            // 重置语音参数
+            resetSpeechParamsToDefault();
+        }
+
+        function getSelectedVoice() {
+            const selectedVal = voiceSelect.value;
+            if(!selectedVal || selectedVal === "") return null;
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find(voice => voice.name === selectedVal) || null;
+        }
+
+        // 核心朗读函数，应用语速、音调、音量
+        function speakText(text, onEndCallback, onErrorCallback) {
+            return new Promise((resolve, reject) => {
+                if(!text || text.trim() === "") {
+                    const errMsg = "文本不能为空";
+                    updateStatusUI(errMsg, currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                    if(onErrorCallback) onErrorCallback(errMsg);
+                    reject(errMsg);
+                    return;
+                }
+                // 清除之前语音避免冲突
+                if(window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                    window.speechSynthesis.cancel();
+                }
+                if(currentUtterance) {
+                    currentUtterance.onend = null;
+                    currentUtterance.onerror = null;
+                }
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                const selectedVoice = getSelectedVoice();
+                if(selectedVoice) utterance.voice = selectedVoice;
+                // 获取用户设置的语速、音调、音量
+                let rate = parseFloat(rateSlider.value);
+                let pitch = parseFloat(pitchSlider.value);
+                let volume = parseFloat(volumeSlider.value);
+                if(isNaN(rate)) rate = 1.0;
+                if(isNaN(pitch)) pitch = 1.0;
+                if(isNaN(volume)) volume = 1.0;
+                utterance.rate = Math.min(2.0, Math.max(0.5, rate));
+                utterance.pitch = Math.min(2.0, Math.max(0.5, pitch));
+                utterance.volume = Math.min(1.0, Math.max(0, volume));
+                utterance.lang = 'zh-CN';
+                
+                utterance.onstart = () => {
+                    isPlayingNow = true;
+                    isPaused = false;
+                    updateStatusUI('朗读中...', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                };
+                utterance.onend = () => {
+                    isPlayingNow = false;
+                    isPaused = false;
+                    currentUtterance = null;
+                    updateStatusUI('播放结束', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                    if(onEndCallback) onEndCallback();
+                    resolve();
+                };
+                utterance.onerror = (err) => {
+                    console.warn("语音错误", err);
+                    isPlayingNow = false;
+                    isPaused = false;
+                    currentUtterance = null;
+                    updateStatusUI('语音错误', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                    if(onErrorCallback) onErrorCallback(err);
+                    reject(err);
+                };
+                currentUtterance = utterance;
+                window.speechSynthesis.speak(utterance);
+            });
+        }
+
+        // 停止循环序列（不清除语音播放则重置）
+        function stopLoopSequence(resetSpeech = true) {
+            if(isLoopSequenceActive) isLoopSequenceActive = false;
+            currentLoopActive = false;
+            clearLoopTimer();
+            if(resetSpeech) {
+                if(window.speechSynthesis) window.speechSynthesis.cancel();
+                if(currentUtterance) {
+                    currentUtterance.onend = null;
+                    currentUtterance = null;
+                }
+                isPlayingNow = false;
+                isPaused = false;
+            }
+            updateStatusUI(resetSpeech ? '循环已停止' : '循环关闭', false, loopModeSelect.value, parseFloat(intervalSecInput.value));
+        }
+
+        // 单次播放
+        function performSinglePlayback() {
+            const text = textarea.value.trim();
+            if(!text) {
+                updateStatusUI('文本为空', false, 'off', parseFloat(intervalSecInput.value));
+                return;
+            }
+            if(isLoopSequenceActive) stopLoopSequence(true);
+            else {
+                if(window.speechSynthesis) window.speechSynthesis.cancel();
+                if(currentUtterance) currentUtterance = null;
+                isPlayingNow = false;
+                isPaused = false;
+            }
+            speakText(text, () => {
+                updateStatusUI('单次播放完成', false, 'off', parseFloat(intervalSecInput.value));
+            }, (err) => {
+                updateStatusUI('播放失败', false, 'off', parseFloat(intervalSecInput.value));
+            });
+        }
+
+        // 循环核心
+        function startLoopSequence() {
+            if(isLoopSequenceActive) stopLoopSequence(true);
+            const loopMode = loopModeSelect.value;
+            if(loopMode === 'off') {
+                performSinglePlayback();
+                return;
+            }
+            const rawText = textarea.value.trim();
+            if(!rawText) {
+                updateStatusUI('文本为空', false, loopMode, parseFloat(intervalSecInput.value));
+                return;
+            }
+            isLoopSequenceActive = true;
+            currentLoopActive = true;
+            updateStatusUI(`循环启动 (${loopMode === 'single' ? '单次重播' : '无限循环'})`, true, loopMode, parseFloat(intervalSecInput.value));
+            
+            let singleRepeatCount = 0;
+            const MAX_SINGLE = 1;
+            const iteration = () => {
+                if(!isLoopSequenceActive) return;
+                const currentText = textarea.value.trim();
+                if(!currentText) {
+                    updateStatusUI('文本已清空，循环停止', false, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                    stopLoopSequence(true);
+                    return;
+                }
+                speakText(currentText, () => {
+                    if(!isLoopSequenceActive) return;
+                    const nowMode = loopModeSelect.value;
+                    if(nowMode === 'single') {
+                        singleRepeatCount++;
+                        if(singleRepeatCount >= MAX_SINGLE) {
+                            updateStatusUI('单次循环完成', false, nowMode, parseFloat(intervalSecInput.value));
+                            stopLoopSequence(true);
+                            return;
+                        }
+                    }
+                    let intervalVal = parseFloat(intervalSecInput.value);
+                    if(isNaN(intervalVal) || intervalVal < 0) intervalVal = 1;
+                    if(isLoopSequenceActive) {
+                        updateStatusUI(`等待 ${intervalVal} 秒后继续...`, true, nowMode, intervalVal);
+                        clearLoopTimer();
+                        loopTimer = setTimeout(() => {
+                            if(isLoopSequenceActive) iteration();
+                        }, intervalVal * 1000);
+                    }
+                }, (err) => {
+                    updateStatusUI('播放错误，循环终止', false, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                    stopLoopSequence(true);
+                });
+            };
+            iteration();
+        }
+
+        // 播放入口
+        function handlePlayOrStart() {
+            if(isLoopSequenceActive) stopLoopSequence(true);
+            else {
+                if(window.speechSynthesis) window.speechSynthesis.cancel();
+                if(currentUtterance) currentUtterance = null;
+                isPlayingNow = false;
+                isPaused = false;
+                clearLoopTimer();
+            }
+            const mode = loopModeSelect.value;
+            if(mode === 'off') performSinglePlayback();
+            else startLoopSequence();
+        }
+
+        // 暂停
+        function pauseSpeech() {
+            if(!window.speechSynthesis) return;
+            if(isPlayingNow && !isPaused && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+                window.speechSynthesis.pause();
+                isPaused = true;
+                updateStatusUI('已暂停', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            } else {
+                if(!isPlayingNow) updateStatusUI('没有正在播放的语音', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                else if(isPaused) updateStatusUI('已经暂停', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            }
+        }
+
+        // 恢复
+        function resumeSpeech() {
+            if(!window.speechSynthesis) return;
+            if(isPaused && window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                isPaused = false;
+                updateStatusUI('恢复播放', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            } else {
+                if(!isPaused && isPlayingNow) updateStatusUI('语音未暂停', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+                else if(!isPlayingNow) updateStatusUI('没有播放中的语音', currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            }
+        }
+
+        // 完全停止
+        function stopAll() {
+            fullStopAndReset();
+            if(isLoopSequenceActive) isLoopSequenceActive = false;
+            currentLoopActive = false;
+            clearLoopTimer();
+            updateStatusUI('完全停止', false, loopModeSelect.value, parseFloat(intervalSecInput.value));
+        }
+
+        // 间隔显示更新
+        function updateIntervalBadge() {
+            const interval = parseFloat(intervalSecInput.value);
+            if(!isNaN(interval)) activeModeBadge.innerHTML = `间隔: ${interval}秒${currentLoopActive ? ' (运行中)' : ''}`;
+        }
+        intervalSecInput.addEventListener('input', updateIntervalBadge);
+        loopModeSelect.addEventListener('change', () => {
+            updateStatusUI(undefined, currentLoopActive, loopModeSelect.value, parseFloat(intervalSecInput.value));
+            updateIntervalBadge();
+        });
+
+        // 绑定音色切换事件：切换音色时自动重置语速、音调、音量，并停止当前播放/循环
+        voiceSelect.addEventListener('change', onVoiceChange);
+
+        // 绑定按钮事件
+        playBtn.addEventListener('click', handlePlayOrStart);
+        pauseBtn.addEventListener('click', pauseSpeech);
+        resumeBtn.addEventListener('click', resumeSpeech);
+        stopBtn.addEventListener('click', stopAll);
+        
+        // 页面卸载清理
+        window.addEventListener('beforeunload', () => {
+            if(window.speechSynthesis) window.speechSynthesis.cancel();
+            if(loopTimer) clearTimeout(loopTimer);
+        });
+
+        // 初始状态
+        updateStatusUI('就绪 | 切换音色自动重置语速/音调/音量', false, 'off', 2);
+        updateIntervalBadge();
+        updateVoiceInfoBadge();
+    })();
+</script>
+</body>
+</html>
