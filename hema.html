@@ -1,485 +1,741 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <title>常用文件页</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+    <title>盒马 · 常用文件</title>
     <meta name="author" content="少星">
-    <meta name="robots" content="all">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="shortcut icon" href="./app/img/favicon.ico">
-    <link rel="stylesheet"  href="./app/css/hema.css">
-
+    <link rel="shortcut icon" href="https://mzsx.netlify.app/app/img/favicon.ico">
     <style>
-        /* 分栏导航样式 */
-        .folder-tabs {
+        /* ============================================
+           1. 全局重置 · 禁止body滚动
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f1f5f9 0%, #e4eaf1 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            padding: 1.5rem 1rem;
             display: flex;
-            gap: 8px;
-            margin: 20px 0 15px 0;
-            padding: 0 5px;
-            border-bottom: 2px solid #e0e0e0;
-            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
         }
-        
-        .folder-tab {
-            padding: 10px 20px;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            color: #333;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.3s ease;
+
+        /* ============================================
+           2. 主卡片 · 固定宽度 · 禁止溢出
+           ============================================ */
+        .container {
+            width: 100%;
+            max-width: 520px;
+            height: calc(100vh - 3rem);
+            max-height: 900px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 2rem;
+            box-shadow: 0 20px 40px -12px rgba(0, 20, 40, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ============================================
+           3. 头部 · Logo
+           ============================================ */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px 0 14px;
+            flex-shrink: 0;
+        }
+
+        .header .ats {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            object-fit: cover;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        /* ============================================
+           4. 导航栏
+           ============================================ */
+        .nav-menu {
+            padding: 10px 0;
+            text-align: center;
+            background: rgba(248, 250, 252, 0.4);
+            border-bottom: 1px solid rgba(203, 221, 238, 0.4);
+            flex-shrink: 0;
+        }
+
+        .nav-menu .menu-text {
+            font-size: 1rem;
+            color: #2c5f7e;
             font-weight: 500;
-            position: relative;
-            margin-bottom: -1px;
         }
-        
-        .folder-tab:hover {
-            background: #e8e8e8;
-            color: #000;
-            border-color: #bbb;
-        }
-        
-        .folder-tab.active {
-            color: #2196F3;
-            background: #fff;
-            border-bottom: 2px solid #2196F3;
-            border-left-color: #ddd;
-            border-right-color: #ddd;
-            border-top-color: #ddd;
-        }
-        
-        .folder-tab i {
+
+        .nav-menu i {
             margin-right: 6px;
-            font-size: 14px;
+            color: #3e7b9f;
         }
-        
-        /* 内容区域 */
-        .folder-content {
+
+        /* ============================================
+           5. 下拉区域 · 固定不滚动
+           ============================================ */
+        .dropdown-section {
+            padding: 18px 20px 0;
+            flex-shrink: 0;
+        }
+
+        .dropdown-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .dropdown-trigger {
+            width: 100%;
+            background: #fff;
+            border: 1.5px solid #cfdfec;
+            border-radius: 1.4rem;
+            padding: 0.9rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            color: #1f4662;
+            transition: all 0.2s;
+        }
+
+        .dropdown-trigger:hover {
+            background: #fefefe;
+            border-color: #9bbad2;
+        }
+
+        .trigger-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .trigger-left i, .trigger-left img {
+            font-size: 1.3rem;
+            color: #2c7eb6;
+            width: 1.5rem;
+            height: 1.5rem;
+            object-fit: contain;
+        }
+
+        .arrow-icon {
+            font-size: 1.2rem;
+            color: #7097b3;
+            transition: transform 0.25s;
+        }
+
+        .dropdown-wrapper.open .arrow-icon {
+            transform: rotate(180deg);
+        }
+
+        /* ============================================
+           6. 下拉菜单浮层 · 可滚动 · 隐藏滚动条
+           ============================================ */
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            max-height: 280px;
+            background: #fff;
+            border-radius: 1.2rem;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s;
+            border: 1px solid #e2edf6;
+        }
+
+        .dropdown-menu::-webkit-scrollbar {
             display: none;
         }
-        
-        .folder-content.active {
-            display: block;
+
+        .dropdown-wrapper.open .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
         }
-        
-        /* 内容切换动画 */
-        .folder-content .item {
-            animation: tabFadeIn 0.3s ease;
+
+        .dropdown-menu ul {
+            list-style: none;
+            padding: 0.4rem 0;
         }
-        
-        @keyframes tabFadeIn {
-            from { 
-                opacity: 0; 
-                transform: translateY(-5px); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0); 
-            }
+
+        .dropdown-menu li {
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            color: #1e4d6b;
+            transition: background 0.15s;
+            word-break: break-word;
+            white-space: normal;
         }
-        
-        /* HTML文件标识 */
-        .item a[href$=".html"]::after {
+
+        .dropdown-menu li:hover {
+            background: #f0f7fe;
+        }
+
+        .dropdown-menu li.active {
+            background: #e3f0fd;
+            color: #1c6b9e;
+        }
+
+        .dropdown-menu li i, .dropdown-menu li img {
+            width: 22px;
+            color: #5882a8;
+            flex-shrink: 0;
+        }
+
+        .dropdown-menu li img {
+            object-fit: contain;
+            height: 1.2rem;
+        }
+
+        /* ============================================
+           7. 内容区 · 仅垂直滚动 · 禁止水平滚动
+           ============================================ */
+        .content {
+            padding: 0 20px 30px;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .content::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ============================================
+           8. 文件列表项 · 自动换行
+           ============================================ */
+        .file-panel {
+            padding-top: 4px;
+            width: 100%;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.9rem 1rem;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 1.2rem;
+            border: 1px solid #eaf1f9;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            background: #fff;
+            box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.06);
+        }
+
+        .file-item i {
+            font-size: 1.2rem;
+            margin-right: 12px;
+            margin-top: 2px;
+            color: #3c7aa6;
+            width: 22px;
+            flex-shrink: 0;
+        }
+
+        .file-item a {
+            text-decoration: none;
+            color: #1f4868;
+            font-weight: 500;
+            display: flex;
+            align-items: flex-start;
+            flex: 1;
+            min-width: 0;
+            word-break: break-word;
+            white-space: normal;
+            line-height: 1.4;
+        }
+
+        .file-item a span {
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        .file-item a[href$=".html"]::after {
             content: " 🌐";
-            margin-left: 5px;
-            font-size: 12px;
-            opacity: 0.7;
+            margin-left: 6px;
+            font-size: 0.75rem;
+            opacity: 0.6;
+            flex-shrink: 0;
+            align-self: center;
+        }
+
+        .empty-folder {
+            padding: 2rem;
+            text-align: center;
+            color: #7a99b3;
+            font-style: italic;
+        }
+
+        /* ============================================
+           9. 手机端适配 · 消除上部空白
+           ============================================ */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+            .container {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+            }
+            .header {
+                padding: 16px 0 10px;
+            }
+            .header .ats {
+                width: 80px;
+                height: 80px;
+            }
+            .dropdown-section {
+                padding: 12px 16px 0;
+            }
+            .dropdown-menu {
+                max-height: 240px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 12px 0 8px;
+            }
+            .header .ats {
+                width: 60px;
+                height: 60px;
+            }
+            .nav-menu {
+                padding: 8px 0;
+            }
+            .dropdown-section {
+                padding: 8px 14px 0;
+            }
+            .content {
+                padding: 0 14px 20px;
+            }
+            .dropdown-menu {
+                max-height: 200px;
+            }
+            .file-item {
+                padding: 0.8rem;
+            }
         }
     </style>
-
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <img src="./app/img/favicon.ico" class="ats">
-        </div>
-        
-        <nav class="nav-menu">
-            <a href="#downloads"><i class="fas fa-download"></i> 资源下载</a>
-        </nav>
-        
-        <div class="content" id="downloads">
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    <div class="track-list"><!-- 时间轴开始 -->
-        
-            <!-- 分栏导航标签 -->
-            <div class="folder-tabs">
-                <button class="folder-tab active" data-folder="root">
-                    <i class="fa-solid fa-folder"></i> Root
-                </button>
+<div class="container">
+    <!-- 头部 Logo -->
+    <div class="header">
+        <img src="https://mzsx.netlify.app/app/img/favicon.ico" class="ats" alt="Logo">
+    </div>
 
-                <button class="folder-tab" data-folder="Python--">
-                    <i class="fa-solid fa-folder-open"></i> Python脚本
-                </button>
-                <button class="folder-tab" data-folder="folder-15">
-                    <i class="fa-solid fa-folder-open"></i> 在线工具
-                </button>
-            </div>
-        
-            <!-- Root 文件夹内容 -->
-            <div class="folder-content active" id="folder-root">
-            
-            <div class="item">
-                <span class="txt"><a href="hema/1-日报.xlsx" >「1-日报.xlsx」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/2-问单.xlsx" >「2-问单.xlsx」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/3-单袋比.xlsx" >「3-单袋比.xlsx」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/4-扣款记录.xlsx" >「4-扣款记录.xlsx」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/5-早退名单.xlsx" >「5-早退名单.xlsx」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/6-快捷指令-盒马.zip" >「6-快捷指令-盒马.zip」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/7-定制版二维码生成器.zip" >「7-定制版二维码生成器.zip」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/8-运力推算.xlsx" >「8-运力推算.xlsx」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/9-运力与排班1.0.xlsx" >「9-运力与排班1.0.xlsx」</a></span>
-            </div>
-            </div>
-        
-            <!-- Python脚本 文件夹内容 -->
-            <div class="folder-content" id="folder-Python--">
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/Excel转vCard助手.zip" >「Excel转vCard助手.zip」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/MP3格式转换.py" >「MP3格式转换.py」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/一键分类存放.py" >「一键分类存放.py」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/一键删除修改时间超过30天的历史文件.py" >「一键删除修改时间超过30天的历史文件.py」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/删除创建时间超过30天文件并确认.py" >「删除创建时间超过30天文件并确认.py」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/将TXT文件转VCF格式-带界面.py" >「将TXT文件转VCF格式-带界面.py」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/拖入py并运行.command" >「拖入py并运行.command」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/Python脚本/骑手指标分析 - 突出数据指标分析功能.py" >「骑手指标分析 - 突出数据指标分析功能.py」</a></span>
-            </div>
-            </div>
-        
-            <!-- 在线工具 文件夹内容 -->
-            <div class="folder-content" id="folder-folder-15">
-            
-            <div class="item">
-                <span class="txt"><a href="hema/在线工具/Excel 秒变 vCard.html" target="_blank" rel="noopener noreferrer">「Excel 秒变 vCard.html」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/在线工具/TXT转通讯录.html" target="_blank" rel="noopener noreferrer">「TXT转通讯录.html」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/在线工具/文件目录树.html" target="_blank" rel="noopener noreferrer">「文件目录树.html」</a></span>
-            </div>
-            
-            <div class="item">
-                <span class="txt"><a href="hema/在线工具/文字转语音.html" target="_blank" rel="noopener noreferrer">「文字转语音.html」</a></span>
-            </div>
-            </div>
-    
-    </div><!-- 时间轴结束 -->
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-        </div>
-        
-            		<script src="./app/js/hema.js"></script><!-- 核心插件 -->
+    <!-- 导航文字 -->
+    <div class="nav-menu">
+        <span class="menu-text"><i class="fas fa-download"></i> 资源下载</span>
+    </div>
 
+    <!-- 下拉区域 · 固定不滚动 -->
+    <div class="dropdown-section">
+        <div class="dropdown-wrapper" id="folderDropdown">
+            <div class="dropdown-trigger" id="dropdownTrigger">
+                <div class="trigger-left">
+                    <!-- 动态图标容器 -->
+                    <span id="folderIconContainer">
+                        <i class="fa-solid fa-folder-open" id="folderIconI"></i>
+                        <img id="folderIconImg" src="" alt="" style="display: none; width: 1.5rem; height: 1.5rem; object-fit: contain;">
+                    </span>
+                    <span id="currentFolderName">HeMa</span>
+                </div>
+                <span class="arrow-icon">▼</span>
+            </div>
+
+            <!-- ========== 脚本更新区域：下拉菜单 ========== -->
+            <div class="dropdown-menu" id="dropdownMenu">
+                <ul>
+                    <li data-folder="0-HeMa" data-name="0-HeMa">
+                        <i class="fa-solid fa-folder-open"></i> HeMa
+                    </li>
+                    <li data-folder="1-在线工具" data-name="1-在线工具">
+                        <i class="fa-solid fa-folder-open"></i> 在线工具
+                    </li>
+                    <li data-folder="2-Chrome扩展" data-name="2-Chrome扩展">
+                        <i class="fa-solid fa-folder-open"></i> Chrome扩展
+                    </li>
+                    <li data-folder="3-Python脚本" data-name="3-Python脚本">
+                        <i class="fa-solid fa-folder-open"></i> Python脚本
+                    </li>
+                    <li data-folder="4-Mac" data-name="4-Mac">
+                        <i class="fa-solid fa-folder-open"></i> Mac
+                    </li>
+                    <li data-folder="5-Windows" data-name="5-Windows">
+                        <i class="fa-solid fa-folder-open"></i> Windows
+                    </li>
+                    <li data-folder="6-Android" data-name="6-Android">
+                        <i class="fa-solid fa-folder-open"></i> Android
+                    </li>
+                </ul>
+            </div>
+            <!-- ========== 脚本更新区域结束 ========== -->
         </div>
     </div>
 
-    <script>
-    // 修复所有HTML文件的链接，确保点击时跳转而非下载
-    (function() {
-        // 获取所有链接
-        var links = document.querySelectorAll('.item a');
-        
-        links.forEach(function(link) {
-            var href = link.getAttribute('href');
-            // 检查是否链接到HTML文件
-            if (href && href.toLowerCase().endsWith('.html')) {
-                // 修改链接行为：在新窗口打开或当前窗口跳转
-                link.setAttribute('target', '_blank');
-                link.setAttribute('rel', 'noopener noreferrer');
-                
-                // 添加点击事件处理，确保不会下载
-                link.addEventListener('click', function(e) {
-                    // 不阻止默认行为，让浏览器正常处理
-                    console.log('打开HTML文件:', href);
-                });
-            }
-        });
-        
-        // 备用方案：拦截所有下载请求，检测是否是HTML
-        if (typeof document.addEventListener === 'function') {
-            document.addEventListener('click', function(e) {
-                var target = e.target.closest('a');
-                if (target && target.href && target.href.toLowerCase().endsWith('.html')) {
-                    // 确保链接正常打开，不额外处理
-                    return true;
-                }
-            });
-        }
-    })();
-    </script>
-    
+    <!-- 可滚动内容区 -->
+    <div class="content" id="downloads">
+        <!-- ========== 脚本更新区域：文件面板 ========== -->
+        <div class="file-panel" id="panel-0-HeMa" style="display:none;"></div>
+        <div class="file-panel" id="panel-1-在线工具" style="display:none;"></div>
+        <div class="file-panel" id="panel-2-Chrome扩展" style="display:none;"></div>
+        <div class="file-panel" id="panel-3-Python脚本" style="display:none;"></div>
+        <div class="file-panel" id="panel-4-Mac" style="display:none;"></div>
+        <div class="file-panel" id="panel-5-Windows" style="display:none;"></div>
+        <div class="file-panel" id="panel-6-Android" style="display:none;"></div>
+        <!-- ========== 脚本更新区域结束 ========== -->
+    </div>
+</div>
 
-    <script>
-    // 修复所有HTML文件的链接，确保点击时跳转而非下载
-    (function() {
-        // 获取所有链接
-        var links = document.querySelectorAll('.item a');
-        
-        links.forEach(function(link) {
-            var href = link.getAttribute('href');
-            // 检查是否链接到HTML文件
-            if (href && href.toLowerCase().endsWith('.html')) {
-                // 修改链接行为：在新窗口打开或当前窗口跳转
-                link.setAttribute('target', '_blank');
-                link.setAttribute('rel', 'noopener noreferrer');
-                
-                // 添加点击事件处理，确保不会下载
-                link.addEventListener('click', function(e) {
-                    // 不阻止默认行为，让浏览器正常处理
-                    console.log('打开HTML文件:', href);
-                });
-            }
-        });
-        
-        // 备用方案：拦截所有下载请求，检测是否是HTML
-        if (typeof document.addEventListener === 'function') {
-            document.addEventListener('click', function(e) {
-                var target = e.target.closest('a');
-                if (target && target.href && target.href.toLowerCase().endsWith('.html')) {
-                    // 确保链接正常打开，不额外处理
-                    return true;
-                }
-            });
-        }
-    })();
-    </script>
-    
+<script>
+    // ============================================
+    // 0-HeMa 专属图标 (base64 webp)
+    // ============================================
+    const HEMA_ICON_BASE64 = "data:image/webp;base64,UklGRmoDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSCABAAARkHNb27HH4u/YTlp1ts1anZ3OqpwxO9s2Ktu2bdvzvvc1eJ/ne56ImAAiIvetP3ZGko25p77PtiPhWBj4VEDkGVNcVlIY7kpU9xsGqkWPGb/xedUdhqVxZbVhmsAegQcYYABf3n349OnDu++wfiKw/wLF5wU0SVWDyGGJmkGSHK+mVua0mpUSgSar4Fd2okooThItU9Uves6KDgpqvkHx11iLip+Q/Hjv3jewFeNtJhFl/2QZm1+HkeMNaN1BVWAdJqK2QHP3A10LfhiatjxlTUt2Q/NgK1iHiXSvF9B62o4qYKrjH6lENAOsrpb+X6nMHCLr0vdg2xhPEknsNe4LWI7xqsOJpP36zkmZh1pcyfbgqulbjl26cGT9xPIgkgRWUDggJAIAADAMAJ0BKiAAIAA+tUSTQyOiDAYDAB8FonoAJ05QVQdwX27eAjALrB6AP2AySX0AOlE8nK7pPs1dTWAywNIFNB8df0X/xvYe/pP+b3gAMv4JbyZcQExzHsaXqYWMM0g3r3QV2H4yaDOuwAAA/ujkaOEdH9IaOkiSRHagNd1MyYcEoLzT70dA4zK/xCBezOPgmBiEzU635GUxFjInhBVMMMkQsotXt3aTs0IVSc0PFRSxqh9lz8JizKXeJoZV4blX0b/ygXL2fFxaJ6viTOXV3rZakhLjCnnGr1Pj4goSwVloI141eaS/+tiUZJALg2clpT36DHYqPQC3V/dS6CCwV6enbR7d83fLQAGmyIZETozk3r/h3H707B/w501/zVlQ9uoBQZ7Mrhcpve1c5aSP+lP/v/m0sE4Lp4GYBJf/xHd2PfeMHq5F1f//EChvvbeF/D8A7ZH4ybRec6JpCNfvHXp2t//Su2i/rHrKLU99jifVeaHJaO+OE3rT1Lulo3sqt3/Yfv/fplLyfnLmP2s9IgCDLs7C3xNRQd96/+r5DBLri22L0Ef88McoCBCOTNgiLWfv9kyXKlDaysoQsv94dwi6WBJFHf8npWGjqSV+XAmlb6w4j/0et6fsihbjSNBA5UiDnaWsasVoDQNFl/EEYj3LKWIdYFLB07cYBHPlAlp93QBOuhh1nm2hlcmHvk9voG09cLDZqy5RBztP9+Zi55ZgAAAA";
 
-    <script>
-        (function() {
-            console.log('🚀 分栏导航初始化');
-            
-            function initTabs() {
-                const tabs = document.querySelectorAll('.folder-tab');
-                const contents = document.querySelectorAll('.folder-content');
-                
-                console.log('标签数量:', tabs.length);
-                console.log('内容区数量:', contents.length);
-                
-                if (tabs.length === 0) {
-                    setTimeout(initTabs, 100);
-                    return;
-                }
-                
-                // 显示所有标签
-                tabs.forEach((tab, i) => {
-                    console.log(`标签${i}:`, tab.textContent.trim(), 'data-folder:', tab.getAttribute('data-folder'));
-                });
-                
-                // 绑定点击事件
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const folderId = this.getAttribute('data-folder');
-                        console.log('切换到:', folderId);
-                        
-                        // 切换class
-                        tabs.forEach(t => t.classList.remove('active'));
-                        this.classList.add('active');
-                        
-                        // 切换内容
-                        contents.forEach(c => c.classList.remove('active'));
-                        const target = document.getElementById('folder-' + folderId);
-                        if (target) {
-                            target.classList.add('active');
-                            console.log('✅ 显示内容:', folderId);
-                        } else {
-                            console.error('❌ 找不到内容区:', 'folder-' + folderId);
-                        }
-                        
-                        // 修复HTML链接
-                        setTimeout(fixHtmlLinks, 50);
-                    });
-                });
-                
-                // 确保默认显示正确的内容
-                const activeTab = document.querySelector('.folder-tab.active');
-                if (activeTab) {
-                    const folderId = activeTab.getAttribute('data-folder');
-                    const activeContent = document.getElementById('folder-' + folderId);
-                    if (activeContent) {
-                        activeContent.classList.add('active');
-                    }
-                }
-            }
-            
-            function fixHtmlLinks() {
-                document.querySelectorAll('.folder-content.active .item a[href$=".html"]').forEach(link => {
-                    link.setAttribute('target', '_blank');
-                    link.setAttribute('rel', 'noopener noreferrer');
-                });
-            }
-            
-            // 初始化
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initTabs);
+    // ============================================
+    // 文件夹图标映射表
+    // ============================================
+    const FOLDER_ICON_MAP = {
+        '0-HeMa': { type: 'image', value: HEMA_ICON_BASE64 },
+        '1-在线工具': { type: 'icon', value: 'fa-solid fa-globe' },
+        '2-Chrome扩展': { type: 'icon', value: 'fa-brands fa-chrome' },
+        '3-Python脚本': { type: 'icon', value: 'fa-brands fa-python' },
+        '4-Mac': { type: 'icon', value: 'fa-brands fa-apple' },
+        '5-Windows': { type: 'icon', value: 'fa-brands fa-windows' },
+        '6-Android': { type: 'icon', value: 'fa-brands fa-android' },
+        'default': { type: 'icon', value: 'fa-solid fa-folder-open' }
+    };
+
+    // ============================================
+    // 数据定义 (由脚本生成，这里保留示例数据)
+    // ============================================
+    const fileData = {
+        '0-HeMa': [
+            { name: '1-日报.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/1-日报.xlsx' },
+            { name: '2-问单.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/2-问单.xlsx' },
+            { name: '3-单袋比.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/3-单袋比.xlsx' },
+            { name: '4-扣款记录.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/4-扣款记录.xlsx' },
+            { name: '5-早退名单.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/5-早退名单.xlsx' },
+            { name: '6-快捷指令-盒马.zip', icon: 'fa-file-archive', path: 'hema/0-HeMa/6-快捷指令-盒马.zip' },
+            { name: '7-定制版二维码生成器.zip', icon: 'fa-file-archive', path: 'hema/0-HeMa/7-定制版二维码生成器.zip' },
+            { name: '8-运力推算.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/8-运力推算.xlsx' },
+            { name: '9-运力与排班1.0.xlsx', icon: 'fa-file-excel', path: 'hema/0-HeMa/9-运力与排班1.0.xlsx' },
+        ],
+        '1-在线工具': [
+            { name: '0-文字转语音.html', icon: 'fa-file-code', path: 'hema/1-在线工具/0-文字转语音.html' },
+            { name: '1-Excel秒变vCard.html', icon: 'fa-file-code', path: 'hema/1-在线工具/1-Excel秒变vCard.html' },
+            { name: '2-文件目录树.html', icon: 'fa-file-code', path: 'hema/1-在线工具/2-文件目录树.html' },
+            { name: 'TXT转通讯录.html', icon: 'fa-file-code', path: 'hema/1-在线工具/TXT转通讯录.html' },
+        ],
+        '2-Chrome扩展': [
+            { name: '1-二维码生成-弹窗版.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/1-二维码生成-弹窗版.zip' },
+            { name: '2-二维码生成-悬浮窗.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/2-二维码生成-悬浮窗.zip' },
+            { name: '3-高级自定义标签页.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/3-高级自定义标签页.zip' },
+            { name: '自定义标签页.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/自定义标签页.zip' },
+            { name: '视频变速器.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/视频变速器.zip' },
+        ],
+        '3-Python脚本': [
+            { name: '0-拖入py并运行.command', icon: 'fa-file', path: 'hema/3-Python脚本/0-拖入py并运行.command' },
+            { name: '1-骑手指标分析.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/1-骑手指标分析.py' },
+            { name: '2-Excel转vCard助手.zip', icon: 'fa-file-archive', path: 'hema/3-Python脚本/2-Excel转vCard助手.zip' },
+            { name: '3-MP3格式转换.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/3-MP3格式转换.py' },
+            { name: '4-一键分类存放.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/4-一键分类存放.py' },
+            { name: '一键删除修改时间超过30天的历史文件.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/一键删除修改时间超过30天的历史文件.py' },
+            { name: '删除创建时间超过30天文件并确认.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/删除创建时间超过30天文件并确认.py' },
+            { name: '将TXT文件转VCF格式-带界面.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/将TXT文件转VCF格式-带界面.py' },
+        ],
+        '4-Mac': [
+            { name: '1-MacOS屏蔽更新补丁.dmg', icon: 'fa-file', path: 'hema/4-Mac/1-MacOS屏蔽更新补丁.dmg' },
+            { name: '11-磁盘没有正常推出.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/11-磁盘没有正常推出.zip' },
+            { name: '12-挂载nfts分区读写.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/12-挂载nfts分区读写.zip' },
+            { name: '13-一键文件夹目录树py.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/13-一键文件夹目录树py.zip' },
+        ],
+        '5-Windows': [
+            { name: 'BCM94360Z4.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/BCM94360Z4.zip' },
+            { name: 'KMS激活.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/KMS激活.zip' },
+            { name: 'MAS激活.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/MAS激活.zip' },
+            { name: 'NFC门禁卡软件.exe', icon: 'fa-file', path: 'hema/5-Windows/NFC门禁卡软件.exe' },
+            { name: 'office365.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/office365.zip' },
+            { name: '一键开关Defender.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/一键开关Defender.zip' },
+        ],
+        '6-Android': [
+            { name: 'T9_v1.3.apk', icon: 'fa-file', path: 'hema/6-Android/T9_v1.3.apk' },
+            { name: 'via浏览器.apk', icon: 'fa-file', path: 'hema/6-Android/via浏览器.apk' },
+            { name: '应用提取.apk', icon: 'fa-file', path: 'hema/6-Android/应用提取.apk' },
+            { name: '搜狗输入法.apk', icon: 'fa-file', path: 'hema/6-Android/搜狗输入法.apk' },
+            { name: '时间窗_v1.5.4.apk', icon: 'fa-file', path: 'hema/6-Android/时间窗_v1.5.4.apk' },
+            { name: '条码扫描器_v1.24.2.apk', icon: 'fa-file', path: 'hema/6-Android/条码扫描器_v1.24.2.apk' },
+            { name: '百度输入法.apk.zip', icon: 'fa-file-archive', path: 'hema/6-Android/百度输入法.apk.zip' },
+            { name: '通讯录助手_v1.7.2.apk', icon: 'fa-file', path: 'hema/6-Android/通讯录助手_v1.7.2.apk' },
+        ],
+    };
+
+    (function() {
+        // ---------- 辅助函数：提取排序数字，隐藏前缀显示名 ----------
+        function extractSortNumber(folderName) {
+            const match = folderName.match(/^(\d+)-/);
+            return match ? parseInt(match[1], 10) : 9999;
+        }
+
+        function getDisplayName(folderName) {
+            return folderName.replace(/^\d+-/, '');
+        }
+
+        // 去除文件名开头的数字前缀 (如 "1-日报.xlsx" → "日报.xlsx")
+        function getFileDisplayName(fileName) {
+            return fileName.replace(/^\d+-/, '');
+        }
+
+        // ---------- 获取文件夹图标HTML ----------
+        function getFolderIconHtml(folderId) {
+            const config = FOLDER_ICON_MAP[folderId] || FOLDER_ICON_MAP['default'];
+            if (config.type === 'image') {
+                return `<img src="${config.value}" alt="" style="width:1.2rem;height:1.2rem;object-fit:contain;">`;
             } else {
-                initTabs();
+                return `<i class="${config.value}"></i>`;
             }
+        }
+
+        // ---------- 获取所有文件夹 (排除可能存在的root) ----------
+        const folderIds = Object.keys(fileData).filter(id => id !== 'root');
+
+        // 按数字前缀排序
+        folderIds.sort((a, b) => extractSortNumber(a) - extractSortNumber(b));
+
+        // ---------- DOM 元素 ----------
+        const wrapper = document.getElementById('folderDropdown');
+        const trigger = document.getElementById('dropdownTrigger');
+        const folderNameSpan = document.getElementById('currentFolderName');
+        const dropdownMenuUl = document.querySelector('#dropdownMenu ul');
+        const contentDiv = document.getElementById('downloads');
+        
+        // 图标元素
+        const iconI = document.getElementById('folderIconI');
+        const iconImg = document.getElementById('folderIconImg');
+
+        // 面板容器映射 (动态创建)
+        const panels = {};
+
+        // ---------- 构建下拉菜单 & 面板 ----------
+        function buildUI() {
+            // 清空菜单
+            dropdownMenuUl.innerHTML = '';
             
-            // 全局拦截HTML下载
-            document.addEventListener('click', function(e) {
-                const target = e.target.closest('a');
-                if (target && target.href && target.href.toLowerCase().endsWith('.html')) {
-                    target.setAttribute('target', '_blank');
-                    target.setAttribute('rel', 'noopener noreferrer');
-                    target.removeAttribute('download');
+            // 为每个文件夹创建菜单项和面板
+            folderIds.forEach(folderId => {
+                const display = getDisplayName(folderId);
+                
+                // 创建菜单 li
+                const li = document.createElement('li');
+                li.dataset.folder = folderId;
+                li.dataset.name = folderId;
+                // 使用映射图标
+                li.innerHTML = `${getFolderIconHtml(folderId)} ${display}`;
+                dropdownMenuUl.appendChild(li);
+                
+                // 创建对应面板
+                if (!panels[folderId]) {
+                    const panel = document.createElement('div');
+                    panel.className = 'file-panel';
+                    panel.id = `panel-${folderId}`;
+                    panel.style.display = 'none';
+                    contentDiv.appendChild(panel);
+                    panels[folderId] = panel;
                 }
             });
-        })();
-    </script>
 
+            // 渲染所有面板内容
+            folderIds.forEach(id => renderFiles(id));
+        }
+
+        // ---------- 渲染文件列表 ----------
+        function renderFiles(folderId) {
+            const panel = panels[folderId];
+            if (!panel) return;
+            const files = fileData[folderId] || [];
+            
+            if (!files.length) {
+                panel.innerHTML = '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 暂无文件</div>';
+                return;
+            }
+
+            let html = '';
+            files.forEach(file => {
+                const displayName = getFileDisplayName(file.name);
+                const isHtml = file.name.toLowerCase().endsWith('.html');
+                const targetAttr = isHtml ? ' target="_blank" rel="noopener noreferrer"' : '';
+                html += `<div class="file-item"><a href="${file.path}"${targetAttr} data-original-name="${file.name}"><i class="fas ${file.icon}"></i><span>「${displayName}」</span></a></div>`;
+            });
+            panel.innerHTML = html;
+            bindDownloadEventsForPanel(panel);
+        }
+
+        // ---------- 切换文件夹：更新名称、图标、激活菜单、显示面板 ----------
+        function switchFolder(folderId) {
+            const displayName = getDisplayName(folderId);
+            folderNameSpan.textContent = displayName;
+            
+            // 更新菜单激活状态
+            document.querySelectorAll('#dropdownMenu li').forEach(item => {
+                item.classList.toggle('active', item.dataset.folder === folderId);
+            });
+            
+            // 切换面板可见性
+            Object.values(panels).forEach(p => p.style.display = 'none');
+            if (panels[folderId]) panels[folderId].style.display = 'block';
+            
+            // 更新左侧图标
+            updateFolderIcon(folderId);
+            
+            // 关闭下拉
+            wrapper.classList.remove('open');
+        }
+
+        // ---------- 图标更新函数 ----------
+        function updateFolderIcon(folderId) {
+            const config = FOLDER_ICON_MAP[folderId] || FOLDER_ICON_MAP['default'];
+            
+            if (config.type === 'image') {
+                iconI.style.display = 'none';
+                iconImg.src = config.value;
+                iconImg.style.display = 'inline-block';
+            } else {
+                iconImg.style.display = 'none';
+                iconI.style.display = 'inline-block';
+                iconI.className = config.value;
+            }
+        }
+
+        // ---------- 下载处理（基于隐藏前缀后的文件名 + 日期）----------
+        function handleDownload(e) {
+            const href = this.getAttribute('href') || '';
+            if (href.toLowerCase().endsWith('.html')) return;
+            
+            e.preventDefault();
+            
+            // 获取原始文件名 (从 data 属性或 href 提取)
+            let originalName = this.dataset.originalName;
+            if (!originalName) {
+                originalName = href.substring(href.lastIndexOf('/') + 1);
+            }
+            
+            // 去除数字前缀得到基础名
+            const baseName = getFileDisplayName(originalName);
+            
+            // 添加日期后缀
+            const now = new Date();
+            const dateStr = now.getFullYear().toString().slice(-2) + 
+                           (now.getMonth() + 1).toString().padStart(2, '0') + 
+                           now.getDate().toString().padStart(2, '0');
+            
+            const lastDot = baseName.lastIndexOf('.');
+            const newName = lastDot > 0 
+                ? baseName.slice(0, lastDot) + '-' + dateStr + baseName.slice(lastDot)
+                : baseName + '-' + dateStr;
+            
+            const a = document.createElement('a');
+            a.href = href;
+            a.download = newName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function bindDownloadEventsForPanel(panel) {
+            panel.querySelectorAll('a').forEach(link => {
+                link.removeEventListener('click', handleDownload);
+                link.addEventListener('click', handleDownload);
+                if (link.href.toLowerCase().endsWith('.html')) {
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                }
+                // 确保原始文件名存储在 dataset 中
+                if (!link.dataset.originalName) {
+                    const href = link.getAttribute('href') || '';
+                    const name = href.substring(href.lastIndexOf('/') + 1);
+                    link.dataset.originalName = name;
+                }
+            });
+        }
+
+        // ---------- 初始化：默认选中第一个文件夹 ----------
+        function init() {
+            buildUI();
+            
+            if (folderIds.length === 0) {
+                folderNameSpan.textContent = '暂无文件夹';
+                return;
+            }
+            
+            // 默认选中第一个
+            const firstId = folderIds[0];
+            switchFolder(firstId);
+            
+            // 事件绑定
+            trigger.addEventListener('click', e => {
+                e.stopPropagation();
+                wrapper.classList.toggle('open');
+            });
+            
+            dropdownMenuUl.addEventListener('click', e => {
+                const li = e.target.closest('li');
+                if (!li) return;
+                e.stopPropagation();
+                switchFolder(li.dataset.folder);
+            });
+            
+            document.addEventListener('click', e => {
+                if (!wrapper.contains(e.target)) wrapper.classList.remove('open');
+            });
+            
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') wrapper.classList.remove('open');
+            });
+        }
+
+        init();
+    })();
+</script>
 </body>
 </html>
