@@ -11,7 +11,7 @@
     <link rel="stylesheet"  href="./app/css/hema.css">
 
     <style>
-        /* 分栏导航样式 - 修复颜色问题 */
+        /* 分栏导航样式 */
         .folder-tabs {
             display: flex;
             gap: 8px;
@@ -96,7 +96,57 @@
             <img src="./app/img/favicon.ico" class="ats">
         </div>
         
+        <nav class="nav-menu">
+            <a href="#downloads"><i class="fas fa-download"></i> 资源下载</a>
+        </nav>
+        
         <div class="content" id="downloads">
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     <div class="track-list"><!-- 时间轴开始 -->
@@ -107,7 +157,7 @@
                     <i class="fa-solid fa-folder"></i> Root
                 </button>
 
-                <button class="folder-tab" data-folder="folder-330">
+                <button class="folder-tab" data-folder="folder-196">
                     <i class="fa-solid fa-folder-open"></i> 在线工具
                 </button>
             </div>
@@ -153,10 +203,10 @@
             </div>
         
             <!-- 在线工具 文件夹内容 -->
-            <div class="folder-content" id="folder-folder-330">
+            <div class="folder-content" id="folder-folder-196">
             
             <div class="item">
-                <span class="txt"><a href="hema/在线工具/Excel通讯录转换工具.html" target="_blank" rel="noopener noreferrer">「Excel通讯录转换工具.html」</a></span>
+                <span class="txt"><a href="hema/在线工具/Excel 秒变 vCard.html" target="_blank" rel="noopener noreferrer">「Excel 秒变 vCard.html」</a></span>
             </div>
             
             <div class="item">
@@ -175,12 +225,138 @@
     </div><!-- 时间轴结束 -->
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
         </div>
         
-        <script src="./app/js/hema.js"></script><!-- 核心插件 -->
+            		<script src="./app/js/hema.js"></script><!-- 核心插件 -->
 
         </div>
     </div>
+
+    <script>
+    // 修复所有HTML文件的链接，确保点击时跳转而非下载
+    (function() {
+        // 获取所有链接
+        var links = document.querySelectorAll('.item a');
+        
+        links.forEach(function(link) {
+            var href = link.getAttribute('href');
+            // 检查是否链接到HTML文件
+            if (href && href.toLowerCase().endsWith('.html')) {
+                // 修改链接行为：在新窗口打开或当前窗口跳转
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+                
+                // 添加点击事件处理，确保不会下载
+                link.addEventListener('click', function(e) {
+                    // 不阻止默认行为，让浏览器正常处理
+                    console.log('打开HTML文件:', href);
+                });
+            }
+        });
+        
+        // 备用方案：拦截所有下载请求，检测是否是HTML
+        if (typeof document.addEventListener === 'function') {
+            document.addEventListener('click', function(e) {
+                var target = e.target.closest('a');
+                if (target && target.href && target.href.toLowerCase().endsWith('.html')) {
+                    // 确保链接正常打开，不额外处理
+                    return true;
+                }
+            });
+        }
+    })();
+    </script>
+    
+
+    <script>
+    // 修复所有HTML文件的链接，确保点击时跳转而非下载
+    (function() {
+        // 获取所有链接
+        var links = document.querySelectorAll('.item a');
+        
+        links.forEach(function(link) {
+            var href = link.getAttribute('href');
+            // 检查是否链接到HTML文件
+            if (href && href.toLowerCase().endsWith('.html')) {
+                // 修改链接行为：在新窗口打开或当前窗口跳转
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+                
+                // 添加点击事件处理，确保不会下载
+                link.addEventListener('click', function(e) {
+                    // 不阻止默认行为，让浏览器正常处理
+                    console.log('打开HTML文件:', href);
+                });
+            }
+        });
+        
+        // 备用方案：拦截所有下载请求，检测是否是HTML
+        if (typeof document.addEventListener === 'function') {
+            document.addEventListener('click', function(e) {
+                var target = e.target.closest('a');
+                if (target && target.href && target.href.toLowerCase().endsWith('.html')) {
+                    // 确保链接正常打开，不额外处理
+                    return true;
+                }
+            });
+        }
+    })();
+    </script>
+    
 
     <script>
         (function() {
