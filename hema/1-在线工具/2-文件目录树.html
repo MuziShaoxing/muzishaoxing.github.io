@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>本地目录树生成器</title>
+  <title>本地目录树生成器 - 纯本地运行</title>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
@@ -54,7 +54,6 @@
       box-shadow: 0 4px 20px var(--shadow-color);
     }
 
-    /* 头部样式 */
     header {
       display: flex;
       flex-direction: column;
@@ -96,7 +95,6 @@
       max-width: 90%;
     }
 
-    /* 操作区样式 */
     .action-area {
       margin-bottom: var(--spacing);
     }
@@ -146,7 +144,12 @@
       background-color: var(--hover-color);
     }
 
-    /* 设置区样式 */
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .settings {
       display: flex;
       flex-direction: column;
@@ -172,9 +175,9 @@
     .setting-item input[type="checkbox"] {
       width: 20px;
       height: 20px;
+      cursor: pointer;
     }
 
-    /* 预览区样式 */
     .preview-area {
       flex: 1;
       overflow: hidden;
@@ -193,8 +196,8 @@
 
     .tree-preview {
       font-family: 'Courier New', monospace;
-      font-size: 16px;
-      line-height: 1.7;
+      font-size: 14px;
+      line-height: 1.6;
       color: var(--text-secondary);
       white-space: pre;
     }
@@ -209,13 +212,11 @@
       font-size: 17px;
     }
 
-    /* 拖拽区域样式 */
     .drag-over {
       background-color: var(--hover-color);
       border-color: var(--primary-color);
     }
 
-    /* 底部样式 */
     footer {
       display: flex;
       flex-direction: column;
@@ -241,7 +242,6 @@
       background-color: rgba(211, 47, 47, 0.1);
     }
 
-    /* 滚动条样式 */
     .preview-content::-webkit-scrollbar {
       width: 10px;
     }
@@ -260,7 +260,6 @@
       background: rgba(108, 141, 205, 0.3);
     }
 
-    /* 加载动画 */
     .loader {
       display: none;
       width: 32px;
@@ -276,37 +275,19 @@
       to { transform: rotate(360deg); }
     }
 
-    /* 响应式调整 */
-    @media (min-width: 1200px) {
-      main {
-        width: 1000px;
-      }
-    }
-
-    @media (min-width: 768px) and (max-width: 1199px) {
-      main {
-        width: 800px;
-        height: 90vh;
-      }
-    }
-
     @media (max-width: 480px) {
       :root {
         --spacing: 12px;
       }
-      
       .btn, .setting-item label, .tree-preview {
         font-size: 14px;
       }
-      
       .logo-text {
         font-size: 20px;
       }
-      
       .header-hint {
         font-size: 13px;
       }
-      
       main {
         height: auto;
         min-height: 80vh;
@@ -315,59 +296,659 @@
   </style>
 </head>
 <body>
-  <main class="container">
-    <header>
-      <div class="logo">
-        <div class="logo-icon">
-          <span class="material-icons">folder</span>
-        </div>
-        <div class="logo-text">本地文件夹目录树生成器</div>
+<main class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <span class="material-icons">folder</span>
       </div>
-      <div class="header-hint">
-        将HTML文件置于目标文件夹根目录，通过浏览器打开可直观展示文件夹结构，便捷高效管理文件，提升工作效率。
-      </div>
-      <div class="header-hint">
-        本页面纯本地运行，网页不联网收集传输任何内容
-      </div>
-    </header>
+      <div class="logo-text">本地文件夹目录树生成器</div>
+    </div>
+    <div class="header-hint">
+      将HTML文件置于目标文件夹根目录，通过浏览器打开可直观展示文件夹结构，便捷高效管理文件，提升工作效率。
+    </div>
+    <div class="header-hint">
+      本页面纯本地运行，网页不联网收集传输任何内容
+    </div>
+  </header>
 
-    <section class="action-area">
-      <div class="folder-selector">
-        <button id="selectFolderBtn" class="btn" aria-label="选择要生成目录树的文件夹">
-          <span class="material-icons">folder_open</span>
-          选择文件夹
-        </button>
-        <button id="generateBtn" class="btn btn-secondary" disabled aria-label="生成目录树HTML文件">
-          <span class="material-icons">download</span>
-          生成HTML文件
-        </button>
+  <section class="action-area">
+    <div class="folder-selector">
+      <button id="selectFolderBtn" class="btn" aria-label="选择要生成目录树的文件夹">
+        <span class="material-icons">folder_open</span>
+        选择文件夹
+      </button>
+      <button id="generateBtn" class="btn btn-secondary" disabled aria-label="生成目录树HTML文件">
+        <span class="material-icons">download</span>
+        生成HTML文件
+      </button>
+    </div>
+
+    <div class="settings">
+      <div class="setting-item">
+        <input type="checkbox" id="includeHidden">
+        <label for="includeHidden">包含"隐藏"文件/文件夹（以.开头的）</label>
       </div>
+    </div>
+  </section>
 
-      <div class="settings">
-        <div class="setting-item">
-          <input type="checkbox" id="includeHidden" >
-          <label for="includeHidden">包含“隐藏“文件/文件夹</label>
-        </div>
+  <section class="preview-area" id="dropArea">
+    <div class="preview-content">
+      <div id="treePreview" class="tree-preview"></div>
+      <div id="emptyState" class="empty-state">
+        <span class="material-icons" style="font-size: 70px; color: #e0ebff;">folder_open</span>
+        <p>请选择一个文件夹开始</p>
+        <p class="drag-hint" style="margin-top: 10px; color: var(--text-secondary);">或拖拽文件夹至此处</p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="preview-area" id="dropArea">
-      <div class="preview-content">
-        <div id="treePreview" class="tree-preview"></div>
-        <div id="emptyState" class="empty-state">
-          <span class="material-icons" style="font-size: 70px; color: #e0ebff;">folder_open</span>
-          <p>请选择一个文件夹开始</p>
-          <p class="drag-hint" style="margin-top: 10px; color: var(--text-secondary);">或拖拽文件夹至此处</p>
-        </div>
-      </div>
-    </section>
+  <footer>
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="loader" class="loader"></div>
+  </footer>
+</main>
 
-    <footer>
-      <div id="status" class="status" aria-live="polite"></div>
-      <div id="loader" class="loader"></div>
-    </footer>
-  </main>
+<script>
+  (function() {
+    const selectFolderBtn = document.getElementById('selectFolderBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const includeHiddenCheckbox = document.getElementById('includeHidden');
+    const treePreview = document.getElementById('treePreview');
+    const emptyState = document.getElementById('emptyState');
+    const statusDiv = document.getElementById('status');
+    const loader = document.getElementById('loader');
+    const dropArea = document.getElementById('dropArea');
 
-  <script src="https://muzishaoxing.github.io/app/js/tree.js"></script>
+    let selectedFolderHandle = null;
+    let treeStructure = null;
+
+    function showLoading(show) {
+      loader.style.display = show ? 'block' : 'none';
+      selectFolderBtn.disabled = show;
+      generateBtn.disabled = show || !selectedFolderHandle;
+      includeHiddenCheckbox.disabled = show;
+    }
+
+    function setStatus(text, type) {
+      statusDiv.textContent = text;
+      statusDiv.className = 'status';
+      if (type === 'success') statusDiv.classList.add('success');
+      if (type === 'error') statusDiv.classList.add('error');
+    }
+
+    async function generateDirectoryTree(directoryHandle, path = '', level = 0) {
+      const tree = {
+        name: directoryHandle.name,
+        path: path,
+        type: 'directory',
+        level: level,
+        children: []
+      };
+      for await (const entry of directoryHandle.values()) {
+        if (!includeHiddenCheckbox.checked && entry.name.startsWith('.')) {
+          continue;
+        }
+        try {
+          if (entry.kind === 'directory') {
+            const childTree = await generateDirectoryTree(
+              entry,
+              path ? path + '/' + entry.name : entry.name,
+              level + 1
+            );
+            tree.children.push(childTree);
+          } else if (entry.kind === 'file') {
+            tree.children.push({
+              name: entry.name,
+              path: path ? path + '/' + entry.name : entry.name,
+              type: 'file',
+              level: level + 1
+            });
+          }
+        } catch (e) {
+          console.warn('无法访问', entry.name, e);
+        }
+      }
+      tree.children.sort(function(a, b) {
+        if (a.type === 'directory' && b.type !== 'directory') return -1;
+        if (a.type !== 'directory' && b.type === 'directory') return 1;
+        return a.name.localeCompare(b.name);
+      });
+      return tree;
+    }
+
+    function displayTreePreview(tree) {
+      let previewText = '📁 ' + tree.name + '\n';
+      
+      function buildPreview(node, prefix, isLast) {
+        var connector = prefix + (isLast ? '└── ' : '├── ');
+        var icon = node.type === 'directory' ? '📂' : '📄';
+        previewText += connector + icon + ' ' + node.name + '\n';
+        if (node.children && node.children.length) {
+          var newPrefix = prefix + (isLast ? '    ' : '│   ');
+          for (var i = 0; i < node.children.length; i++) {
+            var child = node.children[i];
+            var childIsLast = i === node.children.length - 1;
+            buildPreview(child, newPrefix, childIsLast);
+          }
+        }
+      }
+      
+      if (tree.children && tree.children.length) {
+        for (var i = 0; i < tree.children.length; i++) {
+          var child = tree.children[i];
+          var childIsLast = i === tree.children.length - 1;
+          buildPreview(child, '', childIsLast);
+        }
+      }
+      treePreview.textContent = previewText;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    function buildTreeHTML(node) {
+      var html = '<li>' +
+        '<div class="directory-wrapper">' +
+        '<span class="toggle"><span class="material-icons">chevron_right</span></span>' +
+        '<span class="directory">' + escapeHtml(node.name) + '</span>' +
+        '</div><ul>';
+      
+      for (var i = 0; i < node.children.length; i++) {
+        var child = node.children[i];
+        if (child.type === 'file') {
+          var filePath = child.path.replace(/\\/g, '/');
+          html += '<li><div class="file"><a href="./' + escapeHtml(filePath) + '" target="_blank">' + escapeHtml(child.name) + '</a></div></li>';
+        } else if (child.type === 'directory') {
+          html += buildTreeHTML(child);
+        }
+      }
+      html += '</ul></li>';
+      return html;
+    }
+
+    function createHTMLFromTree(tree, folderName) {
+      var generationTime = new Date().toLocaleString();
+      var treeHTML = buildTreeHTML(tree);
+      
+      return '<!DOCTYPE html>\n' +
+'<html lang="zh-CN">\n' +
+'<head>\n' +
+'    <meta charset="UTF-8">\n' +
+'    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+'    <title>' + escapeHtml(folderName) + ' - 目录树</title>\n' +
+'    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">\n' +
+'    <style>\n' +
+'        :root {\n' +
+'            --background-color: #f9fbff;\n' +
+'            --container-bg: #ffffff;\n' +
+'            --text-color: #4a5a7a;\n' +
+'            --primary-color: #6c8dcd;\n' +
+'            --secondary-color: #7da3e6;\n' +
+'            --light-color: #f3f8ff;\n' +
+'            --dark-color: #1d2430;\n' +
+'            --gray-color: #273142;\n' +
+'            --shadow-color: rgba(108, 141, 205, 0.08);\n' +
+'            --button-size: 46px;\n' +
+'            --spacing: 15px;\n' +
+'            --transition-time: 0.3s;\n' +
+'            --border-radius: 12px;\n' +
+'        }\n' +
+'        * { box-sizing: border-box; margin: 0; padding: 0; }\n' +
+'        body {\n' +
+'            font-family: "Segoe UI", "Microsoft YaHei", "Roboto", sans-serif;\n' +
+'            background-color: var(--background-color);\n' +
+'            color: var(--text-color);\n' +
+'            padding: 20px;\n' +
+'            transition: background-color var(--transition-time), color var(--transition-time);\n' +
+'            display: flex;\n' +
+'            flex-direction: column;\n' +
+'            align-items: center;\n' +
+'            min-height: 100vh;\n' +
+'            background-image: linear-gradient(135deg, #f9fbff 0%, #f3f8ff 100%);\n' +
+'        }\n' +
+'        .container {\n' +
+'            max-width: 1000px;\n' +
+'            width: 100%;\n' +
+'            background-color: var(--container-bg);\n' +
+'            padding: 30px;\n' +
+'            border-radius: var(--border-radius);\n' +
+'            box-shadow: 0 8px 25px var(--shadow-color);\n' +
+'            transition: all 0.4s ease;\n' +
+'            margin-top: 20px;\n' +
+'            position: relative;\n' +
+'            overflow: hidden;\n' +
+'        }\n' +
+'        .container::before {\n' +
+'            content: "";\n' +
+'            position: absolute;\n' +
+'            top: 0;\n' +
+'            left: 0;\n' +
+'            right: 0;\n' +
+'            height: 4px;\n' +
+'            background: linear-gradient(90deg, #6c8dcd, #7da3e6, #6c8dcd);\n' +
+'            border-radius: var(--border-radius) var(--border-radius) 0 0;\n' +
+'        }\n' +
+'        .header {\n' +
+'            display: flex;\n' +
+'            align-items: center;\n' +
+'            justify-content: center;\n' +
+'            margin-bottom: 25px;\n' +
+'            flex-wrap: wrap;\n' +
+'            gap: 15px;\n' +
+'            padding-bottom: 15px;\n' +
+'            border-bottom: 1px solid #e8f0ff;\n' +
+'        }\n' +
+'        .logo-text {\n' +
+'            font-size: 1.8em;\n' +
+'            font-weight: 700;\n' +
+'            color: var(--text-color);\n' +
+'            background: linear-gradient(135deg, #6c8dcd, #4a5a7a);\n' +
+'            -webkit-background-clip: text;\n' +
+'            -webkit-text-fill-color: transparent;\n' +
+'        }\n' +
+'        .search-container {\n' +
+'            display: flex;\n' +
+'            justify-content: center;\n' +
+'            align-items: center;\n' +
+'            margin-bottom: 30px;\n' +
+'            flex-wrap: wrap;\n' +
+'            gap: var(--spacing);\n' +
+'        }\n' +
+'        .button-group {\n' +
+'            display: flex;\n' +
+'            gap: var(--spacing);\n' +
+'        }\n' +
+'        .search-container button {\n' +
+'            background: #f3f8ff;\n' +
+'            color: var(--primary-color);\n' +
+'            border: 1px solid #e0ebff;\n' +
+'            width: var(--button-size);\n' +
+'            height: var(--button-size);\n' +
+'            border-radius: 50%;\n' +
+'            cursor: pointer;\n' +
+'            display: flex;\n' +
+'            align-items: center;\n' +
+'            justify-content: center;\n' +
+'            box-shadow: 0 2px 8px rgba(108, 141, 205, 0.08);\n' +
+'        }\n' +
+'        .search-container button:hover {\n' +
+'            background-color: #e6f0ff;\n' +
+'            transform: translateY(-2px);\n' +
+'        }\n' +
+'        .search-container input {\n' +
+'            flex: 1;\n' +
+'            padding: 14px 20px;\n' +
+'            border: 1px solid #e0ebff;\n' +
+'            border-radius: 30px;\n' +
+'            font-size: 16px;\n' +
+'            max-width: 600px;\n' +
+'            min-width: 200px;\n' +
+'            background: #fafcff;\n' +
+'            color: var(--text-color);\n' +
+'        }\n' +
+'        .search-container input:focus {\n' +
+'            border-color: var(--primary-color);\n' +
+'            outline: none;\n' +
+'            box-shadow: 0 0 0 3px rgba(108, 141, 205, 0.15);\n' +
+'        }\n' +
+'        .tree {\n' +
+'            margin: 0;\n' +
+'            padding: 0;\n' +
+'            list-style: none;\n' +
+'            max-height: 65vh;\n' +
+'            overflow-y: auto;\n' +
+'            padding-right: 8px;\n' +
+'        }\n' +
+'        .tree li {\n' +
+'            margin: 0;\n' +
+'            padding: 12px 18px;\n' +
+'            background-color: var(--container-bg);\n' +
+'            border-radius: 8px;\n' +
+'            transition: all var(--transition-time);\n' +
+'            cursor: pointer;\n' +
+'            box-shadow: 0 2px 6px rgba(108, 141, 205, 0.04);\n' +
+'            margin-bottom: 8px;\n' +
+'            border-left: 3px solid transparent;\n' +
+'        }\n' +
+'        .tree li:hover {\n' +
+'            background-color: var(--light-color);\n' +
+'            border-left-color: var(--primary-color);\n' +
+'            transform: translateX(5px);\n' +
+'        }\n' +
+'        .tree .directory-wrapper {\n' +
+'            display: flex;\n' +
+'            align-items: center;\n' +
+'            padding-left: 10px;\n' +
+'        }\n' +
+'        .tree .toggle {\n' +
+'            margin-right: 12px;\n' +
+'            cursor: pointer;\n' +
+'            width: 28px;\n' +
+'            height: 28px;\n' +
+'            display: inline-flex;\n' +
+'            align-items: center;\n' +
+'            justify-content: center;\n' +
+'            background: #e6f0ff;\n' +
+'            border-radius: 50%;\n' +
+'        }\n' +
+'        .tree .directory {\n' +
+'            font-weight: 600;\n' +
+'            color: var(--text-color);\n' +
+'            font-size: 1.05em;\n' +
+'        }\n' +
+'        .tree .file {\n' +
+'            display: flex;\n' +
+'            align-items: center;\n' +
+'            padding-left: 40px;\n' +
+'        }\n' +
+'        .tree .file a {\n' +
+'            text-decoration: none;\n' +
+'            color: var(--text-color);\n' +
+'            border-bottom: 1px dashed transparent;\n' +
+'        }\n' +
+'        .tree .file a:hover {\n' +
+'            color: var(--primary-color);\n' +
+'            border-bottom: 1px dashed var(--primary-color);\n' +
+'        }\n' +
+'        .tree ul {\n' +
+'            display: none;\n' +
+'            padding-left: 25px;\n' +
+'            margin-top: 10px;\n' +
+'            list-style: none;\n' +
+'            border-left: 1px dashed #e0ebff;\n' +
+'            margin-left: 12px;\n' +
+'        }\n' +
+'        .tree li.open > ul {\n' +
+'            display: block;\n' +
+'        }\n' +
+'        body.dark {\n' +
+'            --background-color: var(--dark-color);\n' +
+'            --container-bg: var(--gray-color);\n' +
+'            --text-color: #d5e3ff;\n' +
+'            --primary-color: #7da3e6;\n' +
+'            background-image: linear-gradient(135deg, #1d2430 0%, #171e2a 100%);\n' +
+'        }\n' +
+'        body.dark .search-container input {\n' +
+'            background: #1d2535;\n' +
+'            border-color: #2a3548;\n' +
+'            color: #d5e3ff;\n' +
+'        }\n' +
+'        body.dark .tree ul {\n' +
+'            border-left-color: #2a3548;\n' +
+'        }\n' +
+'        .generation-info {\n' +
+'            margin-top: 30px;\n' +
+'            padding-top: 15px;\n' +
+'            border-top: 1px solid #e8f0ff;\n' +
+'            text-align: center;\n' +
+'            font-size: 0.9em;\n' +
+'            color: #8a9bb8;\n' +
+'            display: flex;\n' +
+'            justify-content: center;\n' +
+'            gap: 8px;\n' +
+'        }\n' +
+'        .match-highlight {\n' +
+'            background-color: rgba(108, 141, 205, 0.12) !important;\n' +
+'            border: 1px solid rgba(108, 141, 205, 0.2) !important;\n' +
+'        }\n' +
+'        @media (max-width: 768px) {\n' +
+'            .container { padding: 20px 15px; }\n' +
+'            .search-container { flex-direction: column; }\n' +
+'            .search-container input { width: 100%; max-width: 100%; }\n' +
+'        }\n' +
+'    </style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<div class="container">\n' +
+'    <div class="header"><div class="logo-text">' + escapeHtml(folderName) + '</div></div>\n' +
+'    <div class="search-container">\n' +
+'        <div class="button-group">\n' +
+'            <button id="toggle-theme"><span class="material-icons">light_mode</span></button>\n' +
+'            <button id="toggle-all"><span class="material-icons">unfold_more</span></button>\n' +
+'        </div>\n' +
+'        <input type="text" id="search-input" placeholder="搜索文件或文件夹...">\n' +
+'        <button id="reset-search" style="display:none;"><span class="material-icons">refresh</span></button>\n' +
+'    </div>\n' +
+'    <ul class="tree">' + treeHTML + '</ul>\n' +
+'    <div class="generation-info"><span class="material-icons">schedule</span><span>生成时间: ' + generationTime + '</span></div>\n' +
+'</div>\n' +
+'<script>\n' +
+'  (function() {\n' +
+'    document.querySelectorAll(".tree .directory-wrapper").forEach(function(wrapper) {\n' +
+'      wrapper.addEventListener("click", function(e) {\n' +
+'        e.stopPropagation();\n' +
+'        var parentLi = wrapper.parentElement;\n' +
+'        parentLi.classList.toggle("open");\n' +
+'        var iconSpan = wrapper.querySelector(".toggle .material-icons");\n' +
+'        if (parentLi.classList.contains("open")) iconSpan.textContent = "expand_more";\n' +
+'        else iconSpan.textContent = "chevron_right";\n' +
+'      });\n' +
+'    });\n' +
+'    function expandAll(node) {\n' +
+'      node.querySelectorAll(".directory-wrapper").forEach(function(w) {\n' +
+'        var li = w.parentElement;\n' +
+'        li.classList.add("open");\n' +
+'        var icon = w.querySelector(".toggle .material-icons");\n' +
+'        if (icon) icon.textContent = "expand_more";\n' +
+'      });\n' +
+'    }\n' +
+'    function collapseAll(node) {\n' +
+'      node.querySelectorAll(".directory-wrapper").forEach(function(w) {\n' +
+'        var li = w.parentElement;\n' +
+'        li.classList.remove("open");\n' +
+'        var icon = w.querySelector(".toggle .material-icons");\n' +
+'        if (icon) icon.textContent = "chevron_right";\n' +
+'      });\n' +
+'    }\n' +
+'    var treeContainer = document.querySelector(".tree");\n' +
+'    expandAll(treeContainer);\n' +
+'    var toggleAllBtn = document.getElementById("toggle-all");\n' +
+'    toggleAllBtn.addEventListener("click", function() {\n' +
+'      var icon = toggleAllBtn.querySelector(".material-icons");\n' +
+'      if (icon.textContent === "unfold_more") {\n' +
+'        collapseAll(treeContainer);\n' +
+'        icon.textContent = "unfold_less";\n' +
+'      } else {\n' +
+'        expandAll(treeContainer);\n' +
+'        icon.textContent = "unfold_more";\n' +
+'      }\n' +
+'    });\n' +
+'    var themeBtn = document.getElementById("toggle-theme");\n' +
+'    if (localStorage.getItem("theme") === "dark") {\n' +
+'      document.body.classList.add("dark");\n' +
+'      themeBtn.querySelector(".material-icons").textContent = "dark_mode";\n' +
+'    }\n' +
+'    themeBtn.addEventListener("click", function() {\n' +
+'      document.body.classList.toggle("dark");\n' +
+'      var isDark = document.body.classList.contains("dark");\n' +
+'      themeBtn.querySelector(".material-icons").textContent = isDark ? "dark_mode" : "light_mode";\n' +
+'      localStorage.setItem("theme", isDark ? "dark" : "light");\n' +
+'    });\n' +
+'    var searchInput = document.getElementById("search-input");\n' +
+'    var resetBtn = document.getElementById("reset-search");\n' +
+'    function filterTree() {\n' +
+'      var term = searchInput.value.trim().toLowerCase();\n' +
+'      var allItems = document.querySelectorAll(".tree li");\n' +
+'      allItems.forEach(function(item) { item.classList.remove("match-highlight"); });\n' +
+'      if (term === "") {\n' +
+'        allItems.forEach(function(item) { item.style.display = ""; });\n' +
+'        resetBtn.style.display = "none";\n' +
+'        return;\n' +
+'      }\n' +
+'      resetBtn.style.display = "flex";\n' +
+'      var hasMatch = false;\n' +
+'      allItems.forEach(function(item) {\n' +
+'        var text = item.textContent.toLowerCase();\n' +
+'        if (text.indexOf(term) !== -1) {\n' +
+'          hasMatch = true;\n' +
+'          item.classList.add("match-highlight");\n' +
+'          var parent = item.parentElement;\n' +
+'          while (parent && !parent.classList.contains("tree")) {\n' +
+'            if (parent.tagName === "UL") parent.style.display = "block";\n' +
+'            var parentLi = parent.parentElement;\n' +
+'            if (parentLi && parentLi.tagName === "LI") {\n' +
+'              parentLi.classList.add("open");\n' +
+'              var toggleIcon = parentLi.querySelector(".directory-wrapper .toggle .material-icons");\n' +
+'              if (toggleIcon) toggleIcon.textContent = "expand_more";\n' +
+'            }\n' +
+'            parent = parent.parentElement;\n' +
+'          }\n' +
+'        } else {\n' +
+'          item.style.display = "none";\n' +
+'        }\n' +
+'      });\n' +
+'      if (!hasMatch) {\n' +
+'        var noMsg = document.createElement("div");\n' +
+'        noMsg.textContent = "未找到匹配项";\n' +
+'        noMsg.style.padding = "20px";\n' +
+'        noMsg.style.textAlign = "center";\n' +
+'        noMsg.style.color = "#999";\n' +
+'        treeContainer.appendChild(noMsg);\n' +
+'        setTimeout(function() { noMsg.remove(); }, 2000);\n' +
+'      }\n' +
+'    }\n' +
+'    searchInput.addEventListener("input", filterTree);\n' +
+'    resetBtn.addEventListener("click", function() {\n' +
+'      searchInput.value = "";\n' +
+'      filterTree();\n' +
+'      expandAll(treeContainer);\n' +
+'      document.getElementById("toggle-all").querySelector(".material-icons").textContent = "unfold_more";\n' +
+'    });\n' +
+'  })();\n' +
+'<\/script>\n' +
+'</body>\n' +
+'</html>';
+    }
+
+    function downloadHTML(content, filename) {
+      var blob = new Blob([content], { type: 'text/html' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }
+
+    selectFolderBtn.addEventListener('click', async function() {
+      try {
+        showLoading(true);
+        setStatus('正在访问文件夹...');
+        if (!('showDirectoryPicker' in window)) {
+          throw new Error('您的浏览器不支持文件夹选择功能，请使用最新版Chrome或Edge');
+        }
+        selectedFolderHandle = await window.showDirectoryPicker();
+        setStatus('正在生成目录树...');
+        treeStructure = await generateDirectoryTree(selectedFolderHandle);
+        displayTreePreview(treeStructure);
+        emptyState.style.display = 'none';
+        generateBtn.disabled = false;
+        setStatus('已选择: ' + selectedFolderHandle.name, 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus('错误: ' + err.message, 'error');
+        if (err.name !== 'AbortError') {
+          emptyState.style.display = 'flex';
+          treePreview.textContent = '';
+          generateBtn.disabled = true;
+          selectedFolderHandle = null;
+          treeStructure = null;
+        }
+      } finally {
+        showLoading(false);
+      }
+    });
+
+    generateBtn.addEventListener('click', async function() {
+      if (!selectedFolderHandle || !treeStructure) {
+        setStatus('请先选择文件夹并生成目录树', 'error');
+        return;
+      }
+      try {
+        showLoading(true);
+        setStatus('正在生成HTML文件...');
+        var htmlContent = createHTMLFromTree(treeStructure, selectedFolderHandle.name);
+        downloadHTML(htmlContent, selectedFolderHandle.name + '_目录树.html');
+        setStatus('HTML文件生成成功!', 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus('生成失败: ' + err.message, 'error');
+      } finally {
+        showLoading(false);
+      }
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(ev) {
+      dropArea.addEventListener(ev, preventDefaults);
+      document.body.addEventListener(ev, preventDefaults);
+    });
+    
+    ['dragenter', 'dragover'].forEach(function(ev) {
+      dropArea.addEventListener(ev, function() { dropArea.classList.add('drag-over'); });
+    });
+    
+    ['dragleave', 'drop'].forEach(function(ev) {
+      dropArea.addEventListener(ev, function() { dropArea.classList.remove('drag-over'); });
+    });
+    
+    dropArea.addEventListener('drop', async function(e) {
+      var items = e.dataTransfer.items;
+      if (!items || items.length === 0) return;
+      try {
+        showLoading(true);
+        setStatus('处理拖放的文件夹...');
+        if (!('getAsFileSystemHandle' in items[0])) {
+          throw new Error('您的浏览器不支持拖放文件夹功能，请使用最新版Chrome或Edge');
+        }
+        var handle = await items[0].getAsFileSystemHandle();
+        if (handle.kind !== 'directory') throw new Error('请拖放文件夹而非文件');
+        selectedFolderHandle = handle;
+        setStatus('正在生成目录树...');
+        treeStructure = await generateDirectoryTree(selectedFolderHandle);
+        displayTreePreview(treeStructure);
+        emptyState.style.display = 'none';
+        generateBtn.disabled = false;
+        setStatus('已选择: ' + selectedFolderHandle.name, 'success');
+      } catch (err) {
+        setStatus('拖放错误: ' + err.message, 'error');
+      } finally {
+        showLoading(false);
+      }
+    });
+
+    includeHiddenCheckbox.addEventListener('change', async function() {
+      if (selectedFolderHandle) {
+        try {
+          showLoading(true);
+          setStatus('正在更新目录树...');
+          treeStructure = await generateDirectoryTree(selectedFolderHandle);
+          displayTreePreview(treeStructure);
+          setStatus('已更新: ' + selectedFolderHandle.name, 'success');
+        } catch (err) {
+          setStatus('更新失败: ' + err.message, 'error');
+        } finally {
+          showLoading(false);
+        }
+      }
+    });
+  })();
+</script>
 </body>
 </html>
