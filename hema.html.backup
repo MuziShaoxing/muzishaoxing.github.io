@@ -437,7 +437,6 @@
             { name: '1-二维码生成-弹窗版.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/1-二维码生成-弹窗版.zip' },
             { name: '2-二维码生成-悬浮窗.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/2-二维码生成-悬浮窗.zip' },
             { name: '3-高级自定义标签页.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/3-高级自定义标签页.zip' },
-            { name: '自定义标签页.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/自定义标签页.zip' },
             { name: '视频变速器.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/视频变速器.zip' },
         ],
         '3-Python脚本': [
@@ -449,12 +448,16 @@
             { name: '一键删除修改时间超过30天的历史文件.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/一键删除修改时间超过30天的历史文件.py' },
             { name: '删除创建时间超过30天文件并确认.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/删除创建时间超过30天文件并确认.py' },
             { name: '将TXT文件转VCF格式-带界面.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/将TXT文件转VCF格式-带界面.py' },
+            { name: '自动归档.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/自动归档.py' },
         ],
         '4-Mac': [
             { name: '1-MacOS屏蔽更新补丁.dmg', icon: 'fa-file', path: 'hema/4-Mac/1-MacOS屏蔽更新补丁.dmg' },
             { name: '11-磁盘没有正常推出.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/11-磁盘没有正常推出.zip' },
             { name: '12-挂载nfts分区读写.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/12-挂载nfts分区读写.zip' },
             { name: '13-一键文件夹目录树py.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/13-一键文件夹目录树py.zip' },
+            { name: 'Python脚本运行器.command', icon: 'fa-file', path: 'hema/4-Mac/Python脚本运行器.command' },
+            { name: '单硬盘挂载EFI分区2.0.command', icon: 'fa-file', path: 'hema/4-Mac/单硬盘挂载EFI分区2.0.command' },
+            { name: '显示隐藏文件.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/显示隐藏文件.zip' },
         ],
         '5-Windows': [
             { name: 'BCM94360Z4.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/BCM94360Z4.zip' },

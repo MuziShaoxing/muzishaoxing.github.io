@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>骑手时段效率 · 按骑手匹配班次 | 筛选骑手 | 零单优化显示</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', '微软雅黑', 'Roboto', sans-serif; }
+        body { background: #eef2f7; margin: 0; padding: 24px 20px; }
+        .app-container { max-width: 1600px; margin: 0 auto; background: white; border-radius: 28px; box-shadow: 0 20px 35px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { padding: 20px 28px; background: white; border-bottom: 1px solid #e9edf2; }
+        h1 { font-size: 1.8rem; margin: 0 0 6px; background: linear-gradient(135deg, #1e6f3f, #2c8c4a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .sub { color: #5e6f8d; font-size: 0.85rem; margin-bottom: 16px; }
+        
+        .control-bar { background: #f8fafc; padding: 24px 28px; border-radius: 24px; margin-top: 8px; }
+        .layout-row { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+        .col-orders { width: 220px; display: flex; flex-direction: column; }
+        .col-att { width: 270px; display: flex; flex-direction: column; }
+        
+        .ripple-toggle {
+            background: #ffffff;
+            border: 1px solid #cfdee9;
+            border-radius: 40px;
+            padding: 6px 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 96px;
+            background: linear-gradient(145deg, #ffffff 0%, #f9fbfd 100%);
+        }
+        .ripple-toggle:hover { border-color: #2c8c4a; background: #f6fef9; transform: translateY(-1px); }
+        .ripple-toggle:active { transform: translateY(1px); }
+        .main-text { font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #1e6f3f, #2c8c4a); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .sub-text { font-size: 0.6rem; color: #5f7f9e; margin-top: 2px; }
+        
+        .rider-filter-compact {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: white;
+            padding: 2px 8px 2px 12px;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+            height: 52px;
+        }
+        .rider-filter-compact:hover { border-color: #cbd5e1; background: #fafcff; }
+        .rider-filter-label { font-size: 0.7rem; font-weight: 600; color: #475569; }
+        #riderFilterSelect {
+            padding: 4px 4px 4px 8px;
+            border-radius: 32px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.7rem;
+            min-width: 100px;
+            cursor: pointer;
+        }
+        #riderFilterSelect:hover, #riderFilterSelect:focus { border-color: #1e6f3f; }
+        .filter-clear-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 20px;
+        }
+        .filter-clear-btn:hover { background: #f1f5f9; color: #ef4444; }
+        
+        .col-spacer { flex: 1; }
+        .col-status-buttons { min-width: 520px; flex: 2; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        .col-label { font-weight: 600; font-size: 0.8rem; color: #2c3e66; margin-bottom: 8px; }
+        .file-info { 
+            background: white; border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #64748b; 
+            border: 1px solid #cbd5e1; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .file-info:hover { border-color: #1e6f3f; background: #f0fdf4; color: #1e6f3f; }
+        .status-text { font-size: 0.85rem; color: #1e6f3f; font-weight: 500; text-align: center; margin-bottom: 4px; }
+        .status-icon { margin-right: 4px; }
+        .status-badge { margin-left: 10px; background: #eef2ff; padding: 2px 12px; border-radius: 20px; font-size: 0.75rem; }
+        .button-group { display: flex; gap: 10px; justify-content: flex-end; }
+        button { padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 500; }
+        button.primary { background: #1e6f3f; border-color: #1e6f3f; color: white; }
+        button.primary:hover { background: #155a34; }
+        button.outline { border: 1px solid #2c8c4a; color: #1e6f3f; }
+        button.outline:hover { background: #f0fdf4; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .progress-bar { height: 4px; background: #e2e8f0; margin: 0 20px 12px; border-radius: 4px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: #2c8c4a; transition: width 0.2s; }
+        .table-fixed-container { padding: 0 20px 20px 20px; }
+        .table-scroll-wrapper { overflow-x: auto; overflow-y: auto; max-height: 65vh; border-radius: 20px; border: 2px solid #1a1a1a; background: #fff; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 500px; }
+        .stats-table th, .stats-table td { border: 2px solid #1a1a1a !important; padding: 8px 6px; text-align: center; white-space: nowrap; font-size: 0.85rem; }
+        .stats-table th .slot-start { display: block; font-size: 0.85rem; font-weight: 600; }
+        .stats-table th .slot-end { display: block; font-size: 0.7rem; font-weight: normal; color: #334155; }
+        .stats-table thead tr:first-child th { position: sticky; top: 0; background-color: #f1f5f9; z-index: 200; }
+        .stats-table th:first-child, .stats-table td:first-child { position: sticky; left: 0; background-color: white; z-index: 210; font-weight: 700; text-align: left; min-width: 120px; border-right: 3px solid #1a1a1a !important; }
+        .stats-table thead tr:first-child th:first-child { background-color: #f1f5f9; z-index: 220; }
+        .summary-row td { font-weight: 700; background-color: #eaf7ea; }
+        .separator-row td { background-color: #cbd5e6; padding: 4px; }
+        .working-bg { background-color: #3b82f6 !important; color: white; }
+        .non-working-bg { background-color: #ffffff !important; }
+        .cell-number-circle { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; font-weight: bold; font-size: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .green-circle-bg { background-color: #22c55e; color: white; box-shadow: 0 0 0 2px #166534; }
+        .red-circle-bg { background-color: #ef4444; color: white; box-shadow: 0 0 0 2px #7f1d1d; }
+        .white-circle-bg { background-color: #e5e7eb; color: #6b7280; box-shadow: 0 0 0 1px #9ca3af; }
+        .stats-table td .cell-value-wrapper { display: flex; justify-content: center; align-items: center; }
+        .preview-area { margin: 0 20px 20px 20px; border-top: 1px solid #e2edf2; padding-top: 12px; }
+        .preview-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .preview-table { font-size: 0.7rem; width: 100%; border-collapse: collapse; }
+        .preview-table th, .preview-table td { border: 1px solid #ddd; padding: 5px; white-space: nowrap; }
+        .preview-container { max-height: 200px; overflow: auto; border: 1px solid #e2edf2; border-radius: 12px; }
+        footer { padding: 12px 24px; background: #f8fafc; font-size: 0.7rem; text-align: center; color: #5f7f9e; }
+        .legend { display: flex; align-items: center; gap: 20px; margin: 12px 20px 0 20px; padding-bottom: 8px; font-size: 12px; flex-wrap: wrap; border-top: 1px solid #e9edf2; padding-top: 12px; }
+        .legend-color { width: 24px; height: 16px; border-radius: 4px; display: inline-block; border: 1px solid #1a1a1a; }
+        .legend-circle { display: inline-flex; width: 24px; height: 24px; border-radius: 50%; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; margin-right: 6px; }
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: white; border-radius: 32px; padding: 28px 32px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #1e6f3f; }
+        .mapping-section { margin-bottom: 28px; padding: 20px; background: #f8fafc; border-radius: 20px; }
+        .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #1e3a5f; }
+        .mapping-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 20px; }
+        .mapping-item { display: flex; flex-direction: column; gap: 6px; }
+        .mapping-item label { font-weight: 600; font-size: 0.8rem; color: #2c3e66; }
+        .mapping-item select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid #cfdee9; }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+        .btn-primary { background: #1e6f3f; color: white; border: none; padding: 12px 28px; border-radius: 40px; cursor: pointer; }
+        .btn-secondary { background: #eef2f7; color: #334155; border: none; padding: 12px 28px; border-radius: 40px; cursor: pointer; }
+        input[type="file"] { display: none; }
+        @media (max-width: 1200px) {
+            .layout-row { flex-direction: column; align-items: stretch; }
+            .col-status-buttons { align-items: stretch; width: 100%; }
+            .button-group { justify-content: space-between; }
+            .ripple-toggle { align-self: flex-start; }
+            .rider-filter-compact { align-self: flex-start; margin-top: 6px; margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>📊 骑手时段效率 · 按骑手匹配班次 | 筛选骑手 | 零单优化显示</h1>
+        <div class="sub">读取考勤表中的"考勤骑手.配送员姓名"与班次时间 | 仅对匹配的骑手生效工作时间蓝底</div>
+        <div class="control-bar">
+            <div class="layout-row">
+                <div class="col-orders">
+                    <div class="col-label">📂 订单Excel</div>
+                    <div class="file-info" id="orderFileTrigger">📁 点击选择订单文件</div>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
+                </div>
+                <div class="col-att">
+                    <div class="col-label">📅 考勤Excel (可选)</div>
+                    <div class="file-info" id="attFileTrigger">📁 点击选择考勤文件(可选)</div>
+                    <input type="file" id="attendanceInput" accept=".xlsx, .xls, .csv">
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button class="ripple-toggle" id="rippleUnitToggle">
+                        <span class="main-text" id="mainUnitText">半小时</span>
+                        <span class="sub-text" id="subHintText">30分钟</span>
+                    </button>
+                    
+                    <div class="rider-filter-compact" id="riderFilterCompact" style="display: none;">
+                        <span class="rider-filter-label">🔍 骑手</span>
+                        <select id="riderFilterSelect"><option value="__ALL__">📋 全部</option></select>
+                        <button id="clearRiderFilter" class="filter-clear-btn" title="清除筛选">✖️</button>
+                    </div>
+                </div>
+                
+                <div class="col-spacer"></div>
+                <div class="col-status-buttons">
+                    <div class="status-text" id="statusTextBar">
+                        <span class="status-icon" id="statusIcon">ℹ️</span>
+                        <span id="statusMessage">就绪，请上传订单文件</span>
+                        <span class="status-badge" id="statusBadge"></span>
+                    </div>
+                    <div class="button-group">
+                        <button id="mappingConfigBtn" class="outline">⚙️ 字段映射</button>
+                        <button id="analyzeBtn" class="primary">✨ 生成统计表</button>
+                        <button id="exportExcelBtn" class="outline" disabled>📎 导出Excel</button>
+                        <button id="exportImageBtn" class="outline" disabled>📸 导出图片</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="table-fixed-container"><div class="table-scroll-wrapper"><table class="stats-table" id="resultTable"><thead><tr><th>指标/骑手</th><th colspan="2">等待分析</th></thead><tbody><tr><td colspan="2">请上传订单Excel并点击生成</td></tbody></table></div></div>
+    <div class="legend">
+        <span><strong>📊 图例</strong></span>
+        <div><div class="legend-color" style="background: #3b82f6;"></div> 工作时段内(蓝色底)</div>
+        <div><div class="legend-color" style="background: #ffffff; border:1px solid #aaa;"></div> 工作时段外(白底)</div>
+        <div><div class="legend-circle" style="background:#22c55e; color:white;">●</div> 单量≥时段人效</div>
+        <div><div class="legend-circle" style="background:#ef4444; color:white;">●</div> 单量&lt;时段人效</div>
+        <div><div class="legend-circle" style="background:#e5e7eb; color:#6b7280;">0</div> 0单(工作时段内)</div>
+        <div><span style="background:white; border:1px solid #aaa; padding:2px 6px;">空白</span> 非工作时段+0单(隐藏)</div>
+    </div>
+    <div class="preview-area" id="previewArea" style="display: none;">
+        <div class="preview-header"><span>📋 原始数据预览 (前80行)</span><button id="togglePreviewBtn">折叠预览</button></div>
+        <div id="previewContainer" class="preview-container"><table class="preview-table" id="previewTable"></table></div>
+    </div>
+    <footer>✅ 涟漪按钮切换粒度 | 筛选器可查看特定骑手 | 非工作时段且0单单元格完全隐藏</footer>
+</div>
+
+<div id="mappingModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-title">📌 字段映射配置</div>
+        <div class="mapping-section"><div class="section-title">📦 订单表格字段映射</div>
+            <div class="mapping-grid">
+                <div class="mapping-item"><label>🏍️ 骑手姓名列</label><select id="mapOrderRider"></select></div>
+                <div class="mapping-item"><label>⏰ 订单时间列</label><select id="mapOrderTime"></select></div>
+            </div>
+        </div>
+        <div class="mapping-section"><div class="section-title">📅 考勤表格字段映射</div>
+            <div class="mapping-grid">
+                <div class="mapping-item"><label>👤 骑手姓名列</label><select id="mapAttRider"></select></div>
+                <div class="mapping-item"><label>▶️ 班次开始时间</label><select id="mapAttStart"></select></div>
+                <div class="mapping-item"><label>⏹️ 班次结束时间</label><select id="mapAttEnd"></select></div>
+                <div class="mapping-item"><label>📊 班次状态 (0=正常)</label><select id="mapAttStatus"></select></div>
+            </div>
+        </div>
+        <div class="modal-actions"><button id="applyMappingBtn" class="btn-primary">应用映射并生成</button><button id="closeModalBtn" class="btn-secondary">取消</button></div>
+    </div>
+</div>
+
+<script>
+(function(){
+    "use strict";
+    if (typeof XLSX === 'undefined') { alert('Excel库加载失败'); return; }
+
+    // DOM 元素
+    const fileInput = document.getElementById('fileInput');
+    const attendanceInput = document.getElementById('attendanceInput');
+    const orderFileTrigger = document.getElementById('orderFileTrigger');
+    const attFileTrigger = document.getElementById('attFileTrigger');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const exportImageBtn = document.getElementById('exportImageBtn');
+    const resultTableHead = document.querySelector('#resultTable thead');
+    const resultTableBody = document.querySelector('#resultTable tbody');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const previewArea = document.getElementById('previewArea');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewTable = document.getElementById('previewTable');
+    const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+    const mappingConfigBtn = document.getElementById('mappingConfigBtn');
+    const mappingModal = document.getElementById('mappingModal');
+    const mapOrderRider = document.getElementById('mapOrderRider');
+    const mapAttRider = document.getElementById('mapAttRider');
+    const mapOrderTime = document.getElementById('mapOrderTime');
+    const mapAttStart = document.getElementById('mapAttStart');
+    const mapAttEnd = document.getElementById('mapAttEnd');
+    const mapAttStatus = document.getElementById('mapAttStatus');
+    const applyMappingBtn = document.getElementById('applyMappingBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const rippleToggle = document.getElementById('rippleUnitToggle');
+    const mainUnitText = document.getElementById('mainUnitText');
+    const subHintText = document.getElementById('subHintText');
+    const riderFilterSelect = document.getElementById('riderFilterSelect');
+    const riderFilterCompact = document.getElementById('riderFilterCompact');
+    const clearRiderFilterBtn = document.getElementById('clearRiderFilter');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusMessage = document.getElementById('statusMessage');
+    const statusBadge = document.getElementById('statusBadge');
+
+    let workbookData = null, attendanceWorkbook = null, riderShiftsMap = new Map();
+    let structHalfHour = null, structHour = null;
+    let currentGranularity = '半小时', currentFilterRider = '__ALL__';
+    let previewVisible = true;
+    let currentMapping = {
+        orderRider: '配送员姓名', orderTime: '订单配送完成时间',
+        attRider: '考勤骑手.配送员姓名', attStart: '配送班次.班次开始时间',
+        attEnd: '配送班次.班次结束时间', attStatus: '班次状态（1：取消；0：正常）'
+    };
+
+    orderFileTrigger?.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+    attFileTrigger?.addEventListener('click', (e) => { e.stopPropagation(); attendanceInput.click(); });
+
+    function setGranularityUI(gran) {
+        if (gran === '半小时') { mainUnitText.innerText = '半小时'; subHintText.innerText = '30分钟'; } 
+        else { mainUnitText.innerText = '小时'; subHintText.innerText = '60分钟'; }
+        currentGranularity = gran;
+        if (structHalfHour || structHour) renderCurrentStructWithFilter();
+    }
+    rippleToggle.addEventListener('click', () => {
+        setGranularityUI(currentGranularity === '半小时' ? '小时' : '半小时');
+    });
+
+    function updateRiderFilterUI(riderNames) {
+        if (!riderNames || riderNames.length === 0) { riderFilterCompact.style.display = 'none'; return; }
+        const currentVal = riderFilterSelect.value;
+        riderFilterSelect.innerHTML = '<option value="__ALL__">📋 全部骑手</option>';
+        riderNames.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            riderFilterSelect.appendChild(opt);
+        });
+        if (currentVal !== '__ALL__' && riderNames.includes(currentVal)) riderFilterSelect.value = currentVal;
+        else riderFilterSelect.value = '__ALL__';
+        currentFilterRider = riderFilterSelect.value;
+        riderFilterCompact.style.display = 'inline-flex';
+    }
+
+    function renderCurrentStructWithFilter() {
+        const struct = currentGranularity === '半小时' ? structHalfHour : structHour;
+        if (!struct || !struct.riderDisplay) return;
+        let filteredRiderDisplay = struct.riderDisplay;
+        if (currentFilterRider !== '__ALL__') {
+            filteredRiderDisplay = struct.riderDisplay.filter(r => r.rider === currentFilterRider);
+        }
+        const filteredStruct = { ...struct, riderDisplay: filteredRiderDisplay };
+        renderTableWithHeatmap(filteredStruct, riderShiftsMap);
+        const totalOrders = struct.rawOrders?.reduce((a,b)=>a+b,0) || 0;
+        updateStatus(`${currentGranularity}视图${currentFilterRider !== '__ALL__' ? ` · ${currentFilterRider}` : ''}`, `${filteredRiderDisplay.length}位骑手·${totalOrders}单`, 'success');
+    }
+
+    function updateStatus(msg, badge = '', type = 'info') {
+        statusMessage.textContent = msg;
+        statusIcon.textContent = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+        statusBadge.textContent = badge;
+        statusBadge.style.display = badge ? 'inline' : 'none';
+    }
+
+    function parseTimeToDate(val) {
+        if (!val && val !== 0) return null;
+        if (val instanceof Date && !isNaN(val)) return val;
+        let str = String(val).trim();
+        if (str === "") return null;
+        // 处理Excel数字日期
+        if (!isNaN(Number(str)) && Number(str) > 40000 && Number(str) < 60000) {
+            let date = new Date((Number(str) - 25569) * 86400000);
+            if (!isNaN(date.getTime())) return date;
+        }
+        let parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) return parsed;
+        let timeMatch = str.match(/(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+        if (timeMatch) {
+            let today = new Date();
+            today.setHours(parseInt(timeMatch[1]), parseInt(timeMatch[2]), timeMatch[3] ? parseInt(timeMatch[3]) : 0, 0);
+            return today;
+        }
+        return null;
+    }
+
+    function loadExcel(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true, defval: "" });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+                    if (!rows || rows.length < 2) reject(new Error("文件无数据"));
+                    const headerRow = rows[0].map(cell => String(cell || "").trim());
+                    const dataRows = rows.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== "" && cell !== null));
+                    const jsonData = dataRows.map(row => {
+                        let obj = {};
+                        headerRow.forEach((col, idx) => { obj[col] = row[idx]; });
+                        return obj;
+                    });
+                    resolve({ columns: headerRow, data: jsonData });
+                } catch (err) { reject(err); }
+            };
+            reader.onerror = () => reject(new Error("文件读取失败"));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    function parseAttendanceWithMapping(attData, mapping) {
+        const { attRider, attStart, attEnd, attStatus } = mapping;
+        const shiftsMap = new Map();
+        if (!attData?.data || !attRider || !attStart || !attEnd) return shiftsMap;
+        for (let row of attData.data) {
+            let riderRaw = row[attRider];
+            if (!riderRaw) continue;
+            let riderName = String(riderRaw).trim();
+            let startDate = parseTimeToDate(row[attStart]);
+            let endDate = parseTimeToDate(row[attEnd]);
+            let statusVal = attStatus ? row[attStatus] : 0;
+            if (startDate && endDate) {
+                let statusNum = (statusVal !== undefined && statusVal !== null) ? (typeof statusVal === 'number' ? statusVal : (parseInt(statusVal) || 0)) : 0;
+                if (statusNum === 0) {
+                    if (!shiftsMap.has(riderName)) shiftsMap.set(riderName, []);
+                    shiftsMap.get(riderName).push({
+                        startHour: startDate.getHours(), startMin: startDate.getMinutes(),
+                        endHour: endDate.getHours(), endMin: endDate.getMinutes()
+                    });
+                }
+            }
+        }
+        return shiftsMap;
+    }
+
+    function populateSelect(selectEl, columns, selectedValue) {
+        selectEl.innerHTML = '';
+        if (!columns || columns.length === 0) {
+            selectEl.innerHTML = '<option value="">-- 暂无列 --</option>';
+            return;
+        }
+        columns.forEach(col => { const opt = new Option(col, col); selectEl.appendChild(opt); });
+        if (selectedValue && columns.includes(selectedValue)) selectEl.value = selectedValue;
+        else if (columns.length > 0) selectEl.value = columns[0];
+    }
+
+    function openMappingModal() {
+        populateSelect(mapOrderRider, workbookData?.columns || [], currentMapping.orderRider);
+        populateSelect(mapOrderTime, workbookData?.columns || [], currentMapping.orderTime);
+        populateSelect(mapAttRider, attendanceWorkbook?.columns || [], currentMapping.attRider);
+        populateSelect(mapAttStart, attendanceWorkbook?.columns || [], currentMapping.attStart);
+        populateSelect(mapAttEnd, attendanceWorkbook?.columns || [], currentMapping.attEnd);
+        populateSelect(mapAttStatus, attendanceWorkbook?.columns || [], currentMapping.attStatus);
+        mappingModal.style.display = 'flex';
+    }
+
+    async function applyMappingAndAnalyze() {
+        if (!workbookData) { updateStatus('请先上传订单文件', '', 'error'); return; }
+        currentMapping = {
+            orderRider: mapOrderRider.value, orderTime: mapOrderTime.value,
+            attRider: mapAttRider.value, attStart: mapAttStart.value,
+            attEnd: mapAttEnd.value, attStatus: mapAttStatus.value
+        };
+        if (!currentMapping.orderTime || !currentMapping.orderRider) {
+            updateStatus('请选择订单表的时间和骑手列', '', 'error');
+            return;
+        }
+        mappingModal.style.display = 'none';
+        if (attendanceWorkbook && currentMapping.attRider && currentMapping.attStart && currentMapping.attEnd) {
+            riderShiftsMap = parseAttendanceWithMapping(attendanceWorkbook, currentMapping);
+        } else {
+            riderShiftsMap.clear();
+        }
+        await performAnalysis();
+    }
+    
+    async function performAnalysis() {
+        if (!workbookData?.data?.length) {
+            updateStatus('请先上传订单文件', '', 'error');
+            return;
+        }
+        if (!currentMapping.orderTime || !currentMapping.orderRider) {
+            updateStatus('请配置订单字段映射', '', 'error');
+            return;
+        }
+        analyzeBtn.disabled = true;
+        exportExcelBtn.disabled = true;
+        exportImageBtn.disabled = true;
+        progressBar.style.display = "block";
+        progressFill.style.width = "30%";
+        updateStatus('正在分析数据...', '', 'info');
+        try {
+            structHalfHour = analyzeData(workbookData.data, currentMapping.orderTime, currentMapping.orderRider, '半小时');
+            structHour = analyzeData(workbookData.data, currentMapping.orderTime, currentMapping.orderRider, '小时');
+            const allRiders = structHalfHour?.riderDisplay?.map(r => r.rider) || [];
+            updateRiderFilterUI(allRiders);
+            progressFill.style.width = "100%";
+            setTimeout(() => progressBar.style.display = "none", 400);
+            exportExcelBtn.disabled = false;
+            exportImageBtn.disabled = false;
+            renderCurrentStructWithFilter();
+        } catch (err) {
+            console.error('分析错误:', err);
+            updateStatus(`分析失败: ${err.message}`, '', 'error');
+            progressBar.style.display = "none";
+            // 显示错误信息在表格中
+            resultTableHead.innerHTML = '<tr><th>错误</th></tr>';
+            resultTableBody.innerHTML = `<tr><td colspan="10" style="color:red;text-align:center;">分析失败: ${err.message}<br>请检查Excel文件格式和字段映射是否正确</td></tr>`;
+        } finally {
+            analyzeBtn.disabled = false;
+            progressFill.style.width = "0%";
+        }
+    }
+
+    function isSlotInWorkingHours(slotStartHour, slotStartMin, slotEndHour, slotEndMin, riderShifts) {
+        if (!riderShifts?.length) return true;
+        let slotStart = slotStartHour * 60 + slotStartMin;
+        let slotEnd = slotEndHour * 60 + slotEndMin;
+        for (let shift of riderShifts) {
+            let shiftStart = shift.startHour * 60 + shift.startMin;
+            let shiftEnd = shift.endHour * 60 + shift.endMin;
+            if (slotStart < shiftEnd && slotEnd > shiftStart) return true;
+        }
+        return false;
+    }
+
+    function escapeHtml(str) { 
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
+    }
+
+    function analyzeData(data, timeCol, riderCol, granularity) {
+        // 步骤1: 提取有效订单数据
+        let validRows = [];
+        for (let row of data) {
+            let rider = row[riderCol];
+            let t = row[timeCol];
+            if (!rider && rider !== 0) continue;
+            let date = parseTimeToDate(t);
+            if (!date || isNaN(date.getTime())) continue;
+            validRows.push({ rider: String(rider).trim(), time: date });
+        }
+        
+        if (validRows.length === 0) throw new Error("无有效数据，请检查订单时间和骑手列是否正确");
+        
+        const uniqueRidersSet = new Set(validRows.map(v => v.rider));
+        const totalUniqueRiders = uniqueRidersSet.size;
+        const freq = granularity === "半小时" ? 30 : 60;
+        
+        // 步骤2: 收集所有出现的时段（用Map按start分钟数去重）
+        let slotMap = new Map(); // key: start分钟数, value: 时段信息对象
+        for (let v of validRows) {
+            let mins = v.time.getHours() * 60 + v.time.getMinutes();
+            let start = Math.floor(mins / freq) * freq;
+            if (!slotMap.has(start)) {
+                let sh = Math.floor(start / 60);
+                let sm = start % 60;
+                let eh = Math.floor((start + freq) / 60);
+                let em = (start + freq) % 60;
+                slotMap.set(start, {
+                    sortKey: start,
+                    startHour: sh,
+                    startMin: sm,
+                    endHour: eh,
+                    endMin: em
+                });
+            }
+        }
+        
+        // 按sortKey排序，得到有序的时段数组
+        let timeSlots = Array.from(slotMap.values()).sort((a, b) => a.sortKey - b.sortKey);
+        if (timeSlots.length === 0) throw new Error("时段生成失败");
+        
+        // 步骤3: 统计每个骑手在每个时段的订单数
+        let riderOrders = new Map(); // rider -> Map<时段索引, 订单数>
+        let slotTotalOrders = new Array(timeSlots.length).fill(0);
+        let slotRiderSet = Array(timeSlots.length).fill().map(() => new Set());
+        
+        for (let v of validRows) {
+            let mins = v.time.getHours() * 60 + v.time.getMinutes();
+            let start = Math.floor(mins / freq) * freq;
+            // 找到对应的时段索引
+            let targetIdx = timeSlots.findIndex(slot => slot.sortKey === start);
+            if (targetIdx === -1) continue;
+            
+            if (!riderOrders.has(v.rider)) {
+                riderOrders.set(v.rider, new Map());
+            }
+            let riderSlotMap = riderOrders.get(v.rider);
+            riderSlotMap.set(targetIdx, (riderSlotMap.get(targetIdx) || 0) + 1);
+            
+            slotTotalOrders[targetIdx] += 1;
+            slotRiderSet[targetIdx].add(v.rider);
+        }
+        
+        // 步骤4: 计算每个时段的骑手数和效率
+        let totalRidersPerSlot = slotRiderSet.map(s => s.size);
+        let efficiencyPerSlot = slotTotalOrders.map((o, i) => totalRidersPerSlot[i] > 0 ? o / totalRidersPerSlot[i] : 0);
+        
+        // 步骤5: 构建骑手数据行
+        let riderRows = [];
+        for (let [rider, slotMapData] of riderOrders.entries()) {
+            let counts = timeSlots.map((_, idx) => slotMapData.get(idx) || 0);
+            let total = counts.reduce((a, b) => a + b, 0);
+            riderRows.push({ rider, counts, total });
+        }
+        riderRows.sort((a, b) => b.total - a.total);
+        
+        // 步骤6: 构建汇总行
+        let totalOrders = slotTotalOrders.reduce((a, b) => a + b, 0);
+        
+        let summaryRows = [
+            { type: '时段单量', values: slotTotalOrders, total: totalOrders },
+            { type: '时段人数', values: totalRidersPerSlot, total: totalUniqueRiders },
+            { type: '时段效率', values: efficiencyPerSlot.map(v => Math.round(v * 10) / 10), total: totalUniqueRiders > 0 ? (totalOrders / totalUniqueRiders).toFixed(1) : '0' }
+        ];
+        
+        // 注意：riderDisplay 中的字段名应该是 values（与渲染函数匹配）
+        let riderDisplay = riderRows.map(r => ({ 
+            rider: r.rider, 
+            values: r.counts,  // 关键：字段名必须是 values
+            total: r.total 
+        }));
+        
+        return {
+            timeSlotsRaw: timeSlots,
+            summaryRows: summaryRows,
+            riderDisplay: riderDisplay,
+            efficiencyRaw: efficiencyPerSlot,
+            rawOrders: slotTotalOrders,
+            rawRiders: totalRidersPerSlot,
+            rawEffValues: efficiencyPerSlot
+        };
+    }
+    
+    function getHeatColor(value, minVal, maxVal) {
+        // 安全处理边界情况
+        if (maxVal === undefined || minVal === undefined || maxVal === minVal || maxVal <= 0) {
+            return '#b9f6ca';
+        }
+        let ratio = (value - minVal) / (maxVal - minVal);
+        ratio = Math.max(0, Math.min(1, ratio)); // 限制在0-1之间
+        let r = 80 + (255 - 80) * ratio;
+        let g = 200 - (ratio * 120);
+        let b = 80 + (20) * ratio;
+        return `rgb(${Math.min(255, Math.floor(r))}, ${Math.max(40, Math.floor(g))}, ${Math.max(40, Math.floor(b))})`;
+    }
+    
+    function renderTableWithHeatmap(struct, shiftsMap) {
+        if (!struct || !struct.timeSlotsRaw || !struct.summaryRows || !struct.riderDisplay) {
+            console.warn('渲染表格失败：数据结构不完整');
+            return;
+        }
+        
+        const { timeSlotsRaw, summaryRows, riderDisplay, efficiencyRaw, rawOrders, rawRiders, rawEffValues } = struct;
+        
+        // 渲染表头
+        let headerHtml = '<tr><th>指标/骑手</th>';
+        for (let slot of timeSlotsRaw) {
+            headerHtml += `<th><span class="slot-start">${slot.startHour.toString().padStart(2,'0')}:${slot.startMin.toString().padStart(2,'0')}</span><span class="slot-end">↓${slot.endHour.toString().padStart(2,'0')}:${slot.endMin.toString().padStart(2,'0')}</span></th>`;
+        }
+        headerHtml += '<th>总计</th></tr>';
+        resultTableHead.innerHTML = headerHtml;
+        
+        // 计算热力图颜色范围（安全处理空数组）
+        const safeMinMax = (arr, defaultMin, defaultMax) => {
+            if (!arr || arr.length === 0) return { min: defaultMin, max: defaultMax };
+            const min = Math.min(...arr, defaultMin);
+            const max = Math.max(...arr, defaultMax);
+            return { min, max: max === min ? defaultMax : max };
+        };
+        
+        const ordersRange = safeMinMax(rawOrders, 0, 1);
+        const ridersRange = safeMinMax(rawRiders, 0, 1);
+        const effRange = safeMinMax(rawEffValues, 0, 0.1);
+        
+        let tbody = '';
+        
+        // 渲染汇总行
+        for (let idx = 0; idx < summaryRows.length; idx++) {
+            const s = summaryRows[idx];
+            let cells = `<td style="background:#d0f0c0; font-weight:700;">${escapeHtml(s.type)}</td>`;
+            for (let i = 0; i < timeSlotsRaw.length; i++) {
+                let val = s.values[i];
+                let bgColor;
+                if (idx === 0) bgColor = getHeatColor(val, ordersRange.min, ordersRange.max);
+                else if (idx === 1) bgColor = getHeatColor(val, ridersRange.min, ridersRange.max);
+                else bgColor = getHeatColor(parseFloat(val), effRange.min, effRange.max);
+                cells += `<td style="background:${bgColor}; font-weight:700; text-align:center;">${val}</td>`;
+            }
+            cells += `<td style="background:#d0f0c0; font-weight:700;">${s.total}</td>`;
+            tbody += `<tr class="summary-row">${cells}</tr>`;
+        }
+        
+        // 分隔行
+        let sepCells = `<td style="background:#cbd5e6; text-align:center;">────────────────</td>`;
+        for (let i = 0; i < timeSlotsRaw.length; i++) sepCells += `<td style="background:#cbd5e6;">─</td>`;
+        sepCells += `<td style="background:#cbd5e6;">─</td>`;
+        tbody += `<tr class="separator-row">${sepCells}</tr>`;
+        
+        // 渲染骑手行
+        for (let rider of riderDisplay) {
+            let shifts = shiftsMap.get(rider.rider) || [];
+            let cells = `<td style="font-weight:700; background:white;">${escapeHtml(rider.rider)}</td>`;
+            for (let i = 0; i < timeSlotsRaw.length; i++) {
+                let cnt = rider.values[i];  // 使用 values 字段
+                let avg = efficiencyRaw[i] || 0;
+                let slot = timeSlotsRaw[i];
+                let isWorking = isSlotInWorkingHours(slot.startHour, slot.startMin, slot.endHour, slot.endMin, shifts);
+                let bgClass = isWorking ? 'working-bg' : 'non-working-bg';
+                let shouldHide = (!isWorking && cnt === 0);
+                let innerHtml;
+                if (shouldHide) {
+                    innerHtml = `<div class="cell-value-wrapper" style="visibility:hidden;"> </div>`;
+                } else {
+                    let circleClass = cnt === 0 ? 'white-circle-bg' : (cnt >= avg ? 'green-circle-bg' : 'red-circle-bg');
+                    innerHtml = `<div class="cell-value-wrapper"><span class="cell-number-circle ${circleClass}">${cnt}</span></div>`;
+                }
+                cells += `<td class="${bgClass}" style="text-align:center;">${innerHtml}</td>`;
+            }
+            cells += `<td style="font-weight:700; text-align:center;">${rider.total}</td>`;
+            tbody += `<tr class="rider-row">${cells}</tr>`;
+        }
+        resultTableBody.innerHTML = tbody;
+    }
+    
+    function exportToExcel() {
+        if (!structHalfHour || !structHour) {
+            updateStatus('请先生成统计表', '', 'error');
+            return;
+        }
+        const wb = XLSX.utils.book_new();
+        function createSheet(struct, sheetName) {
+            const { timeSlotsRaw, summaryRows, riderDisplay } = struct;
+            let headers = ['指标/骑手', ...timeSlotsRaw.map(s => `${s.startHour}:${s.startMin.toString().padStart(2,'0')}-${s.endHour}:${s.endMin.toString().padStart(2,'0')}`), '总计'];
+            let data = [headers];
+            for (let s of summaryRows) {
+                let row = [s.type];
+                for(let i=0;i<timeSlotsRaw.length;i++) row.push(s.values[i]);
+                row.push(s.total);
+                data.push(row);
+            }
+            data.push(Array(headers.length).fill('─'));
+            for (let r of riderDisplay) {
+                let row = [r.rider];
+                for(let i=0;i<timeSlotsRaw.length;i++) row.push(r.values[i]);
+                row.push(r.total);
+                data.push(row);
+            }
+            return XLSX.utils.aoa_to_sheet(data);
+        }
+        XLSX.utils.book_append_sheet(wb, createSheet(structHalfHour, '半小时'), '半小时');
+        XLSX.utils.book_append_sheet(wb, createSheet(structHour, '小时'), '小时');
+        XLSX.writeFile(wb, `骑手效率报表_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.xlsx`);
+        updateStatus('Excel导出成功', '两个工作表', 'success');
+    }
+    
+    async function captureTableImage(struct, title) {
+        renderTableWithHeatmap(struct, riderShiftsMap);
+        await new Promise(r => setTimeout(r, 100));
+        const table = document.getElementById('resultTable');
+        const clone = table.cloneNode(true);
+        clone.querySelectorAll('th, td, tr').forEach(el => el.style.position = 'static');
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = '-9999px';
+        wrapper.style.backgroundColor = 'white';
+        wrapper.style.padding = '24px';
+        const h2 = document.createElement('h2');
+        h2.textContent = `📊 ${title}粒度统计`;
+        h2.style.margin = '0 0 16px 0';
+        h2.style.color = '#1e6f3f';
+        wrapper.appendChild(h2);
+        wrapper.appendChild(clone);
+        document.body.appendChild(wrapper);
+        const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff', logging: false });
+        document.body.removeChild(wrapper);
+        return canvas;
+    }
+    
+    async function exportFullImage() {
+        if (!structHalfHour || !structHour) {
+            updateStatus('请先生成统计表', '', 'error');
+            return;
+        }
+        try {
+            exportImageBtn.disabled = true;
+            updateStatus('正在生成半小时图片...', '', 'info');
+            progressBar.style.display = "block";
+            progressFill.style.width = "20%";
+            const canvasHalf = await captureTableImage(structHalfHour, '半小时');
+            progressFill.style.width = "50%";
+            updateStatus('正在生成小时图片...', '', 'info');
+            const canvasHour = await captureTableImage(structHour, '小时');
+            progressFill.style.width = "80%";
+            renderCurrentStructWithFilter();
+            const ts = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+            const a = document.createElement('a');
+            a.download = `骑手效率_半小时_${ts}.png`;
+            a.href = canvasHalf.toDataURL('image/png');
+            a.click();
+            await new Promise(r => setTimeout(r, 100));
+            const b = document.createElement('a');
+            b.download = `骑手效率_小时_${ts}.png`;
+            b.href = canvasHour.toDataURL('image/png');
+            b.click();
+            progressFill.style.width = "100%";
+            setTimeout(() => progressBar.style.display = "none", 500);
+            updateStatus('两张图片导出成功', '半小时+小时', 'success');
+        } catch (err) {
+            updateStatus(`截图失败: ${err.message}`, '', 'error');
+        } finally {
+            exportImageBtn.disabled = false;
+            progressFill.style.width = "0%";
+            renderCurrentStructWithFilter();
+        }
+    }
+    
+    async function autoAnalyzeIfReady() {
+        if (!workbookData?.data?.length) return;
+        if (!currentMapping.orderTime || !currentMapping.orderRider) return;
+        try {
+            structHalfHour = analyzeData(workbookData.data, currentMapping.orderTime, currentMapping.orderRider, '半小时');
+            structHour = analyzeData(workbookData.data, currentMapping.orderTime, currentMapping.orderRider, '小时');
+            updateRiderFilterUI(structHalfHour?.riderDisplay?.map(r => r.rider) || []);
+            exportExcelBtn.disabled = false;
+            exportImageBtn.disabled = false;
+            renderCurrentStructWithFilter();
+        } catch(e) { 
+            console.error('自动分析失败:', e);
+            updateStatus(`自动分析失败: ${e.message}`, '', 'warning');
+        }
+    }
+    
+    function renderPreview(dataRows, cols) {
+        if (!dataRows?.length) return;
+        let html = '<thead><tr>' + cols.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</thead><tbody>';
+        for (let row of dataRows.slice(0, 80)) {
+            html += '<tr>';
+            for (let col of cols) {
+                let val = row[col] !== undefined && row[col] !== null ? String(row[col]).substring(0, 40) : '';
+                html += `<td title="${escapeHtml(val)}">${escapeHtml(val)}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody>';
+        previewTable.innerHTML = html;
+        previewArea.style.display = 'block';
+    }
+    
+    // 文件上传事件
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        orderFileTrigger.textContent = `📄 ${file.name}`;
+        updateStatus('正在加载订单文件...', file.name, 'info');
+        try {
+            const { columns, data } = await loadExcel(file);
+            workbookData = { columns, data };
+            // 渲染预览
+            renderPreview(data, columns);
+            // 智能匹配列
+            if (!columns.includes(currentMapping.orderRider)) {
+                let rc = columns.find(c => /骑手|配送员|姓名/i.test(c));
+                if (rc) currentMapping.orderRider = rc;
+            }
+            if (!columns.includes(currentMapping.orderTime)) {
+                let tc = columns.find(c => /时间|完成|创建时间/i.test(c));
+                if (tc) currentMapping.orderTime = tc;
+            }
+            updateStatus('订单加载成功', `${data.length}行`, 'success');
+            await autoAnalyzeIfReady();
+        } catch(err) {
+            orderFileTrigger.textContent = '📁 点击选择订单文件';
+            updateStatus(`读取失败: ${err.message}`, '', 'error');
+        }
+        fileInput.value = '';
+    });
+    
+    attendanceInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            riderShiftsMap.clear();
+            attFileTrigger.textContent = "📁 点击选择考勤文件(可选)";
+            attendanceWorkbook = null;
+            await autoAnalyzeIfReady();
+            return;
+        }
+        attFileTrigger.textContent = `📄 ${file.name}`;
+        updateStatus('正在加载考勤文件...', file.name, 'info');
+        try {
+            const wb = await loadExcel(file);
+            attendanceWorkbook = wb;
+            const cols = wb.columns;
+            if (!cols.includes(currentMapping.attRider)) {
+                let rc = cols.find(c => /考勤骑手|配送员|骑手/i.test(c));
+                if (rc) currentMapping.attRider = rc;
+            }
+            if (!cols.includes(currentMapping.attStart)) {
+                let sc = cols.find(c => /班次开始|开始时间/i.test(c));
+                if (sc) currentMapping.attStart = sc;
+            }
+            if (!cols.includes(currentMapping.attEnd)) {
+                let ec = cols.find(c => /班次结束|结束时间/i.test(c));
+                if (ec) currentMapping.attEnd = ec;
+            }
+            riderShiftsMap = parseAttendanceWithMapping(wb, currentMapping);
+            let cnt = 0;
+            for (let v of riderShiftsMap.values()) cnt += v.length;
+            await autoAnalyzeIfReady();
+            if (cnt > 0) {
+                updateStatus('考勤加载成功', `${riderShiftsMap.size}位骑手·${cnt}班次`, 'success');
+            } else {
+                updateStatus('未找到有效班次', '全时段工作', 'warning');
+            }
+        } catch(err) {
+            riderShiftsMap.clear();
+            attFileTrigger.textContent = '📁 点击选择考勤文件(可选)';
+            updateStatus(`读取失败: ${err.message}`, '', 'error');
+        }
+        attendanceInput.value = '';
+    });
+    
+    analyzeBtn.addEventListener('click', performAnalysis);
+    exportExcelBtn.addEventListener('click', exportToExcel);
+    exportImageBtn.addEventListener('click', exportFullImage);
+    togglePreviewBtn.addEventListener('click', () => {
+        previewVisible = !previewVisible;
+        previewContainer.style.display = previewVisible ? 'block' : 'none';
+        togglePreviewBtn.innerText = previewVisible ? '折叠预览' : '展开预览';
+    });
+    mappingConfigBtn.addEventListener('click', openMappingModal);
+    closeModalBtn.addEventListener('click', () => mappingModal.style.display = 'none');
+    applyMappingBtn.addEventListener('click', applyMappingAndAnalyze);
+    window.addEventListener('click', (e) => { if (e.target === mappingModal) mappingModal.style.display = 'none'; });
+    riderFilterSelect.addEventListener('change', (e) => {
+        currentFilterRider = e.target.value;
+        renderCurrentStructWithFilter();
+    });
+    clearRiderFilterBtn.addEventListener('click', () => {
+        riderFilterSelect.value = '__ALL__';
+        currentFilterRider = '__ALL__';
+        renderCurrentStructWithFilter();
+    });
+    
+    previewContainer.style.display = "block";
+    progressBar.style.display = "none";
+    setGranularityUI('半小时');
+})();
+</script>
+</body>
+</html>
