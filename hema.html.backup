@@ -432,6 +432,7 @@
             { name: '1-Excel秒变vCard.html', icon: 'fa-file-code', path: 'hema/1-在线工具/1-Excel秒变vCard.html' },
             { name: '2-文件目录树.html', icon: 'fa-file-code', path: 'hema/1-在线工具/2-文件目录树.html' },
             { name: '3-骑手时段热力图.html', icon: 'fa-file-code', path: 'hema/1-在线工具/3-骑手时段热力图.html' },
+            { name: '4-骑手单袋比·预算汇总.html', icon: 'fa-file-code', path: 'hema/1-在线工具/4-骑手单袋比·预算汇总.html' },
             { name: 'TXT转通讯录.html', icon: 'fa-file-code', path: 'hema/1-在线工具/TXT转通讯录.html' },
         ],
         '2-Chrome扩展': [

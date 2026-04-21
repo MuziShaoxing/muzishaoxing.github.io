@@ -38,6 +38,7 @@
         .btn-primary:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
         .table-wrapper { background: white; border-radius: 20px; padding: 16px 8px 8px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; overflow-x: auto; }
         
+        /* 增大表格字体 */
         #resultTable { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; min-width: 750px; }
         #resultTable th, #resultTable td { padding: 8px 5px; border-bottom: 1px solid #ecf1f7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #resultTable th { background: #f1f5f9; font-weight: 600; border-bottom: 2px solid #dce3ec; cursor: pointer; text-align: center; font-size: 0.85rem; }
@@ -52,7 +53,6 @@
         .mono-number { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-weight: 500; }
         .cell-highlight { background-color: #fef08a !important; }
         .cell-negative { color: #dc2626 !important; font-weight: 600; }
-        .row-warning { background-color: #fee2e2 !important; }
         .warning-text { color: #dc2626; font-size: 0.75rem; margin-top: 2px; }
         .footer-note { margin-top: 14px; color: #64748b; font-size: 0.75rem; display: flex; justify-content: space-between; }
         .clear-link { color: #64748b; margin-left: 12px; cursor: pointer; text-decoration: underline dotted; }
@@ -69,7 +69,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>🛵 骑手单袋比·预算汇总 <span style="font-size:0.8rem;background:#e6edf5;padding:3px 10px;border-radius:30px;">v5.8</span></h1>
+    <h1>🛵 骑手单袋比·预算汇总 <span style="font-size:0.8rem;background:#e6edf5;padding:3px 10px;border-radius:30px;">v5.6</span></h1>
     <div class="subtitle">① 骑手单量表 · ② 历史申请数量表 · ③ 当日申请数据 · ④ 参数设置</div>
 
     <div class="card-grid">
@@ -96,17 +96,16 @@
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div style="display:flex;gap:6px;"><button class="btn" id="exportImageBtn" style="padding:6px 16px;font-size:0.85rem;">📸 导出图片</button><span style="font-size:0.75rem;color:#64748b;line-height:32px;">👆 点击表头排序 | 默认差值降序</span></div>
-        <div style="font-size:0.75rem;color:#64748b;"><span style="background:#fef08a;padding:2px 6px;border-radius:10px;">需补>50</span><span style="color:#dc2626;margin-left:6px;">超标</span><span style="background:#fee2e2;padding:2px 6px;border-radius:10px;margin-left:6px;">历史=0</span></div>
+        <div style="font-size:0.75rem;color:#64748b;"><span style="background:#fef08a;padding:2px 6px;border-radius:10px;">需补>50</span><span style="color:#dc2626;margin-left:6px;">超标</span></div>
     </div>
 
     <div class="table-wrapper" id="tableExportArea">
         <table id="resultTable">
-            <thead><tr><th data-sort="name">骑手名字</th><th data-sort="orders">总单量</th><th data-sort="history">历史申请</th><th data-sort="today">今日申请</th><th data-sort="ratio">单袋比</th><th data-sort="diff" class="sorted-desc">差值</th></tr>
-            </thead>
+            <thead><tr><th data-sort="name">骑手名字</th><th data-sort="orders">总单量</th><th data-sort="history">历史申请</th><th data-sort="today">今日申请</th><th data-sort="ratio">单袋比</th><th data-sort="diff" class="sorted-desc">差值</th></tr></thead>
             <tbody id="tableBody"><tr class="empty-row-msg"><td colspan="6">👆 请上传表格并选择正确统计范围</td></tr></tbody>
         </table>
     </div>
-    <div class="footer-note"><span>* 历史申请自动过滤无效统计范围 | 正数需补·负数超标 | 历史申请=0整行标红</span><span class="clear-link" id="clearThirdLink">清除当日数据</span></div>
+    <div class="footer-note"><span>* 历史申请自动过滤无效统计范围 | 正数需补·负数超标 | 统计范围不匹配无法计算</span><span class="clear-link" id="clearThirdLink">清除当日数据</span></div>
 </div>
 
 <script>
@@ -114,6 +113,7 @@
     let ordersMap=new Map(), historyApplyMap=new Map(), todayApplyMap=new Map();
     let todayTotal=0, todayRej=0, todayValid=0, applyRanges=new Set(), applyDates=new Set();
     let selRange='', isValid=false, tableData=[], sortCol='diff', sortOrder='desc';
+    // 存储原始申请数据用于过滤
     let rawApplyData = [];
     
     const el=(id)=>document.getElementById(id);
@@ -126,6 +126,7 @@
     function fmtDate(d){ return d?.length===8? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:d; }
     function expRange(d){ return d?.length===8? `${d.slice(0,4)}${d.slice(4,6)}01~${d}`:''; }
 
+    // 根据选中的统计范围过滤历史申请数据
     function filterHistoryByRange(range) {
         if (!range || !rawApplyData.length) {
             historyApplyMap = new Map();
@@ -136,6 +137,7 @@
         const expectedRange = expRange(Array.from(applyDates)[0]);
         
         rawApplyData.forEach(row => {
+            // 只保留统计范围匹配的数据
             if (row.range === range || row.range === expectedRange) {
                 const prev = filteredMap.get(row.name) || 0;
                 filteredMap.set(row.name, prev + row.qty);
@@ -200,14 +202,17 @@
             selRange = exp;
             isValid = true;
             rangeWarn.textContent = '';
+            // 自动过滤到有效范围
             filterHistoryByRange(exp);
         } else {
             selRange = rangeSelect.value;
             isValid = false;
             rangeWarn.textContent = `⚠️ 统计范围不匹配！期望值: ${exp}`;
+            // 如果没有有效范围，清空历史数据
             historyApplyMap.clear();
         }
         
+        // 更新预览
         if(historyApplyMap.size){ 
             let s=Array.from(historyApplyMap.values()).reduce((a,b)=>a+b,0); 
             applyPrev.innerHTML=`✅ 历史申请 ${s.toFixed(0)} · ${historyApplyMap.size}人 (已过滤无效范围)`;
@@ -220,12 +225,15 @@
         isValid=(selRange===exp); 
         rangeWarn.textContent=isValid?'':`⚠️ 统计范围不匹配！期望值: ${exp}`;
         
+        // 根据选中的范围过滤数据
         if (isValid) {
             filterHistoryByRange(selRange);
         } else {
+            // 如果选择了无效范围，可以选择是否仍显示该范围的数据（这里选择清空）
             historyApplyMap.clear();
         }
         
+        // 更新预览
         if(historyApplyMap.size){ 
             let s=Array.from(historyApplyMap.values()).reduce((a,b)=>a+b,0); 
             applyPrev.innerHTML=`✅ 历史申请 ${s.toFixed(0)} · ${historyApplyMap.size}人` + (isValid ? '' : ' (范围无效)');
@@ -291,7 +299,7 @@
                 }); 
                 if(ni===-1||qi===-1) err(new Error('缺姓名/数量列')); 
                 
-                const rngs=new Set(), dts=new Set();
+                const m=new Map(), rngs=new Set(), dts=new Set();
                 const rawRows = [];
                 
                 for(let i=1;i<rows.length;i++){ 
@@ -301,8 +309,10 @@
                     const range = ri!==-1&&rw[ri] ? String(rw[ri]).trim() : '';
                     const date = di!==-1&&rw[di] ? String(rw[di]).trim() : '';
                     
+                    // 保存原始数据
                     rawRows.push({ name: n, qty: qty, range: range, date: date });
                     
+                    // 收集所有范围和日期
                     if(range) rngs.add(range);
                     if(date) dts.add(date);
                 }
@@ -332,6 +342,7 @@
             applyRanges=r.ranges; 
             applyDates=r.dates; 
             
+            // 自动过滤到有效范围
             const dt=Array.from(applyDates)[0], exp=expRange(dt);
             filterHistoryByRange(exp);
             
@@ -351,7 +362,7 @@
             if(exclude && s==='拒绝'){ 
                 rej++; 
                 det.push({name:n,qty:q,status:s,valid:false}); 
-                continue;
+                continue; 
             }
             if(n && !isNaN(q) && q>0){ 
                 m.set(n,(m.get(n)||0)+q); 
@@ -362,123 +373,58 @@
         return {map:m, total:tot, rejected:rej, valid:val, details:det}; 
     }
 
-    // 粘贴弹窗（含自动换行+光标定位+预览表格修复）
-    function openPaste() {
-        const ov = document.createElement('div');
-        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:999;display:flex;align-items:center;justify-content:center;';
-        const md = document.createElement('div');
-        md.style.cssText = 'background:white;border-radius:20px;padding:20px;width:580px;max-width:92vw;max-height:80vh;overflow:auto;';
-        md.innerHTML = `<h3 style="margin:0 0 12px;font-size:1.1rem;">📋 粘贴当日数据</h3><div class="parse-tip">每组11行，第4行姓名/第7行数量/第8行状态</div>
+    function openPaste(){
+        const ov=document.createElement('div'); 
+        ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:999;display:flex;align-items:center;justify-content:center;';
+        const md=document.createElement('div'); 
+        md.style.cssText='background:white;border-radius:20px;padding:20px;width:580px;max-width:92vw;max-height:80vh;overflow:auto;';
+        md.innerHTML=`<h3 style="margin:0 0 12px;font-size:1.1rem;">📋 粘贴当日数据</h3><div class="parse-tip">每组11行，第4行姓名/第7行数量/第8行状态</div>
             <textarea id="pasteArea" class="paste-modal-textarea" rows="10" placeholder="粘贴数据..."></textarea>
-            <div class="checkbox-wrapper"><input type="checkbox" id="modalExclude" ${excludeChk.checked ? 'checked' : ''}> <label>🚫 剔除拒绝</label></div>
+            <div class="checkbox-wrapper"><input type="checkbox" id="modalExclude" ${excludeChk.checked?'checked':''}> <label>🚫 剔除拒绝</label></div>
             <div style="display:flex;justify-content:space-between;margin-top:14px;"><div>📊 <span id="lineCount">0</span>行/<span id="groupCount">0</span>组</div><div><button id="cancelPaste" class="btn">取消</button><button id="previewPaste" class="btn" style="margin-left:8px;">预览</button><button id="confirmPaste" class="btn btn-primary" style="margin-left:8px;">导入</button></div></div>
             <div id="previewResult" style="margin-top:14px;padding:10px;background:#f8fafc;border-radius:10px;display:none;max-height:240px;overflow:auto;"><div id="previewContent"></div></div>`;
-        document.body.appendChild(ov);
-        ov.appendChild(md);
-
-        const ta = document.getElementById('pasteArea');
-        const lc = document.getElementById('lineCount');
-        const gc = document.getElementById('groupCount');
-        const pr = document.getElementById('previewResult');
-        const pc = document.getElementById('previewContent');
-        const chk = document.getElementById('modalExclude');
-        let parsed = null;
-
-        const upd = () => {
-            const lines = ta.value.split(/\r?\n/).filter(l => l.trim());
-            lc.textContent = lines.length;
-            gc.textContent = Math.floor(lines.length / 11);
+        document.body.appendChild(ov); ov.appendChild(md);
+        const ta=document.getElementById('pasteArea'), lc=document.getElementById('lineCount'), gc=document.getElementById('groupCount');
+        const pr=document.getElementById('previewResult'), pc=document.getElementById('previewContent'), chk=document.getElementById('modalExclude');
+        let parsed=null;
+        const upd=()=>{ const lines=ta.value.split(/\r?\n/).filter(l=>l.trim()); lc.textContent=lines.length; gc.textContent=Math.floor(lines.length/11); };
+        ta.addEventListener('input',upd); upd();
+        document.getElementById('cancelPaste').onclick=()=>ov.remove();
+        document.getElementById('previewPaste').onclick=()=>{
+            parsed=parseDaily(ta.value, chk.checked); const {map, total, rejected, valid, details}=parsed;
+            let html=`<div style="margin-bottom:8px;font-size:0.75rem;">📊 总${total} 有效${valid}` + (chk.checked&&rejected?` <span style="color:#dc2626;">剔除${rejected}</span>`:'') + `</div>`;
+            html+='<table class="preview-table"><tr><th>姓名</th><th>数量</th><th>状态</th></tr>';
+            const sumMap=new Map(); details.filter(d=>d.valid).forEach(d=>sumMap.set(d.name,(sumMap.get(d.name)||0)+d.qty));
+            let tot=0; Array.from(sumMap.entries()).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([n,q])=>{ html+=`<tr><td>${escapeHtml(n)}</td><td>${q}</td><td>有效</td></tr>`; tot+=q; });
+            if(chk.checked&&rejected){ const rejDet=details.filter(d=>!d.valid); if(rejDet.length){ html+=`<tr><td colspan="3" style="padding-top:6px;color:#64748b;">🚫 已剔除:</td></tr>`; rejDet.forEach(d=>html+=`<tr style="color:#94a3b8;"><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`); } }
+            html+=`<tr style="border-top:1px solid #ccc;"><td><strong>合计</strong></td><td><strong>${tot}</strong></td><td></td></tr></table>`;
+            pc.innerHTML=html; pr.style.display='block';
         };
-        ta.addEventListener('input', upd);
-        upd();
-
-        // 粘贴后自动换行 + 光标定位
-        ta.addEventListener('paste', () => {
-            setTimeout(() => {
-                let val = ta.value;
-                if (val.length > 0 && !val.endsWith('\n')) {
-                    ta.value = val + '\n';
-                }
-                ta.focus();
-                const len = ta.value.length;
-                ta.setSelectionRange(len, len);
-                upd();
-            }, 10);
-        });
-
-        document.getElementById('cancelPaste').onclick = () => ov.remove();
-
-        // 预览按钮：修复表格生成逻辑
-        document.getElementById('previewPaste').onclick = () => {
-            parsed = parseDaily(ta.value, chk.checked);
-            const { total, rejected, valid, details } = parsed;
-            
-            let html = `<div style="margin-bottom:8px;font-size:0.75rem;">📊 总组数:${total} | 有效:${valid}` + (chk.checked && rejected ? ` | <span style="color:#dc2626;">已剔除拒绝:${rejected}</span>` : '') + `</div>`;
-            html += '<table class="preview-table"><thead><tr><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>';
-            
-            const validDetails = details.filter(d => d.valid);
-            if (validDetails.length === 0) {
-                html += '<tr><td colspan="3" style="text-align:center;color:#64748b;">暂无有效数据</td></tr>';
-            } else {
-                const sumMap = new Map();
-                validDetails.forEach(d => {
-                    sumMap.set(d.name, (sumMap.get(d.name) || 0) + d.qty);
-                });
-                let totalQty = 0;
-                Array.from(sumMap.entries()).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, qty]) => {
-                    html += `<tr><td>${escapeHtml(name)}</td><td>${qty}</td><td>有效</td></tr>`;
-                    totalQty += qty;
-                });
-                html += `<tr style="border-top:1px solid #ccc;"><td><strong>合计</strong></td><td><strong>${totalQty}</strong></td><td></td></tr>`;
-            }
-            
-            if (chk.checked && rejected) {
-                const rejectedDetails = details.filter(d => !d.valid);
-                if (rejectedDetails.length) {
-                    html += `<tr><td colspan="3" style="padding-top:8px;color:#dc2626;">🚫 已剔除的拒绝记录:</td></tr>`;
-                    rejectedDetails.forEach(d => {
-                        html += `<tr style="color:#94a3b8;"><td>${escapeHtml(d.name || '—')}</td><td>${d.qty || 0}</td><td>拒绝</td></tr>`;
-                    });
-                }
-            }
-            
-            html += '</tbody></table>';
-            pc.innerHTML = html;
-            pr.style.display = 'block';
-        };
-        
-        document.getElementById('confirmPaste').onclick = () => {
-            if (!parsed) parsed = parseDaily(ta.value, chk.checked);
-            if (!parsed.map.size) {
-                alert('无有效数据');
-                return;
-            }
-            todayApplyMap = parsed.map;
-            todayTotal = parsed.total;
-            todayRej = parsed.rejected;
-            todayValid = parsed.valid;
-            excludeChk.checked = chk.checked;
-            updateUI();
-            ov.remove();
+        document.getElementById('confirmPaste').onclick=()=>{
+            if(!parsed) parsed=parseDaily(ta.value, chk.checked);
+            if(!parsed.map.size){ alert('无有效数据'); return; }
+            todayApplyMap=parsed.map; todayTotal=parsed.total; todayRej=parsed.rejected; todayValid=parsed.valid;
+            excludeChk.checked=chk.checked; updateUI(); ov.remove();
         };
     }
-
     function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 
     pasteBtn.addEventListener('click', openPaste);
     clearThird.addEventListener('click',()=>{ todayApplyMap.clear(); updateUI(); });
     clearBtn.addEventListener('click',()=>{ 
-        ordersMap.clear(); 
-        historyApplyMap.clear(); 
-        todayApplyMap.clear(); 
-        rawApplyData = [];
-        applyRanges.clear(); 
-        applyDates.clear(); 
-        peak.value='1.20'; 
-        excludeChk.checked=true; 
-        tableData=[]; 
-        updateUI(); 
-        tbody.innerHTML='<tr class="empty-row-msg"><td colspan="6">👆 请上传表格</td></tr>'; 
+        if(confirm('重置？')){ 
+            ordersMap.clear(); 
+            historyApplyMap.clear(); 
+            todayApplyMap.clear(); 
+            rawApplyData = [];
+            applyRanges.clear(); 
+            applyDates.clear(); 
+            peak.value='1.20'; 
+            excludeChk.checked=true; 
+            tableData=[]; 
+            updateUI(); 
+            tbody.innerHTML='<tr class="empty-row-msg"><td colspan="6">👆 请上传表格</td></tr>'; 
+        } 
     });
 
     function sortData(data,col,ord){ 
@@ -503,8 +449,7 @@
         tableData.forEach(r=>{
             const diff=r.diff, cls=diff<0?'cell-negative':(diff>50?'cell-highlight':'');
             const diffStr=diff>0?`需补：${diff.toFixed(2)}`:(diff<0?`超标${Math.abs(diff).toFixed(2)}`:'0.00');
-            const rowClass = r.history === 0 ? 'row-warning' : '';
-            html+=`<tr class="${rowClass}"><td>${escapeHtml(r.name)}</td><td class="mono-number">${r.orders.toFixed(0)}</td><td class="mono-number">${r.history.toFixed(0)}</td><td class="mono-number">${r.today.toFixed(0)}</td><td class="mono-number">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono-number ${cls}">${diffStr}</td></tr>`;
+            html+=`<tr><td>${escapeHtml(r.name)}</td><td class="mono-number">${r.orders.toFixed(0)}</td><td class="mono-number">${r.history.toFixed(0)}</td><td class="mono-number">${r.today.toFixed(0)}</td><td class="mono-number">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono-number ${cls}">${diffStr}</td></tr>`;
         });
         tbody.innerHTML=html||'<tr class="empty-row-msg"><td colspan="6">无数据</td></tr>';
     }
