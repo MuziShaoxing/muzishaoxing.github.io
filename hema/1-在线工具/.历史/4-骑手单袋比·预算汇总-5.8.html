@@ -38,8 +38,8 @@
         .btn-primary:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
         .table-wrapper { background: white; border-radius: 20px; padding: 16px 8px 8px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; overflow-x: auto; }
         
-        #resultTable { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; min-width: 750px; border: 1px solid #cbd5e1; }          /* 表格外边框 */
-        #resultTable th, #resultTable td { padding: 8px 5px; border-bottom: 1px solid #ecf1f7; border: 1px solid #cbd5e1; }      /* 单元格边框 */
+        #resultTable { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; min-width: 750px; }
+        #resultTable th, #resultTable td { padding: 8px 5px; border-bottom: 1px solid #ecf1f7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #resultTable th { background: #f1f5f9; font-weight: 600; border-bottom: 2px solid #dce3ec; cursor: pointer; text-align: center; font-size: 0.85rem; }
         #resultTable th:first-child, #resultTable td:first-child { text-align: right; width: 25%; padding-right: 12px; }
         #resultTable th:last-child, #resultTable td:last-child { text-align: left; width: 25%; padding-left: 12px; }
@@ -69,7 +69,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>🛵 骑手单袋比·预算汇总 <span style="font-size:0.8rem;background:#e6edf5;padding:3px 10px;border-radius:30px;">v5.9</span></h1>
+    <h1>🛵 骑手单袋比·预算汇总 <span style="font-size:0.8rem;background:#e6edf5;padding:3px 10px;border-radius:30px;">v5.8</span></h1>
     <div class="subtitle">① 骑手单量表 · ② 历史申请数量表 · ③ 当日申请数据 · ④ 参数设置</div>
 
     <div class="card-grid">
@@ -362,7 +362,7 @@
         return {map:m, total:tot, rejected:rej, valid:val, details:det}; 
     }
 
-    // 粘贴弹窗（自动换行+光标定位+预览表格正常）
+    // 粘贴弹窗（含自动换行+光标定位+预览表格修复）
     function openPaste() {
         const ov = document.createElement('div');
         ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:999;display:flex;align-items:center;justify-content:center;';
@@ -408,7 +408,7 @@
 
         document.getElementById('cancelPaste').onclick = () => ov.remove();
 
-        // 预览按钮
+        // 预览按钮：修复表格生成逻辑
         document.getElementById('previewPaste').onclick = () => {
             parsed = parseDaily(ta.value, chk.checked);
             const { total, rejected, valid, details } = parsed;
@@ -501,15 +501,8 @@
         tableData=sortData(tableData, sortCol, sortOrder);
         let html=''; 
         tableData.forEach(r=>{
-            const diff = r.diff;
-            // 向零取整（直接去掉小数部分，不四舍五入）
-            const intDiff = diff > 0 ? Math.floor(diff) : Math.ceil(diff);
-            let diffStr = '';
-            if (intDiff > 0) diffStr = `需补：${intDiff}`;
-            else if (intDiff < 0) diffStr = `超标：${Math.abs(intDiff)}`;
-            else diffStr = '0';
-            
-            const cls = diff < 0 ? 'cell-negative' : (intDiff > 50 ? 'cell-highlight' : '');
+            const diff=r.diff, cls=diff<0?'cell-negative':(diff>50?'cell-highlight':'');
+            const diffStr=diff>0?`需补：${diff.toFixed(2)}`:(diff<0?`超标${Math.abs(diff).toFixed(2)}`:'0.00');
             const rowClass = r.history === 0 ? 'row-warning' : '';
             html+=`<tr class="${rowClass}"><td>${escapeHtml(r.name)}</td><td class="mono-number">${r.orders.toFixed(0)}</td><td class="mono-number">${r.history.toFixed(0)}</td><td class="mono-number">${r.today.toFixed(0)}</td><td class="mono-number">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono-number ${cls}">${diffStr}</td></tr>`;
         });
