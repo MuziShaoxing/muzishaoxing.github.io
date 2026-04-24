@@ -11,469 +11,110 @@
         body { background: #f4f7fb; margin: 0; min-height: 100vh; display: flex; justify-content: center; padding: 20px 12px 40px; }
         .container { max-width: 1300px; width: 100%; }
         
-        /* 新版标题：工具名与版本号分行居中 */
         .main-title-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 12px;
         }
-        .main-title {
-            font-weight: 700;
-            font-size: 1.9rem;
-            color: #0f172a;
-            line-height: 1.3;
-            text-align: center;
-            letter-spacing: 1px;
-        }
+        .main-title { font-weight: 700; font-size: 1.9rem; color: #0f172a; line-height: 1.3; text-align: center; letter-spacing: 1px; }
         .version-tag {
-            font-size: 0.9rem;
-            background: #e0e7ff;
-            color: #1e3a8a;
-            padding: 4px 16px;
-            border-radius: 40px;
-            font-weight: 500;
-            margin-top: 4px;
-            display: inline-block;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            border: 1px solid #c7d2fe;
+            font-size: 0.9rem; background: #e0e7ff; color: #1e3a8a; padding: 4px 16px; border-radius: 40px; font-weight: 500;
+            margin-top: 4px; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.03); border: 1px solid #c7d2fe;
         }
-
-        .subtitle { color: #475569; margin-bottom: 20px; border-left: 5px solid #3b82f6; padding-left: 16px; font-weight: 400; font-size: 0.9rem; background: #f8fafc; border-radius: 0 12px 12px 0; line-height: 1.4; display: none; } /* 隐藏原副标题 */
-        
+        .subtitle { color: #475569; margin-bottom: 20px; border-left: 5px solid #3b82f6; padding-left: 16px; font-weight: 400; font-size: 0.9rem; background: #f8fafc; border-radius: 0 12px 12px 0; line-height: 1.4; display: none; }
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 24px; }
         .card { background: white; border-radius: 18px; padding: 16px 18px 18px; box-shadow: 0 6px 16px rgba(0,0,0,0.02); border: 1px solid #e9eef3; }
         .card.optional { background: #fafcff; border-left: 5px solid #a5b4fc; }
-        .card-header { 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            margin-bottom: 12px; 
-            font-weight: 600; 
-            color: #0f172a; 
-            font-size: 1.1rem; 
-            line-height: 1.4;
-        }
+        .card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-weight: 600; color: #0f172a; font-size: 1.1rem; line-height: 1.4; }
         .badge { background: #e2e8f0; border-radius: 30px; padding: 2px 10px; font-size: 0.7rem; color: #334155; margin-left: 6px; }
         .required-star { color: #dc2626; margin-left: 4px; font-size: 1rem; line-height: 1; }
-        
-        .file-area { 
-            background: #f8fafc; 
-            border: 2px dashed #cbd5e1; 
-            border-radius: 14px; 
-            padding: 16px 14px; 
-            text-align: center; 
-            cursor: pointer; 
-            margin-bottom: 10px; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
+        .file-area { background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 14px; padding: 16px 14px; text-align: center; cursor: pointer; margin-bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s; }
         .file-area:hover { border-color: #3b82f6; background: #f0f9ff; }
         .file-area input { display: none; }
         .file-label { color: #1e293b; font-weight: 500; font-size: 0.9rem; margin-bottom: 4px; }
         .file-hint { font-size: 0.75rem; color: #64748b; }
-        
-        .preview-stats { 
-            font-size: 0.8rem; 
-            background: #f1f5f9; 
-            padding: 6px 10px; 
-            border-radius: 12px; 
-            margin: 6px 0 4px; 
-            color: #0b3b5c; 
-            text-align: center; 
-        }
-        .paste-btn { 
-            background: white; 
-            border: 1.5px solid #94a3b8; 
-            padding: 6px 14px; 
-            border-radius: 40px; 
-            font-weight: 500; 
-            font-size: 0.85rem; 
-            cursor: pointer; 
-        }
-        .checkbox-wrapper { 
-            margin-top: 10px; 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            justify-content: center;
-        }
+        .preview-stats { font-size: 0.8rem; background: #f1f5f9; padding: 6px 10px; border-radius: 12px; margin: 6px 0 4px; color: #0b3b5c; text-align: center; }
+        .paste-btn { background: white; border: 1.5px solid #94a3b8; padding: 6px 14px; border-radius: 40px; font-weight: 500; font-size: 0.85rem; cursor: pointer; }
+        .checkbox-wrapper { margin-top: 10px; display: flex; align-items: center; gap: 6px; justify-content: center; }
         .checkbox-wrapper label { font-size: 0.8rem; cursor: pointer; }
-        
-        .peak-input-wrapper { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            background: #f8fafc; 
-            padding: 8px 12px; 
-            border-radius: 40px; 
-            border: 1px solid #d1d9e6; 
-            margin-top: 6px; 
-            justify-content: center; 
-        }
+        .peak-input-wrapper { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 8px 12px; border-radius: 40px; border: 1px solid #d1d9e6; margin-top: 6px; justify-content: center; }
         .peak-input-wrapper label { font-weight: 500; font-size: 0.9rem; }
-        .peak-input-wrapper input { 
-            width: 100px; 
-            padding: 6px 10px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 30px; 
-            font-size: 0.9rem; 
-            text-align: right; 
-        }
-        
-        .select-wrapper { 
-            margin-top: 10px; 
-            padding: 8px 12px; 
-            background: #f8fafc; 
-            border-radius: 40px; 
-            border: 1px solid #d1d9e6; 
-            text-align: center; 
-        }
-        .select-wrapper label { 
-            font-weight: 500; 
-            display: block; 
-            margin-bottom: 4px; 
-            font-size: 0.85rem; 
-        }
-        .select-wrapper select { 
-            width: 100%; 
-            padding: 6px 10px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 30px; 
-            font-size: 0.85rem; 
-            background: white; 
-            text-align: center; 
-        }
-        
-        .btn { 
-            background: white; 
-            border: 1px solid #cbd5e1; 
-            padding: 8px 18px; 
-            border-radius: 60px; 
-            font-weight: 600; 
-            font-size: 0.9rem; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-        }
+        .peak-input-wrapper input { width: 100px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 30px; font-size: 0.9rem; text-align: right; }
+        .select-wrapper { margin-top: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 40px; border: 1px solid #d1d9e6; text-align: center; }
+        .select-wrapper label { font-weight: 500; display: block; margin-bottom: 4px; font-size: 0.85rem; }
+        .select-wrapper select { width: 100%; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 30px; font-size: 0.85rem; background: white; text-align: center; }
+        .btn { background: white; border: 1px solid #cbd5e1; padding: 8px 18px; border-radius: 60px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: #1e4bd2; border-color: #1e4bd2; color: white; }
         .btn-primary:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
-        
-        .action-button-group {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-            margin-top: 14px;
-        }
-        
-        /* 表格容器 */
-        .table-wrapper { 
-            background: white; 
-            border-radius: 20px; 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.03); 
-            border: 1px solid #e2e8f0; 
-            overflow-x: auto;
-            max-height: 65vh;
-            min-height: 200px;
-            overflow-y: auto;
-            padding: 0 !important;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
+        .action-button-group { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
+        .table-wrapper { background: white; border-radius: 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; overflow-x: auto; max-height: 65vh; min-height: 200px; overflow-y: auto; padding: 0 !important; scrollbar-width: none; -ms-overflow-style: none; }
         .table-wrapper::-webkit-scrollbar { display: none; }
-        
-        #resultTable { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 0.85rem; 
-            table-layout: auto;
-            min-width: 750px;
-            border: 1px solid #cbd5e1; 
-        }
-        #resultTable thead th { 
-            position: sticky;
-            top: 0;
-            background: #f1f5f9;
-            z-index: 10;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-bottom: 2px solid #dce3ec;
-            font-weight: 600;
-            text-align: center;
-            font-size: 0.85rem;
-            padding: 10px 8px;
-            border: 1px solid #cbd5e1;
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-        #resultTable th, #resultTable td { 
-            padding: 10px 8px; 
-            border: 1px solid #cbd5e1; 
-            vertical-align: middle;
-        }
+        #resultTable { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: auto; min-width: 750px; border: 1px solid #cbd5e1; }
+        #resultTable thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-bottom: 2px solid #dce3ec; font-weight: 600; text-align: center; font-size: 0.85rem; padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle; white-space: nowrap; }
+        #resultTable th, #resultTable td { padding: 10px 8px; border: 1px solid #cbd5e1; vertical-align: middle; }
         #resultTable th { cursor: pointer; }
-        
-        #resultTable th:first-child, #resultTable td:first-child { 
-            text-align: right; 
-            padding-right: 16px;
-            white-space: nowrap;
-        }
-        #resultTable th:last-child, #resultTable td:last-child { 
-            text-align: left; 
-            padding-left: 16px;
-            white-space: nowrap;
-        }
+        #resultTable th:first-child, #resultTable td:first-child { text-align: right; padding-right: 16px; white-space: nowrap; }
+        #resultTable th:last-child, #resultTable td:last-child { text-align: left; padding-left: 16px; white-space: nowrap; }
         #resultTable th:nth-child(2), #resultTable td:nth-child(2),
         #resultTable th:nth-child(3), #resultTable td:nth-child(3),
         #resultTable th:nth-child(4), #resultTable td:nth-child(4),
-        #resultTable th:nth-child(5), #resultTable td:nth-child(5) { 
-            text-align: center; 
-            white-space: nowrap;
-        }
-        
+        #resultTable th:nth-child(5), #resultTable td:nth-child(5) { text-align: center; white-space: nowrap; }
         tbody tr:nth-child(odd) { background-color: #fafbfc; }
         tbody tr:nth-child(even) { background-color: #ffffff; }
-        
         .mono-number { font-family: 'JetBrains Mono', 'SF Mono', monospace; font-weight: 500; }
         .cell-highlight { background-color: #fef08a !important; }
         .cell-negative { color: #dc2626 !important; font-weight: 600; }
         .row-warning { background-color: #fee2e2 !important; }
         .warning-text { color: #dc2626; font-size: 0.75rem; margin-top: 2px; text-align: center; }
-        
-        .footer-note { 
-            margin-top: 14px; 
-            color: #64748b; 
-            font-size: 0.75rem; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            text-align: center; 
-        }
-        .clear-link { color: #64748b; margin-left: 12px; cursor: pointer; text-decoration: underline dotted; }
+        .footer-note { margin-top: 14px; color: #64748b; font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
         .paste-modal-textarea { width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #cbd5e1; font-family: monospace; font-size: 0.75rem; resize: vertical; background: #fafbfc; }
         .parse-tip { background: #f0f9ff; padding: 8px 10px; border-radius: 8px; margin: 10px 0; font-size: 0.75rem; color: #0369a1; text-align: center; }
         .stat-range-info { margin-top: 6px; padding: 6px 10px; background: #e0f2fe; border-radius: 10px; font-size: 0.8rem; text-align: center; }
         .reject-info { margin-top: 6px; padding: 5px 10px; background: #fef2f2; border-radius: 10px; font-size: 0.75rem; color: #dc2626; display: none; text-align: center; }
-        .preview-table { width: 100%; font-size: 0.7rem; border-collapse: collapse; background: white; }
-        .preview-table th { padding: 4px 3px; background: #e2e8f0; font-size: 0.7rem; text-align: center; border: 1px solid #cbd5e1; }
-        .preview-table td { padding: 3px; text-align: center; border: 1px solid #cbd5e1; }
-        .preview-table td:first-child { text-align: left; }
-        .preview-table tr:nth-child(odd) { background-color: #f8fafc; }
-
-        .stats-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            margin-bottom: 20px;
-            background: white;
-            border-radius: 20px;
-            padding: 12px 20px;
-            border: 1px solid #e2e8f0;
-            align-items: center;
-            justify-content: center;
-        }
-        .stat-card {
-            background: #f8fafc;
-            border-radius: 24px;
-            padding: 8px 18px;
-            min-width: 100px;
-            text-align: center;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .stat-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #475569;
-        }
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #0f172a;
-            line-height: 1.2;
-        }
+        .stats-grid { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; background: white; border-radius: 20px; padding: 12px 20px; border: 1px solid #e2e8f0; align-items: center; justify-content: center; }
+        .stat-card { background: #f8fafc; border-radius: 24px; padding: 8px 18px; min-width: 100px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+        .stat-number { font-size: 1.8rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
         .stat-number.positive { color: #2b9348; }
         .stat-number.negative { color: #dc2626; }
         .action-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
-        
-        .third-action-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+        .third-action-row { display: flex; align-items: center; gap: 6px; justify-content: center; flex-wrap: wrap; }
+        #previewResult { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        #previewResult::-webkit-scrollbar { display: none !important; }
+        #resultTable .empty-row-msg td { text-align: center !important; padding: 16px 8px !important; }
+        .scroll-hint { display: none; text-align: center; font-size: 0.7rem; color: #64748b; margin: 8px 0 4px; }
+        .paste-modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 8px; }
+        .paste-modal-actions > div:first-child { flex: 1; }
+        .paste-modal-actions .btn-group { display: flex; gap: 8px; flex-wrap: nowrap; }
 
-        /* 粘贴弹窗预览区域：隐藏滚动条 */
-        #previewResult {
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-        }
-        #previewResult::-webkit-scrollbar {
-            display: none !important;
-        }
-
-        /* 空状态提示强制居中 */
-        #resultTable .empty-row-msg td {
-            text-align: center !important;
-            padding: 16px 8px !important;
-        }
-
-        /* 移动端滚动提示（默认隐藏） */
-        .scroll-hint {
-            display: none;
-            text-align: center;
-            font-size: 0.7rem;
-            color: #64748b;
-            margin: 8px 0 4px;
-        }
-        
-        /* 粘贴弹窗底部按钮容器：防止换行 */
-        .paste-modal-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 14px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .paste-modal-actions > div:first-child {
-            flex: 1;
-        }
-        .paste-modal-actions .btn-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: nowrap;
-        }
-
-        /* ===== 移动端适配 ===== */
         @media (max-width: 768px) {
             .main-title { font-size: 1.5rem; }
             .version-tag { font-size: 0.8rem; padding: 3px 12px; }
-            
-            .scroll-hint { display: none; }
-            
-            .table-wrapper {
-                overflow-x: visible;
-            }
-            
-            #resultTable {
-                min-width: 100% !important;
-                table-layout: fixed;
-                font-size: 0.65rem;
-                border-width: 0.5px;
-                border-color: #d1d9e6;
-            }
-            
-            #resultTable th,
-            #resultTable td {
-                padding: 6px 2px;
-                white-space: normal !important;
-                word-break: break-word;
-                border-width: 0.5px;
-                border-color: #d1d9e6;
-            }
-            
-            #resultTable th:first-child,
-            #resultTable td:first-child {
-                width: 20%;
-                text-align: right !important;
-                padding-right: 6px;
-                white-space: normal;
-                word-break: break-word;
-            }
-            
-            #resultTable th:nth-child(2),
-            #resultTable td:nth-child(2) { width: 14%; }
-            #resultTable th:nth-child(3),
-            #resultTable td:nth-child(3) { width: 14%; }
-            #resultTable th:nth-child(4),
-            #resultTable td:nth-child(4) { width: 14%; }
-            #resultTable th:nth-child(5),
-            #resultTable td:nth-child(5) { width: 14%; }
-            #resultTable th:nth-child(6),
-            #resultTable td:nth-child(6) { 
-                width: 24%;
-                text-align: left;
-                padding-left: 4px;
-                white-space: normal;
-            }
-            
-            #resultTable thead th {
-                font-size: 0.6rem;
-                padding: 6px 2px;
-            }
-            
-            #resultTable td:nth-child(2),
-            #resultTable td:nth-child(3),
-            #resultTable td:nth-child(4),
-            #resultTable td:nth-child(5) {
-                text-align: center;
-            }
-            
-            .stats-grid {
-                padding: 8px 10px;
-                gap: 6px;
-            }
-            .stat-card {
-                padding: 4px 8px;
-                min-width: 70px;
-            }
-            .stat-number {
-                font-size: 1.3rem;
-            }
-
-            .table-toolbar {
-                flex-direction: column !important;
-                align-items: center !important;
-                gap: 6px !important;
-            }
-            .table-toolbar > div {
-                justify-content: center !important;
-                text-align: center !important;
-            }
-            .color-legend {
-                flex-wrap: wrap !important;
-                justify-content: center !important;
-                white-space: normal !important;
-            }
-            .color-legend span {
-                margin: 2px 4px !important;
-                white-space: nowrap;
-            }
-            #resultTable .empty-row-msg td {
-                text-align: center !important;
-                font-size: 0.7rem;
-                padding: 12px 6px !important;
-            }
-            .footer-note {
-                flex-direction: column;
-                align-items: center;
-                gap: 4px;
-            }
-
-            /* 粘贴弹窗移动端优化 */
-            .paste-modal-actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .paste-modal-actions .btn-group {
-                justify-content: center;
-                flex-wrap: nowrap;
-            }
-            .paste-modal-actions .btn-group .btn {
-                padding: 8px 12px;
-                font-size: 0.85rem;
-            }
+            .table-wrapper { overflow-x: visible; }
+            #resultTable { min-width: 100% !important; table-layout: fixed; font-size: 0.65rem; border-width: 0.5px; border-color: #d1d9e6; }
+            #resultTable th, #resultTable td { padding: 6px 2px; white-space: normal !important; word-break: break-word; border-width: 0.5px; border-color: #d1d9e6; }
+            #resultTable th:first-child, #resultTable td:first-child { width: 20%; text-align: right !important; padding-right: 6px; white-space: normal; word-break: break-word; }
+            #resultTable th:nth-child(2), #resultTable td:nth-child(2) { width: 14%; }
+            #resultTable th:nth-child(3), #resultTable td:nth-child(3) { width: 14%; }
+            #resultTable th:nth-child(4), #resultTable td:nth-child(4) { width: 14%; }
+            #resultTable th:nth-child(5), #resultTable td:nth-child(5) { width: 14%; }
+            #resultTable th:nth-child(6), #resultTable td:nth-child(6) { width: 24%; text-align: left; padding-left: 4px; white-space: normal; }
+            #resultTable thead th { font-size: 0.6rem; padding: 6px 2px; }
+            .stats-grid { padding: 8px 10px; gap: 6px; }
+            .stat-card { padding: 4px 8px; min-width: 70px; }
+            .stat-number { font-size: 1.3rem; }
+            .table-toolbar { flex-direction: column !important; align-items: center !important; gap: 6px !important; }
+            .table-toolbar > div { justify-content: center !important; text-align: center !important; }
+            .color-legend { flex-wrap: wrap !important; justify-content: center !important; white-space: normal !important; }
+            .color-legend span { margin: 2px 4px !important; white-space: nowrap; }
+            #resultTable .empty-row-msg td { text-align: center !important; font-size: 0.7rem; padding: 12px 6px !important; }
+            .footer-note { flex-direction: column; align-items: center; gap: 4px; }
+            .paste-modal-actions { flex-direction: column; align-items: stretch; }
+            .paste-modal-actions .btn-group { justify-content: center; flex-wrap: nowrap; }
+            .paste-modal-actions .btn-group .btn { padding: 8px 12px; font-size: 0.85rem; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <!-- 修改：工具名称与版本号分行居中 -->
     <div class="main-title-wrapper">
         <div class="main-title">骑手单袋比-领用分析工具</div>
         <div class="version-tag">V6.6</div>
@@ -605,10 +246,9 @@
         const historyRatioSpan = el('historyRatio'), currentRatioSpan = el('currentRatio');
         const shareReportBtn = el('shareReportBtn');
 
-        // 辅助函数：从日期集合中获取最新的日期（字符串YYYYMMDD可直接比较）
         function getLatestDate(datesSet) {
             if (!datesSet || datesSet.size === 0) return '';
-            return Array.from(datesSet).sort().pop(); // 升序后取最后一个即为最大/最新
+            return Array.from(datesSet).sort().pop();
         }
 
         function fmtDate(d){ return d?.length===8? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:d; }
@@ -847,8 +487,11 @@
             const needRiders = riderNeedCountSpan.innerText, overRiders = riderOverCountSpan.innerText;
             const historyRatio = historyRatioSpan.innerText, currentRatio = currentRatioSpan.innerText;
             
+            // 强制按差异降序排列用于导出报告，不影响主页排序状态
+            const sortedForExport = [...tableData].sort((a, b) => b.diff - a.diff);
+            
             let tableRowsHtml = '';
-            tableData.forEach(r => {
+            sortedForExport.forEach(r => {
                 const diff = r.diff;
                 const intDiff = diff > 0 ? Math.floor(diff) : Math.ceil(diff);
                 let diffStr = intDiff > 0 ? `需补：${intDiff}` : (intDiff < 0 ? `超标：${Math.abs(intDiff)}` : '0');
@@ -861,14 +504,14 @@
                     <td style="text-align:center;">${r.today.toFixed(0)}</td>
                     <td style="text-align:center;">${r.orders?r.ratio.toFixed(2):'—'}</td>
                     <td style="text-align:left;padding-left:8px;${cellClass === 'cell-negative' ? 'color:#dc2626;font-weight:600;' : (cellClass === 'cell-highlight' ? 'background-color:#fef08a;' : '')}">${diffStr}</td>
-                  </tr>`;
+                </tr>`;
             });
             
             // 禁止复制、选择的样式和脚本
             const antiCopyStyle = `*{user-select:none!important;-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;}`;
             const antiCopyScript = `<script>document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('copy',e=>e.preventDefault());document.addEventListener('dragstart',e=>e.preventDefault());<\/script>`;
             
-            // PC版报告（奇数行背景对比度提升为 #edf1f7）
+            // PC版报告（奇数行背景 #edf1f7）
             const pcReportHtml = `<!DOCTYPE html>
 <html lang="zh">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>骑手单袋比领用报告</title><style>
@@ -911,7 +554,7 @@ tbody tr:nth-child(even){background-color:#ffffff;}
 </style></head>
 <body><div class="report-container"><h2>🛵 骑手单袋比领用报告</h2><div class="info-line"><span class="info-pc">生成时间：${now} &nbsp;|&nbsp; 单袋比：${peakVal} &nbsp;|&nbsp; 统计范围：${selRange||'已过滤'}</span><div class="info-mobile"><span>生成时间：${now}</span><span>单袋比：${peakVal}</span><span>统计范围：${selRange||'已过滤'}</span></div></div><div class="stats-grid"><div class="stat-card"><div class="stat-label">📦 总需补袋数</div><div class="stat-number">${totalNeed}</div></div><div class="stat-card"><div class="stat-label">⚠️ 总超标袋数</div><div class="stat-number negative">${totalOver}</div></div><div class="stat-card"><div class="stat-label">👥 需补骑手</div><div class="stat-number">${needRiders}</div></div><div class="stat-card"><div class="stat-label">🚨 超标骑手</div><div class="stat-number negative">${overRiders}</div></div><div class="stat-card"><div class="stat-label">📈 当月单袋比</div><div class="stat-number">${historyRatio}</div></div><div class="stat-card"><div class="stat-label">🔄 当前单袋比</div><div class="stat-number">${currentRatio}</div></div></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>骑手名字</th><th>总单量</th><th>当月申请</th><th>今日申请</th><th>单袋比</th><th>差异</th></tr></thead><tbody>${tableRowsHtml}</tbody></table></div><div class="footer-note"><span>✔ 正值=需补申请袋数，负值=超标多领数量。</span><span>当月申请已按统计范围过滤。</span><div class="color-legend"><span>颜色含义：</span><span style="background:#fef08a;padding:2px 6px;">需补>50高亮</span><span style="color:#dc2626;">差异<0超标</span><span style="background:#fee2e2;padding:2px 6px;">当月申请=0标红</span></div></div></div>${antiCopyScript}</body></html>`;
             
-            // 移动版报告（同样提升对比度）
+            // 移动版报告
             const mobileReportHtml = `<!DOCTYPE html>
 <html lang="zh">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"><title>骑手单袋比领用报告·移动版</title><style>
