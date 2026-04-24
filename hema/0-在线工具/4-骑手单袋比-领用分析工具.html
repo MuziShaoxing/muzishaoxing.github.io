@@ -985,7 +985,7 @@
             let html = '';
             tableData.forEach(r => {
                 const diff = r.diff, intDiff = diff > 0 ? Math.floor(diff) : Math.ceil(diff),
-                    diffStr = intDiff > 0 ? `需补：${intDiff}` : (intDiff < 0 ? `超标：${Math.abs(intDiff)}` : '0');
+                    diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` : '0');
                 html += `<tr class="${r.history === 0 ? 'row-warning' : ''}"><td>${escapeHtml(r.name)}</td><td class="mono-number">${r.orders.toFixed(0)}</td><td class="mono-number">${r.history.toFixed(0)}</td><td class="mono-number">${r.today.toFixed(0)}</td><td class="mono-number">${r.orders ? r.ratio.toFixed(2) : '—'}</td><td class="mono-number ${diff < 0 ? 'cell-negative' : (intDiff > 50 ? 'cell-highlight' : '')}">${diffStr}</td></tr>`;
             });
             tbody.innerHTML = html || '<tr><td colspan="6">无数据</td></tr>';
@@ -1018,7 +1018,7 @@
             let tableRowsHtml = '';
             sortedForExport.forEach(r => {
                 const diff = r.diff, intDiff = diff>0?Math.floor(diff):Math.ceil(diff),
-                    diffStr = intDiff>0?`需补：${intDiff}`:(intDiff<0?`超标：${Math.abs(intDiff)}`:'0');
+                    diffStr = intDiff>0?`需补:${intDiff}`:(intDiff<0?`超标:${Math.abs(intDiff)}`:'0');
                 tableRowsHtml += `<tr class="${r.history===0?'row-warning':''}"><td style="text-align:right;padding-right:8px;">${escapeHtml(r.name)}</td><td style="text-align:center;">${r.orders.toFixed(0)}</td><td style="text-align:center;">${r.history.toFixed(0)}</td><td style="text-align:center;">${r.today.toFixed(0)}</td><td style="text-align:center;">${r.orders?r.ratio.toFixed(2):'—'}</td><td style="text-align:left;padding-left:8px;${diff<0?'color:#dc2626;font-weight:600;':(intDiff>50?'background-color:#fef08a;':'')}">${diffStr}</td></tr>`;
             });
             const antiCopyStyle = `*{user-select:none!important;-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;}`;
