@@ -3,6 +3,7 @@
 import os
 import re
 from pathlib import Path
+from datetime import datetime  # 新增：用于生成备份时间戳
 
 def extract_sort_key(dir_name):
     """从文件夹名提取排序数字，如 '0-HeMa' -> 0, '12-测试' -> 12"""
@@ -114,11 +115,18 @@ def generate_data_js(root_files, folders):
     return '\n'.join(lines)
 
 def update_html(html_path, root_files, folders):
-    """更新HTML文件，保留图标映射逻辑"""
+    """更新HTML文件，保留图标映射逻辑，备份到 backups/ 并添加时间戳"""
     with open(html_path, 'r', encoding='utf-8') as f: 
         content = f.read()
     
-    backup_path = html_path + '.backup'
+    # 备份：存入当前目录下的 backups 文件夹，文件名加上时间戳
+    backup_dir = os.path.join(os.path.dirname(html_path), 'app/.backups')
+    os.makedirs(backup_dir, exist_ok=True)  # 确保目录存在
+    base_name = os.path.basename(html_path)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_name = f"{base_name}_{timestamp}.backup"
+    backup_path = os.path.join(backup_dir, backup_name)
+
     with open(backup_path, 'w', encoding='utf-8') as f: 
         f.write(content)
     print(f"✅ 已备份: {backup_path}")
@@ -197,7 +205,9 @@ def main():
     
     if update_html(html_file, root_files, folders):
         print(f"\n✅ 更新成功！图标映射已保留。")
-        print(f"💾 备份文件: {html_file}.backup")
+        # 提示备份位置
+        backup_dir = os.path.join(os.path.dirname(html_file), 'app/.backups')
+        print(f"💾 备份文件保存在: {backup_dir}")
     else:
         print("\n❌ 更新失败")
 

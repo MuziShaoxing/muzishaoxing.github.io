@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>骑手考勤 · 时段矩阵</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        :root {
+            --bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --primary: #4f6ef7;
+            --text: #2d3436;
+            --text-secondary: #636e72;
+            --border: #e0e4ea;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+            --row-height: 36px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg); color: var(--text); padding: 16px 12px; min-height: 100vh;
+            overscroll-behavior: none;
+        }
+        .header {
+            background: var(--card-bg); border-radius: var(--radius); padding: 14px 16px;
+            margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px; box-shadow: var(--shadow-sm);
+        }
+        .logo { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+        .reset-btn {
+            font-size: 0.75rem; background: #fee2e2; color: #dc2626; padding: 4px 14px;
+            border-radius: 20px; border: none; cursor: pointer; font-weight: 600;
+        }
+        .reset-btn:hover { background: #fecaca; }
+
+        .upload-section {
+            background: var(--card-bg); border-radius: var(--radius); padding: 24px 16px;
+            margin-bottom: 16px; box-shadow: var(--shadow-sm); border: 2px dashed var(--border);
+            text-align: center; cursor: pointer; transition: all 0.2s;
+        }
+        .upload-section:hover { border-color: var(--primary); background: #fafbff; }
+        .upload-section.has-data { border-style: solid; border-color: #c8e6c9; background: #f9fdf9; }
+        .upload-icon { font-size: 2.2rem; }
+        .upload-title { font-weight: 600; font-size: 1rem; }
+        .upload-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px; }
+        .upload-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 0.85rem;
+            cursor: pointer; border: none; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #3b54d4; }
+        .btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover { background: #f0f3ff; }
+
+        .control-bar {
+            background: var(--card-bg); border-radius: 8px; padding: 10px 16px;
+            margin-bottom: 14px; box-shadow: var(--shadow-sm);
+            display: grid; grid-template-columns: 1fr auto 1fr;
+            align-items: center; gap: 12px; font-size: 0.85rem;
+        }
+        .info-left { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; color: var(--text-secondary); }
+        .info-item { display: flex; align-items: center; gap: 4px; }
+        .info-item strong {
+            display: inline-block; min-width: 3ch; text-align: right;
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            font-weight: 700; color: var(--text);
+        }
+        .view-toggle-group { display: flex; background: #f0f2f5; border-radius: 20px; padding: 3px; margin: 0; justify-self: center; }
+        .view-toggle-btn {
+            padding: 6px 14px; border-radius: 18px; border: none; cursor: pointer;
+            font-weight: 600; font-size: 0.8rem; background: transparent; color: var(--text-secondary);
+        }
+        .view-toggle-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+        .right-controls {
+            display: flex; align-items: center; gap: 10px; justify-self: end; flex-wrap: wrap;
+        }
+        #viewSummary {
+            font-weight: 700; font-size: 0.85rem; color: var(--primary); white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .control-bar { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 8px; }
+            .info-left { justify-content: center; }
+            .right-controls { justify-self: center; justify-content: center; }
+            :root { --row-height: 30px; }
+            .summary-label-full { display: none; }
+            .week-range-stack { display: flex; flex-direction: column; align-items: center; line-height: 1.4; }
+            .week-range-stack span { display: block; }
+        }
+        @media (min-width: 769px) { .summary-label-short { display: none; } }
+
+        .table-container { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-md); overflow: hidden; }
+        .table-scroll-wrapper {
+            overflow: auto; max-height: 70vh; cursor: grab;
+            scrollbar-width: none; -ms-overflow-style: none;
+            overscroll-behavior: contain; touch-action: pan-x pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table-scroll-wrapper:active { cursor: grabbing; }
+        .table-scroll-wrapper::-webkit-scrollbar { display: none; }
+
+        table { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: 0.8rem; table-layout: auto; border: 2px solid #1a1a1a; }
+        thead th, tbody td {
+            text-align: center; vertical-align: middle; padding: 4px 2px;
+            border: 1px solid #1a1a1a; white-space: nowrap; height: var(--row-height);
+            background-clip: padding-box; box-shadow: inset 0 0 0 1px #1a1a1a;
+        }
+        thead th { position: sticky; top: 0; z-index: 20; background: #f8f9fb; font-weight: 700; font-size: 0.72rem; color: #4a5568; cursor: pointer; }
+        thead th:hover { background: #eef1f7; }
+        .col-rider { background: #e4e7f0; }
+        .summary-row th { background: #fef9e3 !important; font-weight: 600; color: #78350f; }
+        .type-summary-row th { background: #fefce8 !important; font-weight: 500; color: #854d0e; }
+        .slot-start, .slot-end { display: block; line-height: 1.2; }
+        .slot-start { font-weight: 700; }
+        .slot-end { font-size: 0.65rem; color: #64748b; }
+        .cell-active { font-weight: 600; position: relative; }
+        .cell-full { background: #e8f5e9; color: #2e7d32; }
+        .cell-core { background: #e3f2fd; color: #1565c0; }
+        .cell-flex { background: #fce4ec; color: #c62828; }
+        .cell-inactive { color: #d5d8dd; font-size: 0.7rem; }
+        .minute-early, .minute-late { position: absolute; top: 1px; right: 3px; font-size: 0.6rem; font-weight: 700; line-height: 1; z-index: 5; pointer-events: none; }
+        .minute-late { color: #ef4444; }
+        .minute-early { color: #22c55e; }
+        .day-count-badge { position: absolute; top: 1px; left: 2px; font-size: 0.6rem; font-weight: 700; color: #8b5cf6; z-index: 5; }
+        .shift-time-stack { display: flex; flex-direction: column; line-height: 1.3; }
+        .rider-name-cell { line-height: 1.2; }
+        .rider-id { font-size: 0.6rem; color: var(--text-secondary); }
+        .week-view-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; justify-content: center; }
+        .week-view-controls strong { font-size: 1rem; }
+
+        .bubble-columns { display: flex; gap: 16px; flex-wrap: wrap; }
+        .bubble-col { flex: 1; min-width: 220px; text-align: center; }
+        .bubble-col h4 { margin-bottom: 10px; font-size: 0.9rem; }
+        .bubble-container {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; justify-items: center; align-items: start;
+        }
+        .shift-bubble {
+            background: white; border: 2px solid #1a1a1a; border-radius: 50px;
+            padding: 14px 24px; cursor: pointer; transition: all 0.2s; font-weight: 500;
+            display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm);
+            font-size: 0.9rem; width: 100%; justify-content: space-between; white-space: nowrap;
+        }
+        .shift-bubble:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .bubble-time { font-weight: 700; font-size: 0.95rem; }
+        .bubble-count { color: white; border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+        .bubble-green { background-color: #e8f5e9; border-color: #2e7d32; }
+        .bubble-green .bubble-time { color: #2e7d32; }
+        .bubble-green .bubble-count { background: #2e7d32; }
+        .bubble-blue { background-color: #e3f2fd; border-color: #1565c0; }
+        .bubble-blue .bubble-time { color: #1565c0; }
+        .bubble-blue .bubble-count { background: #1565c0; }
+        .bubble-pink { background-color: #fce4ec; border-color: #c62828; }
+        .bubble-pink .bubble-time { color: #c62828; }
+        .bubble-pink .bubble-count { background: #c62828; }
+
+        @media (max-width: 768px) {
+            .bubble-container { gap: 8px; }
+            .shift-bubble {
+                padding: 10px 16px; font-size: 0.8rem; border-radius: 40px; gap: 6px;
+            }
+            .bubble-time { font-size: 0.85rem; }
+            .bubble-count { padding: 2px 10px; font-size: 0.7rem; }
+        }
+
+        .rider-filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        .rider-filter-compact {
+            display: inline-flex; align-items: center; gap: 4px; background: white;
+            padding: 4px 12px; border-radius: 40px; border: 1px solid #e2e8f0; position: relative; min-width: 200px;
+        }
+        .rider-filter-compact:hover { border-color: #cbd5e1; }
+        .rider-filter-label { font-size: 0.7rem; font-weight: 600; color: #475569; white-space: nowrap; }
+        .rider-search-input { border: none; outline: none; font-size: 0.8rem; background: transparent; width: 100px; padding: 4px; border-radius: 32px; }
+        .rider-clear-btn { background: none; border: none; color: #94a3b8; font-size: 0.9rem; cursor: pointer; padding: 2px 8px; border-radius: 20px; }
+        .rider-clear-btn:hover { background: #f1f5f9; color: #ef4444; }
+        .rider-dropdown {
+            position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: white;
+            border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+            max-height: 200px; overflow-y: auto; z-index: 210; display: none;
+        }
+        .rider-dropdown.show { display: block; }
+        .rider-option { padding: 8px 16px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
+        .rider-option:hover { background: #f0fdf4; }
+        .rider-checkbox { width: 16px; height: 16px; border-radius: 4px; border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: transparent; }
+        .rider-option.checked .rider-checkbox { background: #22c55e; border-color: #22c55e; color: white; }
+        .rider-no-result { padding: 16px; text-align: center; color: #94a3b8; font-size: 0.8rem; }
+
+        #weekTable thead th { position: sticky; top: 0; z-index: 20; background: #f8f9fb; }
+        #weekTable thead th:first-child { position: sticky; left: 0; top: 0; z-index: 30; background: #e4e7f0; }
+        #weekTable tbody td:first-child { position: sticky; left: 0; z-index: 10; background: #fff; font-weight: 600; }
+        #weekTable tbody tr:nth-child(even) td:first-child { background: #fafbfc; }
+
+        .week-total-col { }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-card { background: white; border-radius: 20px; padding: 20px 24px; width: 480px; max-width: 90vw; max-height: 70vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.25); }
+        .modal-card h3 { margin-bottom: 16px; color: var(--primary); font-size: 1rem; }
+        .modal-rider-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f1f4; }
+        .modal-rider-row:last-child { border-bottom: none; }
+        .rider-link { color: var(--primary); cursor: pointer; text-decoration: underline; }
+        .modal-close { float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+
+        .footer-note { margin-top: 20px; padding: 16px; background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow-sm); font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6; }
+        .footer-note strong { color: var(--text); }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 10px 16px; border-radius: 8px; color: #fff; font-weight: 600; font-size: 0.85rem; animation: slideIn 0.3s ease, fadeOutAnim 0.3s ease 2.5s forwards; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .toast.success { background: #4caf50; } .toast.error { background: #f44336; } .toast.info { background: #2196f3; }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOutAnim { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+        .rank-circle { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 700; font-size: 0.7rem; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .rank-red { background: #ef4444; color: white; }
+        .rank-yellow { background: #eab308; color: white; }
+        .rank-green { background: #22c55e; color: white; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="logo">📊 骑手考勤 · 时段矩阵</div>
+    <button class="reset-btn" id="resetBtn" style="display:none;">重置</button>
+</div>
+<div class="upload-section" id="uploadSection">
+    <div class="upload-icon">📁</div>
+    <div class="upload-title">上传考勤表格</div>
+    <div class="upload-subtitle">支持 .xlsx / .xls / .csv · 自动识别列名</div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+    <div class="upload-actions">
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">📂 选择文件</button>
+        <button class="btn btn-outline" id="btnLoadSample">✨ 加载示例</button>
+    </div>
+</div>
+<div class="control-bar" id="controlBar" style="display:none;">
+    <div class="info-left">
+        <div class="info-item">👥 骑手：<strong id="infoRiderCount">000</strong></div>
+        <div class="info-item">📋 班次：<strong id="infoShiftCount">000</strong></div>
+        <div class="info-item">❌ 取消：<strong id="infoCancelledCount">000</strong></div>
+        <div class="info-item">🕐 范围：<strong id="infoTimeRange">-</strong></div>
+    </div>
+    <div class="view-toggle-group" id="viewToggle">
+        <button class="view-toggle-btn active" data-view="halfHour">🕧 半小时</button>
+        <button class="view-toggle-btn" data-view="hour">🕐 小时</button>
+        <button class="view-toggle-btn" data-view="shiftList">📋 班次</button>
+        <button class="view-toggle-btn" data-view="weekView">📅 上六休一</button>
+    </div>
+    <div class="right-controls">
+        <div class="rider-filter-compact" id="riderFilterCompact" style="display:none;">
+            <span class="rider-filter-label">🔍 骑手</span>
+            <input type="text" class="rider-search-input" id="riderSearchInput" placeholder="搜索或点击..." autocomplete="off">
+            <button class="rider-clear-btn" id="riderClearBtn">✖️</button>
+            <div class="rider-dropdown" id="riderDropdown"></div>
+        </div>
+    </div>
+    <div style="grid-column: 1 / -1; text-align: center;">
+        <span id="viewSummary"></span>
+    </div>
+</div>
+
+<div class="table-container" id="tableContainer" style="display:none;">
+    <div class="table-scroll-wrapper" id="tableScrollWrapper">
+        <table id="mainTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
+    </div>
+</div>
+
+<div id="shiftListContainer" style="display:none;">
+    <div class="rider-filter-row"><strong>📋 班次气泡</strong></div>
+    <div class="bubble-columns" id="bubbleColumns">
+        <div class="bubble-col"><h4>🟢 全职排班</h4><div class="bubble-container" id="fullBubbles"></div></div>
+        <div class="bubble-col"><h4>🔵 盒心排班</h4><div class="bubble-container" id="coreBubbles"></div></div>
+        <div class="bubble-col"><h4>🔴 灵活排班</h4><div class="bubble-container" id="flexBubbles"></div></div>
+    </div>
+</div>
+
+<div class="table-container" id="weekContainer" style="display:none;">
+    <div class="week-view-controls">
+        <button class="btn btn-outline" id="prevWeekBtn">◀ 上一周</button>
+        <strong id="weekRangeText" class="week-range-stack"></strong>
+        <button class="btn btn-outline" id="nextWeekBtn">下一周 ▶</button>
+    </div>
+    <div class="table-scroll-wrapper" id="weekScrollWrapper">
+        <table id="weekTable"><thead id="weekHead"></thead><tbody id="weekBody"></tbody></table>
+    </div>
+</div>
+
+<div class="empty-state" id="emptyState">
+    <div style="font-size:2.5rem;">📋</div>
+    <p><strong>暂无数据</strong></p>
+    <p>请上传考勤表格</p>
+</div>
+
+<div class="footer-note" id="footerNote" style="display:none;">
+    <strong>📌 页面规则与映射说明：</strong><br>
+    • <strong>自动列映射</strong>：「考勤骑手.配送员姓名」或含"骑手/姓名"→骑手；「配送班次.班次开始时间」→上班；「配送班次.班次结束时间」→下班；「班次状态」→0正常；「统计日期」→出勤日；「配送班次.班次类型」→全职/盒心/灵活排班；「考勤骑手」→唯一ID。<br>
+    • <strong>班次类型颜色</strong>：全职排班→绿色，核心/盒心排班→蓝色，灵活排班→粉色。<br>
+    • <strong>出勤天数标签</strong>：紫色数字=该骑手在该时段出勤的不同日期数。<br>
+    • <strong>上六休一</strong>：最早上班~最晚下班，汇总行基于班次类型，前三名红/黄/绿圆环。<br>
+    • <strong>排班时长</strong>：HH:MM格式，支持超24h累计。
+</div>
+<div id="toastContainer"></div>
+
+<script>
+    (function() {
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const btnLoadSample = document.getElementById('btnLoadSample');
+        const resetBtn = document.getElementById('resetBtn');
+        const controlBar = document.getElementById('controlBar');
+        const tableContainer = document.getElementById('tableContainer');
+        const shiftListContainer = document.getElementById('shiftListContainer');
+        const weekContainer = document.getElementById('weekContainer');
+        const emptyState = document.getElementById('emptyState');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const viewToggle = document.getElementById('viewToggle');
+        const infoRiderCount = document.getElementById('infoRiderCount');
+        const infoShiftCount = document.getElementById('infoShiftCount');
+        const infoCancelledCount = document.getElementById('infoCancelledCount');
+        const infoTimeRange = document.getElementById('infoTimeRange');
+        const toastContainer = document.getElementById('toastContainer');
+        const prevWeekBtn = document.getElementById('prevWeekBtn');
+        const nextWeekBtn = document.getElementById('nextWeekBtn');
+        const weekRangeText = document.getElementById('weekRangeText');
+        const weekHead = document.getElementById('weekHead');
+        const weekBody = document.getElementById('weekBody');
+        const footerNote = document.getElementById('footerNote');
+        const fullBubbles = document.getElementById('fullBubbles');
+        const coreBubbles = document.getElementById('coreBubbles');
+        const flexBubbles = document.getElementById('flexBubbles');
+        const riderFilterCompact = document.getElementById('riderFilterCompact');
+        const riderSearchInput = document.getElementById('riderSearchInput');
+        const riderClearBtn = document.getElementById('riderClearBtn');
+        const riderDropdown = document.getElementById('riderDropdown');
+        const tableScrollWrapper = document.getElementById('tableScrollWrapper');
+        const weekScrollWrapper = document.getElementById('weekScrollWrapper');
+        const viewSummary = document.getElementById('viewSummary');
+
+        let allRecords = [];
+        let currentView = 'halfHour';
+        let viewStart = 0, viewEnd = 24*60;
+        let sortConfig = { type: 'duration', direction: 'desc', column: null };
+        let currentWeekMonday = new Date();
+        let dateCol = null;
+        let shiftTypeCol = null;
+        let riderIdCol = null;
+        let selectedRiders = new Set();
+        let isSelectionDirty = false; // 追踪下拉列表选择是否发生变化
+
+        const dragStateMap = new WeakMap();
+
+        function initDragScroll(wrapper) {
+            dragStateMap.set(wrapper, { isDragging: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
+            wrapper.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button, select, input, .view-toggle-btn, .sortable')) return;
+                e.preventDefault();
+                const st = dragStateMap.get(wrapper);
+                st.isDragging = true;
+                wrapper.style.cursor = 'grabbing';
+                st.startX = e.pageX - wrapper.offsetLeft;
+                st.startY = e.pageY - wrapper.offsetTop;
+                st.scrollLeft = wrapper.scrollLeft;
+                st.scrollTop = wrapper.scrollTop;
+            });
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.target.closest('button, select, input, .view-toggle-btn, .sortable')) return;
+                if (e.touches.length !== 1) return;
+                const st = dragStateMap.get(wrapper);
+                st.isDragging = true;
+                st.startX = e.touches[0].pageX - wrapper.offsetLeft;
+                st.startY = e.touches[0].pageY - wrapper.offsetTop;
+                st.scrollLeft = wrapper.scrollLeft;
+                st.scrollTop = wrapper.scrollTop;
+            }, { passive: false });
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            document.querySelectorAll('.table-scroll-wrapper').forEach(w => {
+                const st = dragStateMap.get(w);
+                if (!st || !st.isDragging) return;
+                e.preventDefault();
+                const dx = e.pageX - w.offsetLeft - st.startX;
+                const dy = e.pageY - w.offsetTop - st.startY;
+                let nl = st.scrollLeft - dx * 1.5;
+                let nt = st.scrollTop - dy * 1.5;
+                const maxLeft = w.scrollWidth - w.clientWidth;
+                const maxTop = w.scrollHeight - w.clientHeight;
+                nl = Math.max(0, Math.min(nl, maxLeft));
+                nt = Math.max(0, Math.min(nt, maxTop));
+                w.scrollLeft = nl;
+                w.scrollTop = nt;
+            });
+        });
+        window.addEventListener('touchmove', (e) => {
+            document.querySelectorAll('.table-scroll-wrapper').forEach(w => {
+                const st = dragStateMap.get(w);
+                if (!st || !st.isDragging) return;
+                e.preventDefault();
+                const dx = e.touches[0].pageX - w.offsetLeft - st.startX;
+                const dy = e.touches[0].pageY - w.offsetTop - st.startY;
+                let nl = st.scrollLeft - dx * 1.5;
+                let nt = st.scrollTop - dy * 1.5;
+                const maxLeft = w.scrollWidth - w.clientWidth;
+                const maxTop = w.scrollHeight - w.clientHeight;
+                nl = Math.max(0, Math.min(nl, maxLeft));
+                nt = Math.max(0, Math.min(nt, maxTop));
+                w.scrollLeft = nl;
+                w.scrollTop = nt;
+            });
+        }, { passive: false });
+        window.addEventListener('mouseup', () => {
+            document.querySelectorAll('.table-scroll-wrapper').forEach(w => {
+                const st = dragStateMap.get(w);
+                if (st) { st.isDragging = false; w.style.cursor = 'grab'; }
+            });
+        });
+        window.addEventListener('touchend', () => {
+            document.querySelectorAll('.table-scroll-wrapper').forEach(w => {
+                const st = dragStateMap.get(w);
+                if (st) st.isDragging = false;
+            });
+        });
+
+        function resetScrollPositions() {
+            document.querySelectorAll('.table-scroll-wrapper').forEach(w => { w.scrollLeft = 0; w.scrollTop = 0; });
+        }
+
+        initDragScroll(tableScrollWrapper);
+        initDragScroll(weekScrollWrapper);
+
+        function showToast(msg, type='info') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.textContent = msg;
+            toastContainer.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        function parseTime(raw) {
+            if (raw == null || raw === '') return null;
+            if (raw instanceof Date && !isNaN(raw)) return raw.getHours()*60 + raw.getMinutes();
+            if (typeof raw === 'number') { if (raw < 1) return Math.round(raw * 24 * 60); const frac = raw - Math.floor(raw); return Math.round(frac * 24 * 60); }
+            const str = String(raw).trim();
+            const m = str.match(/(\d{1,2}):(\d{2})/);
+            if (m) return parseInt(m[1])*60 + parseInt(m[2]);
+            return null;
+        }
+
+        function fmtTime(mins) { const h = Math.floor(mins/60)%24, m = mins%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+
+        function formatDurationHHMM(totalMinutes) {
+            if (totalMinutes <= 0) return '00:00';
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        }
+
+        function findCol(cols, keys) {
+            for (const c of cols) for (const k of keys) if (c === k) return c;
+            for (const c of cols) for (const k of keys) if (c.toLowerCase().includes(k.toLowerCase())) return c;
+            return null;
+        }
+
+        function getShiftTypeColor(type) {
+            if (!type) return '';
+            if (type.includes('全职排班')) return 'full';
+            if (type.includes('盒心排班') || type.includes('核心排班')) return 'core';
+            if (type.includes('灵活排班')) return 'flex';
+            return '';
+        }
+
+        function getCellClassByType(type) {
+            if (type === 'full') return 'cell-full';
+            if (type === 'core') return 'cell-core';
+            if (type === 'flex') return 'cell-flex';
+            return 'cell-active cell-full';
+        }
+
+        async function parseFile(file) {
+            return new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = e => {
+                    try {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+                        const sh = wb.Sheets[wb.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sh, {raw:false, defval:''});
+                        if (!json.length) rej('无数据');
+                        res(json);
+                    } catch(e) { rej(e); }
+                };
+                r.onerror = () => rej('读取失败');
+                r.readAsArrayBuffer(file);
+            });
+        }
+
+        function extractRecords(jsonData) {
+            const cols = Object.keys(jsonData[0]||{});
+            const riderCol = findCol(cols, ['考勤骑手.配送员姓名','配送员姓名','骑手姓名','姓名','骑手']);
+            const startCol = findCol(cols, ['配送班次.班次开始时间','班次开始时间','开始时间','上班时间']);
+            const endCol = findCol(cols, ['配送班次.班次结束时间','班次结束时间','结束时间','下班时间']);
+            const statusCol = findCol(cols, ['班次状态（1：取消；0：正常）','班次状态','状态']);
+            dateCol = findCol(cols, ['统计日期','日期','出勤日期','配送日期']);
+            shiftTypeCol = findCol(cols, ['配送班次.班次类型','班次类型','排班类型']);
+            riderIdCol = findCol(cols, ['考勤骑手','骑手ID','员工ID','工号']);
+            if (!riderCol || !startCol || !endCol) throw new Error('缺少必要列');
+            const records = []; let cancelled = 0;
+            for (const row of jsonData) {
+                const name = String(row[riderCol]||'').trim();
+                if (!name) continue;
+                let riderId = riderIdCol ? String(row[riderIdCol]||'').trim() : '';
+                let isCancelled = false;
+                if (statusCol) { const str = String(row[statusCol]||'').trim().toLowerCase(); if (str === '1' || str === '取消' || str === '已取消') isCancelled = true; }
+                if (isCancelled) { cancelled++; records.push({ displayName: name, riderId, start:null, end:null, status:1, date:null, shiftType:null }); continue; }
+                const s = parseTime(row[startCol]), e = parseTime(row[endCol]);
+                if (s==null || e==null) continue;
+                let endAdj = e <= s ? e + 24*60 : e;
+                let date = null;
+                if (dateCol && row[dateCol]) { const v = row[dateCol]; if (v instanceof Date) date = v; else { const str = String(v).trim(); const m = str.match(/^(\d{4})(\d{2})(\d{2})$/); if (m) date = new Date(+m[1], +m[2]-1, +m[3]); else { const p = new Date(str); if (!isNaN(p)) date = p; } } }
+                let shiftType = shiftTypeCol ? String(row[shiftTypeCol]||'').trim() : '';
+                records.push({ displayName: name, riderId, start:s, end:endAdj, status:0, date, shiftType });
+            }
+            return { records, cancelled };
+        }
+
+        function autoSetViewRange() {
+            const valid = allRecords.filter(r => r.status===0);
+            if (!valid.length) return;
+            const starts = valid.map(r => r.start), ends = valid.map(r => r.end);
+            viewStart = Math.floor(Math.min(...starts)/30)*30;
+            viewEnd = Math.min(24*60, Math.ceil(Math.max(...ends)/30)*30);
+            if (viewEnd <= viewStart) viewEnd = Math.min(24*60, viewStart+120);
+        }
+
+        function getRiderKey(rec) { return rec.riderId ? `${rec.displayName}##${rec.riderId}` : rec.displayName; }
+
+        function updateGlobalSummary() {
+            const valid = allRecords.filter(r => r.status === 0);
+            const riderTypeMap = new Map();
+            for (const rec of valid) {
+                const key = getRiderKey(rec);
+                if (!riderTypeMap.has(key)) riderTypeMap.set(key, new Set());
+                const color = getShiftTypeColor(rec.shiftType);
+                if (color) riderTypeMap.get(key).add(color);
+            }
+            let full = 0, core = 0, flex = 0;
+            riderTypeMap.forEach(types => {
+                if (types.has('full')) full++;
+                if (types.has('core')) core++;
+                if (types.has('flex')) flex++;
+            });
+            const total = riderTypeMap.size;
+            viewSummary.textContent = `👥 总人数：${total} (全职${full}, 盒心${core}, 灵活${flex})`;
+        }
+
+        function buildMatrix(slotSize) {
+            const valid = allRecords.filter(r => r.status===0 && (selectedRiders.size===0 || selectedRiders.has(getRiderKey(r))));
+            if (!valid.length) return null;
+            const riderMap = new Map();
+            for (const rec of valid) {
+                const key = getRiderKey(rec);
+                if (!riderMap.has(key)) riderMap.set(key, { intervals:[], totalMins:0, displayName: rec.displayName, riderId: rec.riderId });
+                const rd = riderMap.get(key);
+                rd.intervals.push({ start: rec.start, end: rec.end, date: rec.date, shiftType: rec.shiftType });
+                rd.totalMins += (rec.end - rec.start);
+            }
+            const slots = [];
+            for (let t=viewStart; t<viewEnd; t+=slotSize) {
+                const se = Math.min(t+slotSize, viewEnd);
+                if (se-t < slotSize/2) break;
+                slots.push({ start:t, end:se, lbl: fmtTime(t)+' ↓ '+fmtTime(se) });
+            }
+            const riders = Array.from(riderMap.entries()).map(([key, data]) => ({
+                key, displayName: data.displayName, riderId: data.riderId,
+                intervals: data.intervals, totalMins: data.totalMins
+            }));
+            const matrix = riders.map(r => slots.map(slot => {
+                const relevant = r.intervals.filter(iv => iv.start < slot.end && iv.end > slot.start);
+                const active = relevant.length > 0;
+                let startOffset = null, endOffset = null;
+                const dateSet = new Set();
+                const typeCounts = { full: 0, core: 0, flex: 0 };
+                for (const iv of relevant) {
+                    if (iv.start >= slot.start && iv.start < slot.end) startOffset = iv.start - slot.start;
+                    if (iv.end > slot.start && iv.end <= slot.end) endOffset = slot.end - iv.end;
+                    if (iv.date) dateSet.add(iv.date.toISOString().slice(0,10));
+                    const ct = getShiftTypeColor(iv.shiftType);
+                    if (ct) typeCounts[ct]++;
+                }
+                let dominantType = 'full';
+                if (typeCounts.core > typeCounts.full && typeCounts.core >= typeCounts.flex) dominantType = 'core';
+                else if (typeCounts.flex > typeCounts.full && typeCounts.flex > typeCounts.core) dominantType = 'flex';
+                return { active, startOffset, endOffset, days: dateSet.size || (active ? 1 : 0), shiftType: dominantType };
+            }));
+            return { riders, slots, matrix };
+        }
+
+        function applySort(riders, matrix, slots, cfg) {
+            const indexed = riders.map((r,i) => ({ rider: r, row: matrix[i] }));
+            if (cfg.type === 'duration') {
+                indexed.sort((a,b) => { const cmp = a.rider.totalMins - b.rider.totalMins; return cfg.direction==='asc' ? cmp : -cmp; });
+            } else if (cfg.type === 'name') {
+                indexed.sort((a,b) => { const cmp = a.rider.displayName.localeCompare(b.rider.displayName, 'zh-CN'); return cfg.direction==='asc' ? cmp : -cmp; });
+            } else if (cfg.type === 'slot' && cfg.column != null) {
+                const idx = cfg.column;
+                indexed.sort((a,b) => { const va = a.row[idx].active?1:0, vb = b.row[idx].active?1:0; return cfg.direction==='asc' ? va-vb : vb-va; });
+            }
+            return { sortedRiders: indexed.map(x => x.rider), sortedMatrix: indexed.map(x => x.row) };
+        }
+
+        function renderTable(result) {
+            if (!result) return;
+            const { riders, slots, matrix } = result;
+            const { sortedRiders, sortedMatrix } = applySort(riders, matrix, slots, sortConfig);
+            tableHead.innerHTML = ''; tableBody.innerHTML = '';
+            const totalCols = 1 + slots.length + 1;
+            if (slots.length === 0) { tableHead.innerHTML = '<tr><th>无有效时段</th></tr>'; return; }
+
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'summary-row';
+            const totalLabel = document.createElement('th');
+            totalLabel.className = 'col-rider';
+            totalLabel.textContent = '时段人数';
+            totalRow.appendChild(totalLabel);
+            const slotCounts = slots.map((_, si) => sortedMatrix.reduce((s,row) => s + (row[si].active?1:0), 0));
+            slotCounts.forEach(v => { const th = document.createElement('th'); th.textContent = v; totalRow.appendChild(th); });
+            totalRow.appendChild(document.createElement('th'));
+            tableHead.appendChild(totalRow);
+
+            ['full','core','flex'].forEach(type => {
+                const typeRow = document.createElement('tr');
+                typeRow.className = 'type-summary-row';
+                const typeLabel = document.createElement('th');
+                typeLabel.className = 'col-rider';
+                typeLabel.textContent = type==='full' ? '🟢 全职' : (type==='core' ? '🔵 盒心' : '🔴 灵活');
+                typeRow.appendChild(typeLabel);
+                slots.forEach((_, si) => {
+                    const cnt = sortedMatrix.reduce((s, row) => s + (row[si].active && row[si].shiftType === type ? 1 : 0), 0);
+                    const th = document.createElement('th'); th.textContent = cnt; typeRow.appendChild(th);
+                });
+                typeRow.appendChild(document.createElement('th'));
+                tableHead.appendChild(typeRow);
+            });
+
+            const headRow = document.createElement('tr');
+            const riderTh = document.createElement('th');
+            riderTh.className = 'col-rider';
+            riderTh.textContent = '👤 骑手';
+            riderTh.addEventListener('click', () => {
+                if (sortConfig.type==='name' && sortConfig.direction==='asc') sortConfig = {type:'name', direction:'desc', column:null};
+                else if (sortConfig.type==='name' && sortConfig.direction==='desc') sortConfig = {type:'duration', direction:'desc', column:null};
+                else if (sortConfig.type==='duration') sortConfig = {type:'name', direction:'asc', column:null};
+                else sortConfig = {type:'duration', direction:'desc', column:null};
+                refreshTable();
+            });
+            headRow.appendChild(riderTh);
+            slots.forEach((slot, i) => {
+                const th = document.createElement('th');
+                th.innerHTML = `<span class="slot-start">${slot.lbl.split(' ↓ ')[0]}</span><span class="slot-end">↓ ${slot.lbl.split(' ↓ ')[1]}</span>`;
+                th.dataset.slotIndex = i;
+                th.addEventListener('click', () => handleSlotClick(i));
+                headRow.appendChild(th);
+            });
+            const durH = document.createElement('th');
+            durH.textContent = '';
+            durH.addEventListener('click', () => {
+                if (sortConfig.type==='duration') sortConfig.direction = sortConfig.direction==='asc'?'desc':'asc';
+                else sortConfig = {type:'duration', direction:'desc', column:null};
+                refreshTable();
+            });
+            headRow.appendChild(durH);
+            tableHead.appendChild(headRow);
+
+            sortedRiders.forEach((rider, ri) => {
+                const tr = document.createElement('tr');
+                const tdRider = document.createElement('td');
+                tdRider.className = 'col-rider';
+                tdRider.innerHTML = `<div class="rider-name-cell">${rider.displayName}${rider.riderId ? `<div class="rider-id">${rider.riderId}</div>` : ''}</div>`;
+                tr.appendChild(tdRider);
+                const row = sortedMatrix[ri];
+                slots.forEach((slot, si) => {
+                    const td = document.createElement('td');
+                    const cell = row[si];
+                    if (!cell.active) { td.className = 'cell-inactive'; td.textContent = '·'; } else {
+                        td.className = 'cell-active ' + getCellClassByType(cell.shiftType);
+                        td.style.position = 'relative';
+                        td.textContent = rider.displayName;
+                        if (cell.startOffset) { const late = document.createElement('span'); late.className = 'minute-late'; late.textContent = `-${cell.startOffset}`; td.appendChild(late); }
+                        if (cell.endOffset) { const early = document.createElement('span'); early.className = 'minute-early'; early.textContent = `+${cell.endOffset}`; td.appendChild(early); }
+                        if (cell.days > 1) { const badge = document.createElement('span'); badge.className = 'day-count-badge'; badge.textContent = cell.days; td.appendChild(badge); }
+                    }
+                    tr.appendChild(td);
+                });
+                const tdDur = document.createElement('td');
+                tdDur.textContent = formatDurationHHMM(rider.totalMins);
+                tdDur.style.fontWeight = '600';
+                tr.appendChild(tdDur);
+                tableBody.appendChild(tr);
+            });
+            fixStickyHeaders();
+            updateInfoBar(sortedRiders);
+        }
+
+        function fixStickyHeaders() {
+            const rows = tableHead.querySelectorAll('tr');
+            let cum = 0;
+            for (let i=0; i<rows.length; i++) {
+                const ths = rows[i].querySelectorAll('th');
+                const top = cum + 'px';
+                ths.forEach(th => th.style.top = top);
+                cum += rows[i].offsetHeight || 36;
+            }
+        }
+
+        function handleSlotClick(idx) {
+            if (sortConfig.type==='slot' && sortConfig.column===idx) sortConfig.direction = sortConfig.direction==='asc'?'desc':'asc';
+            else sortConfig = {type:'slot', direction:'asc', column:idx};
+            refreshTable();
+        }
+
+        function updateInfoBar(riders) {
+            const valid = allRecords.filter(r => r.status===0);
+            const pad3 = n => String(n).padStart(3,'0');
+            infoRiderCount.textContent = pad3(riders.length);
+            infoShiftCount.textContent = pad3(valid.length);
+            infoCancelledCount.textContent = pad3(allRecords.filter(r => r.status===1).length);
+            if (valid.length) infoTimeRange.textContent = fmtTime(Math.min(...valid.map(r=>r.start))) + '~' + fmtTime(Math.max(...valid.map(r=>r.end)));
+            else infoTimeRange.textContent = '-';
+        }
+
+        function refreshTable() {
+            const slotSize = currentView==='halfHour'?30:60;
+            const result = buildMatrix(slotSize);
+            if (!result) { showToast('无有效数据','error'); return; }
+            renderTable(result);
+        }
+
+        function getMonday(date) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day===0 ? -6 : 1); d.setDate(diff); d.setHours(0,0,0,0); return d; }
+        function formatDate(date) { if (!date || isNaN(date.getTime())) return ''; const y = date.getFullYear(); const m = String(date.getMonth()+1).padStart(2,'0'); const d = String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
+
+        function renderWeekView() {
+            if (!dateCol) { weekHead.innerHTML='<tr><th colspan="9">缺少日期列</th></tr>'; weekBody.innerHTML=''; return; }
+            const valid = allRecords.filter(r => r.status===0 && r.date && (selectedRiders.size===0 || selectedRiders.has(getRiderKey(r))));
+            if (!valid.length) { weekHead.innerHTML='<tr><th>无数据</th></tr>'; weekBody.innerHTML='<tr><td>无有效记录</td></tr>'; return; }
+            const monday = new Date(currentWeekMonday);
+            const days = []; for (let i=0; i<7; i++) { const d=new Date(monday); d.setDate(monday.getDate()+i); days.push(d); }
+            const dayStrs = days.map(d => formatDate(d));
+            weekRangeText.innerHTML = `<span class="slot-start">${dayStrs[0]}</span><span class="slot-end">↓ ${dayStrs[6]}</span>`;
+            const riderMap = new Map();
+            for (const rec of valid) {
+                if (!rec.date) continue;
+                const ds = formatDate(rec.date);
+                const idx = dayStrs.indexOf(ds); if (idx===-1) continue;
+                const key = getRiderKey(rec);
+                if (!riderMap.has(key)) riderMap.set(key, { displayName: rec.displayName, riderId: rec.riderId, days: Array(7).fill(null), weekSet: new Set(), types: Array(7).fill(null) });
+                const entry = riderMap.get(key);
+                entry.weekSet.add(ds);
+                const info = entry.days[idx] || { earliest:24*60, latest:0 };
+                if (rec.start < info.earliest) info.earliest = rec.start;
+                if (rec.end > info.latest) info.latest = rec.end;
+                entry.days[idx] = info;
+                const color = getShiftTypeColor(rec.shiftType);
+                if (color) entry.types[idx] = color;
+            }
+            const riders = Array.from(riderMap.entries()).map(([key, data]) => ({ key, displayName: data.displayName, riderId: data.riderId, days: data.days, weekDays: data.weekSet.size, types: data.types }));
+            let sortBy = 'weekDays', sortDir = 'desc';
+            const sortRiders = () => { riders.sort((a,b) => { if (sortBy==='name') return sortDir==='asc' ? a.displayName.localeCompare(b.displayName,'zh-CN') : b.displayName.localeCompare(a.displayName,'zh-CN'); if (sortBy==='weekDays') return sortDir==='asc' ? a.weekDays-b.weekDays : b.weekDays-a.weekDays; const idx = parseInt(sortBy); if (!isNaN(idx)) { const aA = a.days[idx]?1:0, bA = b.days[idx]?1:0; return sortDir==='asc' ? aA-bA : bA-aA; } return 0; }); };
+            sortRiders();
+            const render = () => {
+                let head = '<tr><th class="sortable" data-sort="name">骑手</th>';
+                days.forEach((d,i) => { const wd = ['周一','周二','周三','周四','周五','周六','周日'][d.getDay()===0?6:d.getDay()-1]; head += `<th class="sortable" data-sort="${i}">${wd}<br><small>${formatDate(d).slice(5)}</small></th>`; });
+                head += '<th class="sortable week-total-col" data-sort="weekDays">周出勤</th></tr>';
+                weekHead.innerHTML = head;
+                const fullC = Array(7).fill(0), coreC = Array(7).fill(0), flexC = Array(7).fill(0);
+                riders.forEach(r => { for (let i=0; i<7; i++) { if (r.types[i]==='full') fullC[i]++; else if (r.types[i]==='core') coreC[i]++; else if (r.types[i]==='flex') flexC[i]++; } });
+                const totalC = fullC.map((_,i)=>fullC[i]+coreC[i]+flexC[i]);
+                const wf = riders.filter(r=>r.types.some(t=>t==='full')).length, wc = riders.filter(r=>r.types.some(t=>t==='core')).length, wfl = riders.filter(r=>r.types.some(t=>t==='flex')).length, wt = riders.filter(r=>r.weekDays>0).length;
+                const fullR = getRankValues(fullC), coreR = getRankValues(coreC), flexR = getRankValues(flexC), totalR = getRankValues(totalC);
+                let body = '';
+                const sRow = (labelFull, labelShort, counts, ranks, weekCount) => { let r = '<tr style="background:#f0f2f5;font-weight:600;"><td>'; r += `<span class="summary-label-full">${labelFull}</span><span class="summary-label-short">${labelShort}</span></td>`; counts.forEach((v,i)=>{ r += renderRankedCell(v, ranks[i]); }); r += `<td class="week-total-col">${weekCount}</td></tr>`; return r; };
+                body += sRow('总出勤','总出勤',totalC,totalR,wt);
+                body += sRow('🟢 全职','全职',fullC,fullR,wf);
+                body += sRow('🔵 盒心','盒心',coreC,coreR,wc);
+                body += sRow('🔴 灵活','灵活',flexC,flexR,wfl);
+                riders.forEach(r => { body += `<tr><td style="font-weight:600;">${r.displayName}${r.riderId?`<div class="rider-id">${r.riderId}</div>`:''}</td>`; for (let i=0; i<7; i++) { const info = r.days[i]; const color = r.types[i]; if (!info || info.earliest===24*60) { body += '<td class="cell-inactive">休</td>'; continue; } let cls = 'cell-active '; if (color==='full') cls+='cell-full'; else if (color==='core') cls+='cell-core'; else if (color==='flex') cls+='cell-flex'; else cls+='cell-full'; body += `<td class="${cls}"><div class="shift-time-stack"><span>${fmtTime(info.earliest)}</span><span>${fmtTime(info.latest)}</span></div></td>`; } body += `<td class="week-total-col" style="font-weight:600;">${r.weekDays}天</td></tr>`; });
+                weekBody.innerHTML = body;
+            };
+            render();
+            weekHead.addEventListener('click', e => { const th = e.target.closest('th.sortable'); if (!th) return; const col = th.dataset.sort; if (sortBy===col) sortDir = sortDir==='asc'?'desc':'asc'; else { sortBy=col; sortDir='asc'; } sortRiders(); render(); });
+        }
+
+        function getRankValues(arr) { const indexed = arr.map((v,i)=>({v,i})); indexed.sort((a,b)=>b.v-a.v); const ranks = new Array(arr.length).fill(0); let rank = 0, prev = null; for (const item of indexed) { if (item.v === 0) break; if (prev === null || item.v !== prev) rank++; if (rank <= 3) ranks[item.i] = rank; prev = item.v; } return ranks; }
+        function renderRankedCell(value, rank) { if (rank === 0) return `<td>${value}</td>`; const cls = rank === 1 ? 'rank-red' : (rank === 2 ? 'rank-yellow' : 'rank-green'); return `<td><span class="rank-circle ${cls}">${value}</span></td>`; }
+
+        function shiftWeek(d) { currentWeekMonday.setDate(currentWeekMonday.getDate()+d*7); renderWeekView(); }
+        prevWeekBtn.onclick = () => shiftWeek(-1);
+        nextWeekBtn.onclick = () => shiftWeek(1);
+
+        function getAllRiderKeys() { const valid = allRecords.filter(r=>r.status===0); return [...new Set(valid.map(r=>getRiderKey(r)))]; }
+        function renderRiderDropdown() { const filter = riderSearchInput.value.toLowerCase().trim(); const allKeys = getAllRiderKeys().map(k => { const [name, id] = k.includes('##') ? k.split('##') : [k, '']; return { name, id, key: k }; }); const filtered = filter ? allKeys.filter(r => r.name.toLowerCase().includes(filter)) : allKeys; riderDropdown.innerHTML = filtered.length===0 ? '<div class="rider-no-result">😕 无匹配骑手</div>' : filtered.map(r => `<div class="rider-option${selectedRiders.has(r.key)?' checked':''}" data-key="${r.key}"><span class="rider-checkbox">✓</span>${r.name}${r.id?' <small>('+r.id+')</small>':''}</div>`).join(''); }
+
+        riderSearchInput.addEventListener('focus', () => {
+            riderDropdown.classList.add('show');
+            renderRiderDropdown();
+            isSelectionDirty = false; // 重新打开时重置脏标志
+        });
+        riderSearchInput.addEventListener('input', () => {
+            renderRiderDropdown();
+            riderDropdown.classList.add('show');
+        });
+        riderDropdown.addEventListener('click', e => {
+            const opt = e.target.closest('.rider-option');
+            if (!opt) return;
+            const key = opt.dataset.key;
+            if (selectedRiders.has(key)) {
+                selectedRiders.delete(key);
+            } else {
+                selectedRiders.add(key);
+            }
+            isSelectionDirty = true; // 标记有变化，但不立即刷新
+            renderRiderDropdown();
+        });
+        riderClearBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            selectedRiders.clear();
+            riderSearchInput.value = '';
+            isSelectionDirty = false;
+            renderRiderDropdown();
+            refreshCurrentView();
+            riderDropdown.classList.remove('show');
+        });
+        document.addEventListener('click', e => {
+            if (!riderFilterCompact.contains(e.target)) {
+                if (riderDropdown.classList.contains('show')) {
+                    riderDropdown.classList.remove('show');
+                    if (isSelectionDirty) {
+                        isSelectionDirty = false;
+                        refreshCurrentView();
+                    }
+                }
+            }
+        });
+
+        function refreshCurrentView() {
+            if (currentView === 'shiftList') { renderShiftBubbles(); }
+            else if (currentView === 'weekView') { renderWeekView(); }
+            else refreshTable();
+        }
+
+        function renderShiftBubbles() {
+            const valid = allRecords.filter(r => r.status===0 && (selectedRiders.size===0 || selectedRiders.has(getRiderKey(r))));
+            if (!valid.length) { fullBubbles.innerHTML = coreBubbles.innerHTML = flexBubbles.innerHTML = '<p style="font-size:0.8rem;">-</p>'; return; }
+            const shiftMap = new Map();
+            valid.forEach(rec => {
+                const key = fmtTime(rec.start) + '-' + fmtTime(rec.end);
+                if (!shiftMap.has(key)) shiftMap.set(key, { riders: new Map(), typeCounts: { full:0, core:0, flex:0 } });
+                const data = shiftMap.get(key);
+                data.riders.set(rec.displayName, (data.riders.get(rec.displayName)||0)+1);
+                const ct = getShiftTypeColor(rec.shiftType); if (ct) data.typeCounts[ct]++;
+            });
+            const fullS = [], coreS = [], flexS = [];
+            for (const [key, data] of shiftMap) {
+                const maxType = Object.entries(data.typeCounts).reduce((a,b)=>(b[1]>a[1]?b:a), [null,0])[0];
+                const item = { key, size: data.riders.size };
+                if (maxType==='full') fullS.push(item); else if (maxType==='core') coreS.push(item); else if (maxType==='flex') flexS.push(item);
+            }
+            [fullS, coreS, flexS].forEach(arr => arr.sort((a,b)=>b.size-a.size));
+            const renderCol = (container, list, cls) => { container.innerHTML = list.length ? list.map(item => `<div class="shift-bubble ${cls}" data-shiftkey="${item.key}"><span class="bubble-time">${item.key}</span><span class="bubble-count">${item.size}人</span></div>`).join('') : '<p style="font-size:0.8rem;">-</p>'; };
+            renderCol(fullBubbles, fullS, 'bubble-green');
+            renderCol(coreBubbles, coreS, 'bubble-blue');
+            renderCol(flexBubbles, flexS, 'bubble-pink');
+        }
+
+        document.getElementById('bubbleColumns').addEventListener('click', e => {
+            const bubble = e.target.closest('.shift-bubble'); if (!bubble) return; showShiftDetail(bubble.dataset.shiftkey);
+        });
+
+        function showShiftDetail(shiftKey) {
+            const valid = allRecords.filter(r => r.status===0);
+            const shiftMap = new Map();
+            valid.forEach(rec => {
+                const key = fmtTime(rec.start) + '-' + fmtTime(rec.end);
+                if (!shiftMap.has(key)) shiftMap.set(key, { riders: new Map() });
+                shiftMap.get(key).riders.set(rec.displayName, (shiftMap.get(key).riders.get(rec.displayName)||0)+1);
+            });
+            const data = shiftMap.get(shiftKey); if (!data) return;
+            const riderList = Array.from(data.riders).map(([name,count])=>({name,count}));
+            riderList.sort((a,b)=>b.count-a.count);
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `<div class="modal-card"><button class="modal-close">✖️</button><h3>🕒 ${shiftKey} 骑手明细</h3>${riderList.map(r=>`<div class="modal-rider-row"><span class="rider-link" data-rider="${r.name}">${r.name}</span><span>${r.count}次</span></div>`).join('')}</div>`;
+            document.body.appendChild(modal);
+            modal.querySelector('.modal-close').onclick = () => modal.remove();
+            modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+            modal.querySelectorAll('.rider-link').forEach(el => { el.addEventListener('click', (e) => { e.stopPropagation(); showRiderHistory(el.dataset.rider); }); });
+        }
+
+        function showRiderHistory(riderName) {
+            const records = allRecords.filter(r => r.status===0 && r.displayName===riderName).sort((a,b)=>(a.date||new Date(0))-(b.date||new Date(0)));
+            if (!records.length) { showToast('无该骑手记录'); return; }
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `<div class="modal-card" style="width:520px;"><button class="modal-close">✖️</button><h3>👤 ${riderName} 所有班次</h3><table style="width:100%;font-size:0.8rem;border-collapse:collapse;"><tr style="background:#f8f9fb;"><th style="border:1px solid #ddd;padding:4px;">日期</th><th style="border:1px solid #ddd;padding:4px;">时间</th><th style="border:1px solid #ddd;padding:4px;">类型</th></tr>${records.map(r=>`<tr><td style="border:1px solid #ddd;padding:4px;">${r.date?formatDate(r.date):'-'}</td><td style="border:1px solid #ddd;padding:4px;">${fmtTime(r.start)} - ${fmtTime(r.end)}</td><td style="border:1px solid #ddd;padding:4px;">${r.shiftType||'-'}</td></tr>`).join('')}</table></div>`;
+            document.body.appendChild(modal);
+            modal.querySelector('.modal-close').onclick = () => modal.remove();
+            modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+        }
+
+        function processData(jsonData) {
+            const { records, cancelled } = extractRecords(jsonData);
+            allRecords = records;
+            autoSetViewRange();
+            sortConfig = { type:'duration', direction:'desc', column:null };
+            resetBtn.style.display = 'inline-block';
+            controlBar.style.display = 'grid';
+            riderFilterCompact.style.display = 'inline-flex';
+            emptyState.style.display = 'none';
+            footerNote.style.display = 'block';
+            uploadSection.classList.add('has-data');
+            if (dateCol) { const dates = records.filter(r=>r.status===0&&r.date).map(r=>r.date); if (dates.length) currentWeekMonday = getMonday(dates.reduce((a,b)=>a<b?a:b)); }
+            resetScrollPositions();
+            updateGlobalSummary();
+            if (currentView==='shiftList') { tableContainer.style.display='none'; shiftListContainer.style.display='block'; weekContainer.style.display='none'; renderShiftBubbles(); }
+            else if (currentView==='weekView') { tableContainer.style.display='none'; shiftListContainer.style.display='none'; weekContainer.style.display='block'; renderWeekView(); }
+            else { shiftListContainer.style.display='none'; weekContainer.style.display='none'; tableContainer.style.display='block'; refreshTable(); }
+            showToast(`✅ 加载 ${records.filter(r=>r.status===0).length} 条班次`, 'success');
+        }
+
+        function resetAllData() {
+            allRecords = []; selectedRiders.clear(); riderSearchInput.value = ''; riderDropdown.classList.remove('show');
+            dateCol = null; shiftTypeCol = null; riderIdCol = null;
+            tableHead.innerHTML = ''; tableBody.innerHTML = ''; weekHead.innerHTML = ''; weekBody.innerHTML = '';
+            fullBubbles.innerHTML = ''; coreBubbles.innerHTML = ''; flexBubbles.innerHTML = '';
+            viewStart = 0; viewEnd = 24*60; sortConfig = { type:'duration', direction:'desc', column:null }; currentWeekMonday = new Date();
+            resetBtn.style.display = 'none'; controlBar.style.display = 'none'; riderFilterCompact.style.display = 'none';
+            tableContainer.style.display = 'none'; shiftListContainer.style.display = 'none'; weekContainer.style.display = 'none';
+            emptyState.style.display = 'block'; footerNote.style.display = 'none'; uploadSection.classList.remove('has-data');
+            document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-view="halfHour"]').classList.add('active');
+            currentView = 'halfHour';
+            infoRiderCount.textContent = '000'; infoShiftCount.textContent = '000'; infoCancelledCount.textContent = '000'; infoTimeRange.textContent = '-';
+            viewSummary.textContent = '';
+            isSelectionDirty = false;
+            resetScrollPositions();
+            showToast('🔄 已重置所有数据', 'info');
+        }
+
+        resetBtn.addEventListener('click', resetAllData);
+
+        async function handleFile(file) {
+            if (!file) return;
+            if (!/\.(xlsx|xls|csv)$/i.test(file.name)) { showToast('请上传Excel/CSV','error'); return; }
+            showToast('解析中...','info');
+            try { const json = await parseFile(file); processData(json); } catch(e) { showToast('❌ '+e.message,'error'); }
+        }
+
+        fileInput.addEventListener('change', e => { if (e.target.files[0]) { handleFile(e.target.files[0]); fileInput.value = ''; } });
+        uploadSection.addEventListener('dragover', e => { e.preventDefault(); uploadSection.classList.add('drag-over'); });
+        uploadSection.addEventListener('dragleave', () => uploadSection.classList.remove('drag-over'));
+        uploadSection.addEventListener('drop', e => { e.preventDefault(); uploadSection.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+        uploadSection.addEventListener('click', e => { if (!e.target.closest('button')) fileInput.click(); });
+
+        viewToggle.addEventListener('click', e => {
+            const btn = e.target.closest('.view-toggle-btn'); if (!btn) return;
+            const v = btn.dataset.view; if (v === currentView) return;
+            currentView = v;
+            document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            resetScrollPositions();
+            if (v === 'shiftList') {
+                tableContainer.style.display='none'; shiftListContainer.style.display='block'; weekContainer.style.display='none';
+                renderShiftBubbles();
+            } else if (v === 'weekView') {
+                tableContainer.style.display='none'; shiftListContainer.style.display='none'; weekContainer.style.display='block';
+                renderWeekView();
+            } else {
+                shiftListContainer.style.display='none'; weekContainer.style.display='none'; tableContainer.style.display='block';
+                refreshTable();
+            }
+        });
+
+        btnLoadSample.addEventListener('click', e => {
+            e.stopPropagation();
+            const sample = [
+                { displayName:'老刘', riderId:'001', start:7*60+15, end:15*60+45, status:0, date:'20260420', shiftType:'全职排班' },
+                { displayName:'张伟', riderId:'002', start:8*60, end:17*60, status:0, date:'20260421', shiftType:'灵活排班' },
+                { displayName:'王芳', riderId:'003', start:7*60+45, end:16*60+15, status:0, date:'20260422', shiftType:'全职排班' },
+                { displayName:'李明', riderId:'004', start:13*60, end:21*60+45, status:0, date:'20260423', shiftType:'盒心排班' },
+                { displayName:'老刘', riderId:'005', start:7*60+15, end:15*60+45, status:0, date:'20260421', shiftType:'全职排班' },
+                { displayName:'赵丽', riderId:'006', start:6*60+30, end:14*60, status:0, date:'20260420', shiftType:'灵活排班' },
+                { displayName:'陈强', riderId:'007', start:14*60+15, end:22*60+15, status:0, date:'20260422', shiftType:'盒心排班' },
+            ];
+            allRecords = sample;
+            autoSetViewRange();
+            sortConfig = { type:'duration', direction:'desc', column:null };
+            resetBtn.style.display = 'inline-block';
+            controlBar.style.display = 'grid';
+            riderFilterCompact.style.display = 'inline-flex';
+            emptyState.style.display = 'none';
+            footerNote.style.display = 'block';
+            uploadSection.classList.add('has-data');
+            currentWeekMonday = getMonday(new Date(2026,3,20));
+            resetScrollPositions();
+            updateGlobalSummary();
+            if (currentView==='shiftList') { tableContainer.style.display='none'; shiftListContainer.style.display='block'; weekContainer.style.display='none'; renderShiftBubbles(); }
+            else if (currentView==='weekView') { tableContainer.style.display='none'; shiftListContainer.style.display='none'; weekContainer.style.display='block'; renderWeekView(); }
+            else { shiftListContainer.style.display='none'; weekContainer.style.display='none'; tableContainer.style.display='block'; refreshTable(); }
+            showToast('✨ 示例已加载', 'info');
+        });
+
+        document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='o') { e.preventDefault(); fileInput.click(); } });
+    })();
+</script>
+</body>
+</html>
