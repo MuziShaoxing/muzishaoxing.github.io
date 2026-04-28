@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, viewport-fit=cover">
+    <title>骑手时段效率 · 数据分析</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', '微软雅黑', 'Roboto', sans-serif;
+        }
+        body {
+            background: #eef2f7;
+            margin: 0;
+            padding: 16px 12px;
+        }
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            padding: 12px 20px;
+            background: white;
+            position: relative;
+            z-index: 12;
+            border-bottom: 1px solid #e9edf2;
+        }
+        h1 {
+            font-size: 1.6rem;
+            margin: 0 0 4px;
+            background: linear-gradient(135deg, #1e6f3f, #2c8c4a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+        }
+        .sub {
+            color: #5e6f8d;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .control-bar {
+            background: #00000000;
+            padding: 0px 20px;
+            border-radius: 24px;
+            margin-top: 8px;
+        }
+        .layout-row {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            min-height: 60px;
+        }
+        .upload-group {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            z-index: 1;
+        }
+        .col-orders {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        .col-att {
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+        }
+        .col-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #2c3e66;
+            margin-bottom: 8px;
+        }
+        .file-info {
+            background: white;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-info:hover {
+            border-color: #1e6f3f;
+            background: #f0fdf4;
+            color: #1e6f3f;
+        }
+        .rider-center-wrapper {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            z-index: 5;
+            display: flex;
+            align-items: flex-end;
+        }
+        .rider-filter-compact {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: white;
+            padding: 4px 12px;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+            height: 40px;
+            position: relative;
+            z-index: 999;
+            overflow: visible;
+        }
+        .rider-filter-compact:hover {
+            border-color: #cbd5e1;
+            background: #fafcff;
+        }
+        .rider-filter-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
+        }
+        .rider-search-input {
+            border: none;
+            outline: none;
+            font-size: 0.75rem;
+            background: transparent;
+            width: 120px;
+            padding: 4px;
+            border-radius: 32px;
+            min-width: 80px;
+        }
+        .rider-clear-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .rider-clear-btn:hover {
+            background: #f1f5f9;
+            color: #ef4444;
+        }
+        .rider-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 9999;
+            display: none;
+        }
+        .rider-dropdown.show {
+            display: block;
+        }
+        .rider-option {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.12s;
+            user-select: none;
+        }
+        .rider-option:hover {
+            background: #f0fdf4;
+        }
+        .rider-checkbox {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid #cbd5e1;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            font-size: 0.6rem;
+            color: transparent;
+        }
+        .rider-option.checked .rider-checkbox {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: white;
+        }
+        .rider-no-result {
+            padding: 16px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+        .rider-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(180, 185, 200, 0.55);
+            border-radius: 40px;
+            z-index: 50;
+            display: none;
+            pointer-events: auto;
+            cursor: not-allowed;
+            backdrop-filter: blur(1px);
+        }
+        .col-status-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            z-index: 2;
+        }
+        .layout-row-second {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin-top: 6px;
+        }
+        .view-toggle-group {
+            display: flex;
+            background: #fff;
+            border-radius: 40px;
+            border: 1px solid #cfdee9;
+            padding: 2px 3px;
+        }
+        .view-option {
+            padding: 5px 14px;
+            border-radius: 32px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #5e6f8d;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .view-option.active {
+            background: linear-gradient(135deg, #1e6f3f, #2c8c4a);
+            color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .view-option:hover:not(.active):not(.gran-option) {
+            background: #f0fdf4;
+            color: #1e6f3f;
+        }
+        .view-option.gran-option {
+            background: #2563eb !important;
+            color: white !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .view-option.gran-option:hover {
+            background: #1d4ed8 !important;
+        }
+        .view-option.gran-option.disabled {
+            background: #cbd5e1 !important;
+            color: #666 !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .status-text {
+            font-size: 0.85rem;
+            color: #1e6f3f;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .status-icon {
+            margin-right: 4px;
+        }
+        .status-badge {
+            margin-left: 10px;
+            background: #eef2ff;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button.primary {
+            background: #1e6f3f;
+            border-color: #1e6f3f;
+            color: white;
+        }
+        button.primary:hover {
+            background: #155a34;
+        }
+        button.outline {
+            border: 1px solid #2c8c4a;
+            color: #1e6f3f;
+        }
+        button.outline:hover {
+            background: #f0fdf4;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            margin: 0 20px 12px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #2c8c4a;
+            transition: width 0.2s;
+        }
+        .table-fixed-container {
+            padding: 0 16px 16px 16px;
+            --row-height: 40px;
+            --sep-height: 10px;
+        }
+        .table-scroll-wrapper {
+            overflow: auto;
+            max-height: 65vh;
+            border-radius: 20px;
+            border: 2px solid #1a1a1a;
+            background: #fff;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-x pan-y;
+            cursor: grab;
+            user-select: none;
+        }
+        .table-scroll-wrapper:active {
+            cursor: grabbing;
+        }
+        .table-scroll-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        .frozen-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            width: 100%;
+            min-width: fit-content;
+            table-layout: auto;
+            font-size: 0.85rem;
+        }
+        .frozen-table tr {
+            height: var(--row-height);
+        }
+        .frozen-table td,
+        .frozen-table th {
+            background-color: #ffffff;
+            padding: 4px 8px;
+            border: 1px solid #1a1a1a !important;
+            font-weight: 400;
+            color: #1e293b;
+            white-space: nowrap;
+            height: var(--row-height);
+            box-sizing: border-box;
+            vertical-align: middle;
+            font-size: 0.8rem;
+            background-clip: padding-box;
+            text-align: center;
+        }
+        .frozen-table th {
+            background-color: #f1f5f9;
+            font-weight: 700;
+            color: #0c4a6e;
+            cursor: pointer;
+        }
+        .frozen-table tr.separator-row {
+            height: var(--sep-height) !important;
+        }
+        .frozen-table tr.separator-row td {
+            height: var(--sep-height) !important;
+            padding: 0 !important;
+            line-height: 1 !important;
+            background-color: #cbd5e6 !important;
+            font-size: 0;
+            color: transparent;
+            vertical-align: middle;
+            border: 1px solid #1a1a1a !important;
+        }
+        .frozen-table tr.separator-row td::after {
+            content: "";
+            display: block;
+            height: 1px;
+            background: #64748b;
+            width: 100%;
+        }
+        .frozen-table th .slot-start {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .frozen-table th .slot-end {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: normal;
+            color: #334155;
+        }
+        .frozen-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .frozen-table td:first-child,
+        .frozen-table th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            font-weight: 600;
+            box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.15);
+            border-right: 3px solid #1a1a1a !important;
+            background-color: #fef9e3;
+        }
+        .frozen-table th:first-child {
+            background-color: #fde68a !important;
+            color: #78350f;
+            z-index: 100;
+        }
+        .block-view-active .frozen-table td:first-child {
+            background-color: #fef9e3 !important;
+        }
+        .type-view-active .frozen-table thead th {
+            position: sticky !important;
+            top: 0;
+            z-index: 150;
+        }
+        .type-view-active .frozen-table thead th:first-child {
+            position: sticky !important;
+            top: 0;
+            left: 0;
+            z-index: 200 !important;
+            box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.15);
+            border-right: 3px solid #1a1a1a !important;
+            background-color: #fde68a !important;
+        }
+        .type-view-active .frozen-table tbody tr td,
+        .type-view-active .frozen-table tbody tr th {
+            position: static !important;
+            top: auto !important;
+            z-index: auto !important;
+        }
+        .type-view-active .frozen-table tbody tr td:first-child,
+        .type-view-active .frozen-table tbody tr th:first-child {
+            position: sticky !important;
+            left: 0;
+            top: auto !important;
+            z-index: 100 !important;
+            box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.15);
+            border-right: 3px solid #1a1a1a !important;
+            background-color: #fef9e3 !important;
+        }
+        .working-bg {
+            background-color: #3b82f6 !important;
+            color: white;
+        }
+        .non-working-bg {
+            background-color: #ffffff !important;
+        }
+        .zero-working-red {
+            background-color: #ff3b3b !important;
+        }
+        .cell-number-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .green-circle-bg {
+            background-color: #22c55e;
+            color: white;
+            box-shadow: 0 0 0 2px #166534;
+        }
+        .red-circle-bg {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 0 0 2px #7f1d1d;
+        }
+        .yellow-circle-bg {
+            background-color: #eab308;
+            color: white;
+            box-shadow: 0 0 0 2px #854d0e;
+        }
+        .gray-circle-bg {
+            background-color: #9ca3af;
+            color: white;
+            box-shadow: 0 0 0 2px #4b5563;
+        }
+        .white-circle-bg {
+            background-color: #e5e7eb;
+            color: #6b7280;
+            box-shadow: 0 0 0 1px #9ca3af;
+        }
+        .cell-clickable {
+            cursor: pointer;
+            position: relative;
+            transition: all 0.15s;
+        }
+        .cell-clickable:hover {
+            outline: 2px solid #1e6f3f !important;
+            outline-offset: -1px;
+            z-index: 5;
+            box-shadow: 0 0 8px rgba(30, 111, 63, 0.35);
+            transform: scale(1.03);
+        }
+        .detail-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .detail-modal-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 24px;
+            max-width: 650px;
+            width: 90%;
+            max-height: 75vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .detail-modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e6f3f;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .detail-modal-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #94a3b8;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .detail-modal-close:hover {
+            background: #f1f5f9;
+            color: #ef4444;
+        }
+        .detail-back-btn {
+            background: #f1f5f9;
+            border: none;
+            color: #475569;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .detail-back-btn:hover {
+            background: #e2e8f0;
+            color: #1e6f3f;
+        }
+        .detail-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .detail-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            background: #f8fafc;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+            cursor: default;
+        }
+        .detail-list li.clickable-row {
+            cursor: pointer;
+        }
+        .detail-list li.clickable-row:hover {
+            background: #f0fdf4;
+            outline: 1px solid #22c55e;
+        }
+        .detail-list .name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .detail-list .count {
+            font-weight: 700;
+            color: #1e6f3f;
+            background: #dcfce7;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            min-width: 36px;
+            text-align: center;
+        }
+        .detail-list .block-name {
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .detail-list .block-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .detail-empty {
+            text-align: center;
+            color: #94a3b8;
+            padding: 24px;
+            font-size: 0.9rem;
+        }
+        .detail-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        .detail-order-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+        }
+        .detail-order-item .oi-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: baseline;
+        }
+        .detail-order-item .oi-label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.7rem;
+        }
+        .detail-order-item .oi-value {
+            color: #1e293b;
+            font-weight: 500;
+        }
+        .detail-block-header {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            font-weight: 700;
+            color: #1e6f3f;
+            font-size: 0.85rem;
+            border-left: 4px solid #22c55e;
+        }
+        .legend {
+            margin: 12px 16px 0 16px;
+            padding: 12px 0 8px;
+            border-top: 1px solid #e9edf2;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .legend-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 16px 24px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .legend-color {
+            width: 20px;
+            height: 14px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid #1a1a1a;
+        }
+        .legend-circle {
+            display: inline-flex;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 11px;
+            margin-right: 4px;
+        }
+        .heatmap-gradient {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .gradient-bar {
+            width: 100px;
+            height: 14px;
+            background: linear-gradient(to right, #22c55e, #facc15, #ef4444);
+            border: 1px solid #1a1a1a;
+            border-radius: 4px;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px 20px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1e6f3f;
+        }
+        .mapping-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 20px;
+        }
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #1e3a5f;
+        }
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px 16px;
+        }
+        .mapping-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .mapping-item label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #2c3e66;
+        }
+        .mapping-item select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 12px;
+            border: 1.5px solid #cfdee9;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .btn-primary {
+            background: #1e6f3f;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background: #eef2f7;
+            color: #334155;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .sort-arrow {
+            font-size: 0.65rem;
+            margin-left: 2px;
+            vertical-align: middle;
+        }
+        .type-block-cell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .type-block-cell .percent {
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+        .type-block-cell .corner-abs {
+            position: absolute;
+            top: 0;
+            right: 1px;
+            font-size: 0.5rem;
+            color: #475569;
+            background: transparent !important;
+            padding: 0 1px;
+            border-radius: 0;
+            line-height: 1.1;
+        }
+        .preview-area {
+            margin: 0 16px 16px 16px;
+            border-top: 1px solid #e2edf2;
+            padding-top: 12px;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .preview-table {
+            font-size: 0.7rem;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            white-space: nowrap;
+        }
+        .preview-container {
+            max-height: 200px;
+            overflow: auto;
+            border: 1px solid #e2edf2;
+            border-radius: 12px;
+        }
+        @media (max-width: 768px) {
+            body { padding: 8px 6px; }
+            .header { padding: 10px 12px; }
+            h1 { font-size: 1.4rem; }
+            .control-bar { padding: 12px; }
+            .layout-row { flex-direction: column; align-items: center; gap: 12px; position: static; min-height: auto; }
+            .rider-center-wrapper { position: static; transform: none; width: 100%; justify-content: center; }
+            .upload-group { width: 100%; justify-content: center; gap: 10px; }
+            .col-orders, .col-att { width: auto; flex: 1; min-width: 140px; }
+            .col-status-buttons { width: 100%; align-items: center; text-align: center; }
+            .button-group { justify-content: center; flex-wrap: wrap; }
+            button { padding: 10px 14px; font-size: 0.9rem; }
+            .view-option { padding: 4px 12px; font-size: 0.7rem; }
+            .view-toggle-group { flex-wrap: wrap; justify-content: center; }
+            .table-fixed-container { --row-height: 32px; --sep-height: 6px; }
+            .frozen-table { font-size: 0.75rem; }
+            .frozen-table td, .frozen-table th { padding: 2px 4px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>📊 骑手时段效率 · 数据分析</h1>
+        <div class="sub">上传订单与考勤，一键生成骑手人效热力图、区块占比及类型对比报表</div>
+        <div class="control-bar">
+            <div class="layout-row">
+                <div class="upload-group">
+                    <div class="col-orders">
+                        <div class="col-label">📂 订单数据</div>
+                        <div class="file-info" id="orderFileTrigger">📁 点击选择订单文件</div>
+                        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
+                    </div>
+                    <div class="col-att">
+                        <div class="col-label">📅 考勤数据 (可选)</div>
+                        <div class="file-info" id="attFileTrigger">📁 点击选择考勤文件</div>
+                        <input type="file" id="attendanceInput" accept=".xlsx, .xls, .csv">
+                    </div>
+                </div>
+                <div class="rider-center-wrapper">
+                    <div class="rider-filter-compact" id="riderFilterCompact">
+                        <span class="rider-filter-label">🔍 骑手</span>
+                        <input type="text" class="rider-search-input" id="riderSearchInput" placeholder="搜索或点击..." autocomplete="off">
+                        <button class="rider-clear-btn" id="riderClearBtn">✖️ 清空</button>
+                        <div class="rider-dropdown" id="riderDropdown"></div>
+                        <div class="rider-overlay" id="riderOverlay"></div>
+                    </div>
+                </div>
+                <div class="col-status-buttons">
+                    <div class="status-text"><span class="status-icon" id="statusIcon">ℹ️</span><span id="statusMessage">请上传订单文件</span><span class="status-badge" id="statusBadge"></span></div>
+                    <div class="button-group">
+                        <button id="mappingConfigBtn" class="outline">⚙️ 字段映射</button>
+                        <button id="analyzeBtn" class="primary">✨ 开始分析</button>
+                        <button id="exportReportBtn" class="outline" disabled>📄 导出报告</button>
+                    </div>
+                </div>
+            </div>
+            <div class="layout-row-second">
+                <div class="view-toggle-group" id="viewToggleGroup">
+                    <div class="view-option active" data-view="heat">⏱️ 时效</div>
+                    <div class="view-option" data-view="block">🧩 区块</div>
+                    <div class="view-option" data-view="type">👥 类型</div>
+                    <div class="view-option gran-option" id="granOption" data-view="gran">半小时</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="table-fixed-container">
+        <div class="table-scroll-wrapper" id="tableScrollWrapper">
+            <table class="frozen-table" id="resultTable"><thead></thead><tbody></tbody></table>
+        </div>
+    </div>
+    <div class="legend" id="heatmapLegend">
+        <div class="legend-row"><span class="legend-item"><strong>📊 热力图例</strong> · 点击骑手时段单元格查看配送明细</span></div>
+        <div class="legend-row"><div class="legend-item"><div class="legend-color" style="background:#3b82f6;"></div> 排班时段</div><div class="legend-item"><div class="legend-color" style="background:#fff; border:1px solid #aaa;"></div> 非排班时段</div><div class="legend-item"><div class="legend-color" style="background:#ff3b3b;"></div> 排班但零单</div></div>
+        <div class="legend-row"><div class="legend-item"><div class="legend-circle" style="background:#22c55e; color:white;">●</div> ≥ 时段人效</div><div class="legend-item"><div class="legend-circle" style="background:#ef4444; color:white;">●</div> ＜ 时段人效</div></div>
+        <div class="legend-row"><div class="legend-item heatmap-gradient"><span>📈 单量热力</span><div class="gradient-bar"></div></div></div>
+    </div>
+    <div class="legend" id="blockLegend" style="display: none;">
+        <div class="legend-row"><span class="legend-item"><strong>🧩 区块占比图例</strong> · 骑手单量前三高亮 (🥇红 🥈黄 🥉绿) 其余灰色 · 点击数字查看订单详情</span></div>
+        <div class="legend-row"><div class="legend-item"><div class="legend-circle red-circle-bg">1</div> 第一名</div><div class="legend-item"><div class="legend-circle yellow-circle-bg">2</div> 第二名</div><div class="legend-item"><div class="legend-circle green-circle-bg">3</div> 第三名</div><div class="legend-item"><div class="legend-circle gray-circle-bg">·</div> 其他</div></div>
+    </div>
+    <div class="legend" id="typeLegend" style="display: none;">
+        <div class="legend-row"><span class="legend-item"><strong>👥 骑手类型 · 区块时段对比图例</strong> · 点击单量单元格查看骑手名单</span></div>
+        <div class="legend-row"><div class="legend-item"><span>📊 颜色越深代表单量越高（行内独立热力）</span><div class="gradient-bar" style="width:80px;"></div></div></div>
+    </div>
+    <div class="preview-area" id="previewArea" style="display: none;">
+        <div class="preview-header"><span>原始数据预览</span><button id="togglePreviewBtn">收起</button></div>
+        <div id="previewContainer" class="preview-container"><table class="preview-table" id="previewTable"></table></div>
+    </div>
+</div>
+<div id="mappingModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-title">📌 字段映射设置</div>
+        <div class="mapping-section">
+            <div class="section-title">📦 订单表格字段</div>
+            <div class="mapping-grid">
+                <div class="mapping-item"><label>🏍️ 骑手姓名</label><select id="mapOrderRider"></select></div>
+                <div class="mapping-item"><label>⏰ 配送完成时间</label><select id="mapOrderTime"></select></div>
+                <div class="mapping-item"><label>📥 批次揽收时间</label><select id="mapOrderAcceptTime"></select></div>
+                <div class="mapping-item"><label>⏱️ 揽收到配送完成</label><select id="mapOrderDuration"></select></div>
+                <div class="mapping-item"><label>📍 POI名称</label><select id="mapOrderPOI"></select></div>
+                <div class="mapping-item"><label>🏪 所属门店</label><select id="mapOrderStore"></select></div>
+                <div class="mapping-item"><label>🗺️ 配送区块</label><select id="mapOrderBlock"></select></div>
+                <div class="mapping-item"><label>📦 订单状态</label><select id="mapOrderStatus"></select></div>
+            </div>
+        </div>
+        <div class="mapping-section">
+            <div class="section-title">📅 考勤表格字段</div>
+            <div class="mapping-grid">
+                <div class="mapping-item"><label>👤 骑手姓名</label><select id="mapAttRider"></select></div>
+                <div class="mapping-item"><label>▶️ 班次开始</label><select id="mapAttStart"></select></div>
+                <div class="mapping-item"><label>⏹️ 班次结束</label><select id="mapAttEnd"></select></div>
+                <div class="mapping-item"><label>📊 班次状态</label><select id="mapAttStatus"></select></div>
+                <div class="mapping-item"><label>🧑‍💼 骑手类型</label><select id="mapAttRiderType"></select></div>
+            </div>
+        </div>
+        <div class="modal-actions"><button id="applyMappingBtn" class="btn-primary">应用并分析</button><button id="closeModalBtn" class="btn-secondary">取消</button></div>
+    </div>
+</div>
+<div id="detailModal" class="detail-modal-overlay" style="display: none;">
+    <div class="detail-modal-card" id="detailModalCard">
+        <div class="detail-modal-title" id="detailModalTitle">
+            <button class="detail-back-btn" id="detailBackBtn" style="display:none;">← 返回</button>
+            <span id="detailModalIcon"></span><span id="detailModalLabel">详情</span>
+            <button class="detail-modal-close" id="detailModalClose">✕</button>
+        </div>
+        <div class="detail-subtitle" id="detailModalSubtitle"></div>
+        <div id="detailModalContent"></div>
+    </div>
+</div>
+<script>
+(function() {
+    "use strict";
+    if (typeof XLSX === 'undefined') { alert('Excel库加载失败'); return; }
+    const fileInput = document.getElementById('fileInput');
+    const attendanceInput = document.getElementById('attendanceInput');
+    const orderFileTrigger = document.getElementById('orderFileTrigger');
+    const attFileTrigger = document.getElementById('attFileTrigger');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const exportReportBtn = document.getElementById('exportReportBtn');
+    const resultTableHead = document.querySelector('#resultTable thead');
+    const resultTableBody = document.querySelector('#resultTable tbody');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const previewTable = document.getElementById('previewTable');
+    const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+    const mappingConfigBtn = document.getElementById('mappingConfigBtn');
+    const mappingModal = document.getElementById('mappingModal');
+    const mapOrderRider = document.getElementById('mapOrderRider');
+    const mapOrderTime = document.getElementById('mapOrderTime');
+    const mapOrderAcceptTime = document.getElementById('mapOrderAcceptTime');
+    const mapOrderDuration = document.getElementById('mapOrderDuration');
+    const mapOrderPOI = document.getElementById('mapOrderPOI');
+    const mapOrderStore = document.getElementById('mapOrderStore');
+    const mapOrderBlock = document.getElementById('mapOrderBlock');
+    const mapOrderStatus = document.getElementById('mapOrderStatus');
+    const mapAttRider = document.getElementById('mapAttRider');
+    const mapAttStart = document.getElementById('mapAttStart');
+    const mapAttEnd = document.getElementById('mapAttEnd');
+    const mapAttStatus = document.getElementById('mapAttStatus');
+    const mapAttRiderType = document.getElementById('mapAttRiderType');
+    const applyMappingBtn = document.getElementById('applyMappingBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const viewToggleGroup = document.getElementById('viewToggleGroup');
+    const granOption = document.getElementById('granOption');
+    const riderFilterCompact = document.getElementById('riderFilterCompact');
+    const riderSearchInput = document.getElementById('riderSearchInput');
+    const riderDropdown = document.getElementById('riderDropdown');
+    const riderClearBtn = document.getElementById('riderClearBtn');
+    const riderOverlay = document.getElementById('riderOverlay');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusMessage = document.getElementById('statusMessage');
+    const statusBadge = document.getElementById('statusBadge');
+    const scrollWrapper = document.getElementById('tableScrollWrapper');
+    const heatmapLegend = document.getElementById('heatmapLegend');
+    const blockLegend = document.getElementById('blockLegend');
+    const typeLegend = document.getElementById('typeLegend');
+    const appContainer = document.querySelector('.app-container');
+    const detailModal = document.getElementById('detailModal');
+    const detailModalCard = document.getElementById('detailModalCard');
+    const detailModalTitle = document.getElementById('detailModalTitle');
+    const detailModalLabel = document.getElementById('detailModalLabel');
+    const detailModalIcon = document.getElementById('detailModalIcon');
+    const detailModalSubtitle = document.getElementById('detailModalSubtitle');
+    const detailModalContent = document.getElementById('detailModalContent');
+    const detailModalClose = document.getElementById('detailModalClose');
+    const detailBackBtn = document.getElementById('detailBackBtn');
+
+    let workbookData = null,
+        attendanceWorkbook = null,
+        riderShiftsMap = new Map(),
+        riderTypeMap = new Map();
+    let structHalfHour = null,
+        structHour = null,
+        blockStats = null,
+        typeStatsHalf = null,
+        typeStatsHour = null;
+    let blockTimeStatsHalf = null,
+        blockTimeStatsHour = null;
+    let currentView = 'heat',
+        heatViewGran = 'half',
+        typeViewGran = 'half',
+        storeName = '';
+    let currentMapping = {
+        orderRider: '配送员姓名',
+        orderTime: '订单配送完成时间',
+        orderAcceptTime: '',
+        orderDuration: '',
+        orderPOI: '',
+        orderStore: '',
+        orderBlock: '',
+        orderStatus: '',
+        attRider: '考勤骑手.配送员姓名',
+        attStart: '配送班次.班次开始时间',
+        attEnd: '配送班次.班次结束时间',
+        attStatus: '班次状态（1：取消；0：正常）',
+        attRiderType: '配送班次.班次类型'
+    };
+    let selectedRiders = new Set(),
+        allRiderNames = [];
+    let tableSortState = { colIndex: null, ascending: true };
+    let riderSlotBlockMap = null;
+    let allOrderDetails = [];
+    let blockSlotRiderDetailsHalf = null,
+        blockSlotRiderDetailsHour = null;
+    let typeSlotRiderDetailsHalf = null,
+        typeSlotRiderDetailsHour = null;
+    let detailNavStack = [];
+
+    let isDragging = false,
+        startX = 0,
+        startY = 0,
+        scrollLeft = 0,
+        scrollTop = 0,
+        touchMoved = false;
+
+    function openDetailModal(title, icon, contentHTML, subtitle) {
+        detailNavStack = [];
+        detailBackBtn.style.display = 'none';
+        detailModalLabel.textContent = title;
+        detailModalIcon.textContent = icon || '';
+        detailModalSubtitle.textContent = subtitle || '';
+        detailModalContent.innerHTML = contentHTML;
+        detailModal.style.display = 'flex';
+        bindDetailContentClicks();
+    }
+    function pushDetailNav(title, icon, contentHTML, subtitle) {
+        detailNavStack.push({ title: detailModalLabel.textContent, icon: detailModalIcon.textContent, html: detailModalContent.innerHTML, subtitle: detailModalSubtitle.textContent });
+        detailBackBtn.style.display = 'inline-block';
+        detailModalLabel.textContent = title;
+        detailModalIcon.textContent = icon || '';
+        detailModalSubtitle.textContent = subtitle || '';
+        detailModalContent.innerHTML = contentHTML;
+        bindDetailContentClicks();
+        detailModalCard.scrollTop = 0;
+    }
+    function popDetailNav() {
+        if (detailNavStack.length > 0) {
+            const prev = detailNavStack.pop();
+            detailModalLabel.textContent = prev.title;
+            detailModalIcon.textContent = prev.icon;
+            detailModalSubtitle.textContent = prev.subtitle || '';
+            detailModalContent.innerHTML = prev.html;
+            if (detailNavStack.length === 0) detailBackBtn.style.display = 'none';
+            bindDetailContentClicks();
+            detailModalCard.scrollTop = 0;
+        }
+    }
+    function bindDetailContentClicks() {
+        detailModalContent.querySelectorAll('[data-detail-action="block-riders"]').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const blockName = this.dataset.block;
+                const slotKey = parseInt(this.dataset.slot);
+                const gran = this.dataset.gran;
+                const riderName = this.dataset.rider;
+                showBlockRiderList(riderName, slotKey, gran, blockName);
+            });
+        });
+        detailModalContent.querySelectorAll('[data-detail-action="rider-orders"]').forEach(el => {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const riderName = this.dataset.rider;
+                const slotKey = parseInt(this.dataset.slot);
+                const gran = this.dataset.gran;
+                const blockName = this.dataset.block || '';
+                showOrderDetails(riderName, slotKey, gran, blockName);
+            });
+        });
+    }
+    detailBackBtn.addEventListener('click', popDetailNav);
+    function closeDetailModal() {
+        detailModal.style.display = 'none';
+        detailModalContent.innerHTML = '';
+        detailNavStack = [];
+        detailBackBtn.style.display = 'none';
+    }
+    detailModalClose.addEventListener('click', closeDetailModal);
+    detailModal.addEventListener('click', function(e) { if (e.target === detailModal) closeDetailModal(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && detailModal.style.display === 'flex') closeDetailModal(); });
+
+    function parseDurationToMinutes(v) {
+        if (v === null || v === undefined || v === '') return null;
+        let s = String(v).trim();
+        if (s === '') return null;
+        let num = parseFloat(s);
+        if (!isNaN(num) && num >= 0) return Math.round(num);
+        let m = s.match(/(\d+)\s*分钟/);
+        if (m) return parseInt(m[1]);
+        m = s.match(/(\d+)\s*min/);
+        if (m) return parseInt(m[1]);
+        return null;
+    }
+    function formatTimeShort(d) {
+        if (!d || isNaN(d)) return '';
+        const h = d.getHours().toString().padStart(2, '0');
+        const m = d.getMinutes().toString().padStart(2, '0');
+        return h + ':' + m;
+    }
+    function buildRiderSlotBlockMap() {
+        const map = {};
+        allOrderDetails = [];
+        if (!workbookData || !currentMapping.orderTime || !currentMapping.orderRider) return map;
+        const data = workbookData.data,
+            blockCol = currentMapping.orderBlock,
+            timeCol = currentMapping.orderTime,
+            riderCol = currentMapping.orderRider,
+            sCol = currentMapping.orderStatus,
+            acceptCol = currentMapping.orderAcceptTime,
+            durationCol = currentMapping.orderDuration,
+            poiCol = currentMapping.orderPOI;
+        for (let row of data) {
+            if (!isDeliveredOrder(row, sCol)) continue;
+            let rider = String(row[riderCol] || '').trim();
+            if (!rider) continue;
+            let dt = parseTimeToDate(row[timeCol]);
+            if (!dt) continue;
+            let block = String(row[blockCol] || '').trim();
+            if (!block) block = '未分区';
+            let mins = dt.getHours() * 60 + dt.getMinutes();
+            let slotKey30 = Math.floor(mins / 30) * 30;
+            let slotKey60 = Math.floor(mins / 60) * 60;
+            if (!map[rider]) map[rider] = { half: {}, hour: {} };
+            if (!map[rider].half[slotKey30]) map[rider].half[slotKey30] = {};
+            if (!map[rider].hour[slotKey60]) map[rider].hour[slotKey60] = {};
+            map[rider].half[slotKey30][block] = (map[rider].half[slotKey30][block] || 0) + 1;
+            map[rider].hour[slotKey60][block] = (map[rider].hour[slotKey60][block] || 0) + 1;
+            let acceptDt = acceptCol ? parseTimeToDate(row[acceptCol]) : null;
+            let durationMin = durationCol ? parseDurationToMinutes(row[durationCol]) : null;
+            if (acceptDt && dt && durationMin === null) {
+                durationMin = Math.round((dt.getTime() - acceptDt.getTime()) / 60000);
+                if (durationMin < 0) durationMin = null;
+            }
+            allOrderDetails.push({
+                rider,
+                block,
+                slotHalf: slotKey30,
+                slotHour: slotKey60,
+                poi: poiCol ? String(row[poiCol] || '').trim() : '',
+                acceptTime: acceptDt,
+                completeTime: dt,
+                durationMin
+            });
+        }
+        return map;
+    }
+    function getSlotInfo(gran, slotKey) {
+        if (!gran || slotKey === null || slotKey === undefined) return '';
+        const freq = gran === 'half' ? 30 : 60;
+        const sh = Math.floor(slotKey / 60);
+        const sm = slotKey % 60;
+        const eh = Math.floor((slotKey + freq) / 60);
+        const em = (slotKey + freq) % 60;
+        return `${sh.toString().padStart(2,'0')}:${sm.toString().padStart(2,'0')}-${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
+    }
+    function buildRiderSlotOrderDetails(riderName, slotKey, gran) {
+        if (!allOrderDetails || allOrderDetails.length === 0) return null;
+        const filtered = allOrderDetails.filter(od => {
+            if (od.rider !== riderName) return false;
+            const sk = gran === 'half' ? od.slotHalf : od.slotHour;
+            return sk === slotKey;
+        });
+        if (filtered.length === 0) return null;
+        const blockGroups = {};
+        filtered.forEach(od => {
+            const block = od.block || '未分区';
+            if (!blockGroups[block]) blockGroups[block] = [];
+            blockGroups[block].push(od);
+        });
+        const slotInfo = getSlotInfo(gran, slotKey);
+        const timeLabel = slotInfo || '';
+        let html = '<div style="max-height:55vh;overflow-y:auto;">';
+        const blockNames = Object.keys(blockGroups).sort((a, b) => getBlockSortKey(a) - getBlockSortKey(b));
+        const totalCount = filtered.length;
+        if (blockNames.length === 0) {
+            html += '<div class="detail-empty">暂无订单数据</div>';
+        } else if (blockNames.length === 1) {
+            const block = blockNames[0];
+            const orders = blockGroups[block];
+            html += `<div class="detail-block-header">📦 区块: ${block} | 时段: ${timeLabel} | 共${orders.length}单</div>`;
+            orders.forEach(od => {
+                const acceptStr = od.acceptTime ? formatTimeShort(od.acceptTime) : '—';
+                const completeStr = od.completeTime ? formatTimeShort(od.completeTime) : '—';
+                const durationStr = od.durationMin !== null && od.durationMin !== undefined ? od.durationMin + '分钟' : '—';
+                html += `<div class="detail-order-item">
+                    <div class="oi-row"><span class="oi-label">📍 POI:</span><span class="oi-value">${od.poi || '—'}</span></div>
+                    <div class="oi-row">
+                        <span><span class="oi-label">📥 接单:</span><span class="oi-value">${acceptStr}</span></span>
+                        <span><span class="oi-label">✅ 完成:</span><span class="oi-value">${completeStr}</span></span>
+                        <span><span class="oi-label">⏱️ 用时:</span><span class="oi-value">${durationStr}</span></span>
+                    </div>
+                </div>`;
+            });
+        } else {
+            html += `<div style="font-weight:700;margin-bottom:10px;color:#1e6f3f;font-size:0.9rem;">📊 共${totalCount}单 | ${blockNames.length}个区块</div>`;
+            blockNames.forEach(block => {
+                const orders = blockGroups[block];
+                html += `<div class="detail-block-header">📦 区块: ${block} | 时段: ${timeLabel} | 共${orders.length}单</div>`;
+                orders.forEach(od => {
+                    const acceptStr = od.acceptTime ? formatTimeShort(od.acceptTime) : '—';
+                    const completeStr = od.completeTime ? formatTimeShort(od.completeTime) : '—';
+                    const durationStr = od.durationMin !== null && od.durationMin !== undefined ? od.durationMin + '分钟' : '—';
+                    html += `<div class="detail-order-item">
+                        <div class="oi-row"><span class="oi-label">📍 POI:</span><span class="oi-value">${od.poi || '—'}</span></div>
+                        <div class="oi-row">
+                            <span><span class="oi-label">📥 接单:</span><span class="oi-value">${acceptStr}</span></span>
+                            <span><span class="oi-label">✅ 完成:</span><span class="oi-value">${completeStr}</span></span>
+                            <span><span class="oi-label">⏱️ 用时:</span><span class="oi-value">${durationStr}</span></span>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+        html += '</div>';
+        return html;
+    }
+    function showBlockCellOrderDetails(rider, block, count) {
+        if (allOrderDetails && allOrderDetails.length > 0) {
+            const filtered = allOrderDetails.filter(od => od.rider === rider && od.block === block);
+            if (filtered.length > 0) {
+                let html = '<div style="max-height:50vh;overflow-y:auto;">';
+                filtered.forEach(od => {
+                    const acceptStr = od.acceptTime ? formatTimeShort(od.acceptTime) : '—';
+                    const completeStr = od.completeTime ? formatTimeShort(od.completeTime) : '—';
+                    const durationStr = od.durationMin !== null && od.durationMin !== undefined ? od.durationMin + '分钟' : '—';
+                    html += `<div class="detail-order-item">
+                        <div class="oi-row"><span class="oi-label">📍 POI:</span><span class="oi-value">${od.poi || '—'}</span></div>
+                        <div class="oi-row">
+                            <span><span class="oi-label">📥 接单:</span><span class="oi-value">${acceptStr}</span></span>
+                            <span><span class="oi-label">✅ 完成:</span><span class="oi-value">${completeStr}</span></span>
+                            <span><span class="oi-label">⏱️ 用时:</span><span class="oi-value">${durationStr}</span></span>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                html += `<div style="font-weight:700;text-align:center;margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;">共 ${filtered.length} 单</div>`;
+                openDetailModal(`${rider} · ${block} 订单详情`, '', html, ``);
+                return;
+            }
+        }
+        let hintMsg = count > 0 ? `🏍️ ${rider} 在 📦 ${block} 共完成 <strong>${count} 单</strong>。` : `🏍️ ${rider} 在 📦 ${block} 暂无订单。`;
+        let guideMsg = '';
+        if (!currentMapping.orderAcceptTime && !currentMapping.orderDuration && !currentMapping.orderPOI) {
+            guideMsg = '<br>💡 如需查看每单详情，请在“字段映射”中配置 <b>POI名称</b>、<b>揽收时间</b> 或 <b>配送完成时间</b> 等列。';
+        }
+        openDetailModal('📦 区块单量', '📊', `<div style="padding:16px;text-align:center;">${hintMsg}${guideMsg}</div>`, `骑手: ${rider} | 区块: ${block}`);
+    }
+
+    function getRiderSlotBlocks(riderName, slotStartKey, gran) {
+        if (!riderSlotBlockMap) return null;
+        const riderData = riderSlotBlockMap[riderName];
+        if (!riderData) return null;
+        const granData = gran === 'half' ? riderData.half : riderData.hour;
+        const blockCounts = granData[slotStartKey];
+        if (!blockCounts || Object.keys(blockCounts).length === 0) return null;
+        const sorted = Object.entries(blockCounts).sort((a, b) => b[1] - a[1]);
+        const total = sorted.reduce((s, [, c]) => s + c, 0);
+        const blockColors = ['#ef4444','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16'];
+        let html = '<ul class="detail-list">';
+        sorted.forEach(([block, count], idx) => {
+            const pct = ((count / total) * 100).toFixed(1);
+            const color = blockColors[idx % blockColors.length];
+            html += `<li class="clickable-row" data-detail-action="block-riders" data-block="${block.replace(/"/g,'&quot;')}" data-slot="${slotStartKey}" data-gran="${gran}" data-rider="${riderName.replace(/"/g,'&quot;')}"><span class="block-name"><span class="block-dot" style="background:${color};"></span>${block}</span><span class="count">${count}单 (${pct}%)</span></li>`;
+        });
+        html += `<li style="font-weight:700;background:#f0fdf4;border-radius:8px;margin-top:4px;"><span>合计</span><span class="count" style="background:#1e6f3f;color:white;">${total}单</span></li></ul><div style="font-size:0.7rem;color:#94a3b8;margin-top:6px;text-align:center;">💡 点击区块查看该区块骑手明细</div>`;
+        return html;
+    }
+    function showBlockRiderList(riderName, slotStartKey, gran, blockName) {
+        const slotKey = slotStartKey;
+        const filtered = allOrderDetails.filter(od => { const sk = gran === 'half' ? od.slotHalf : od.slotHour; return od.block === blockName && sk === slotKey && od.rider === riderName; });
+        const riderCounts = {};
+        filtered.forEach(od => { riderCounts[od.rider] = (riderCounts[od.rider] || 0) + 1; });
+        const sorted = Object.entries(riderCounts).sort((a, b) => b[1] - a[1]);
+        const total = sorted.reduce((s, [, c]) => s + c, 0);
+        const slotInfo = getSlotInfo(gran, slotKey);
+        const timeLabel = slotInfo || '';
+        let html = '<ul class="detail-list">';
+        sorted.forEach(([name, count]) => { html += `<li class="clickable-row" data-detail-action="rider-orders" data-rider="${name.replace(/"/g,'&quot;')}" data-slot="${slotKey}" data-gran="${gran}" data-block="${blockName.replace(/"/g,'&quot;')}"><span class="name">🏍️ ${name}</span><span class="count">${count}单</span></li>`; });
+        html += `<li style="font-weight:700;background:#f0fdf4;border-radius:8px;margin-top:4px;"><span>合计</span><span class="count" style="background:#1e6f3f;color:white;">${total}单 · ${sorted.length}人</span></li></ul><div style="font-size:0.7rem;color:#94a3b8;margin-top:6px;text-align:center;">💡 点击骑手查看订单详情</div>`;
+        pushDetailNav(`📦 ${blockName} · ${timeLabel} 骑手列表`, '👥', html, `骑手: ${riderName} | 区块: ${blockName} | 时段: ${timeLabel}`);
+    }
+    function showOrderDetails(riderName, slotStartKey, gran, blockName) {
+        const slotKey = slotStartKey;
+        const hasSlot = slotKey !== null && slotKey !== undefined;
+        const hasBlock = blockName && blockName.trim() !== '';
+        const filtered = allOrderDetails.filter(od => {
+            if (od.rider !== riderName) return false;
+            if (hasBlock && od.block !== blockName) return false;
+            if (hasSlot) { const sk = gran === 'half' ? od.slotHalf : od.slotHour; return sk === slotKey; }
+            return true;
+        });
+        const slotInfo = hasSlot ? getSlotInfo(gran, slotKey) : null;
+        const timeLabel = slotInfo || '全部时段';
+        const blockLabel = hasBlock ? `区块: ${blockName} | ` : '';
+        if (filtered.length === 0) {
+            pushDetailNav(`${riderName} · 订单详情`, '', '<div class="detail-empty">该条件下暂无订单详情数据（请确认已配置POI名称、揽收时间等字段映射）</div>', `${blockLabel}时段: ${timeLabel}`);
+            return;
+        }
+        let html = '<div style="max-height:50vh;overflow-y:auto;">';
+        filtered.forEach(od => {
+            const acceptStr = od.acceptTime ? formatTimeShort(od.acceptTime) : '—';
+            const completeStr = od.completeTime ? formatTimeShort(od.completeTime) : '—';
+            const durationStr = od.durationMin !== null && od.durationMin !== undefined ? od.durationMin + '分钟' : '—';
+            html += `<div class="detail-order-item"><div class="oi-row"><span class="oi-label">📍 POI:</span><span class="oi-value">${od.poi || '—'}</span></div><div class="oi-row"><span><span class="oi-label">📥 接单:</span><span class="oi-value">${acceptStr}</span></span><span><span class="oi-label">✅ 完成:</span><span class="oi-value">${completeStr}</span></span><span><span class="oi-label">⏱️ 用时:</span><span class="oi-value">${durationStr}</span></span></div></div>`;
+        });
+        html += '</div>';
+        html += `<div style="font-weight:700;text-align:center;margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;">共 ${filtered.length} 单</div>`;
+        pushDetailNav(`${riderName} · ${blockLabel}${timeLabel} 订单详情`, '', html, ``);
+    }
+
+    function applyScrollLimits() {
+        const maxLeft = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+        const maxTop = scrollWrapper.scrollHeight - scrollWrapper.clientHeight;
+        scrollWrapper.scrollLeft = Math.max(0, Math.min(scrollWrapper.scrollLeft, maxLeft));
+        scrollWrapper.scrollTop = Math.max(0, Math.min(scrollWrapper.scrollTop, maxTop));
+    }
+    function onDragStart(pageX, pageY) {
+        isDragging = true;
+        scrollWrapper.style.cursor = 'grabbing';
+        startX = pageX - scrollWrapper.offsetLeft;
+        startY = pageY - scrollWrapper.offsetTop;
+        scrollLeft = scrollWrapper.scrollLeft;
+        scrollTop = scrollWrapper.scrollTop;
+        touchMoved = false;
+    }
+    function onDragMove(pageX, pageY, preventDefaultFn) {
+        if (!isDragging) return;
+        const dx = pageX - scrollWrapper.offsetLeft - startX;
+        const dy = pageY - scrollWrapper.offsetTop - startY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { touchMoved = true; if (preventDefaultFn) preventDefaultFn(); }
+        if (touchMoved) {
+            let newLeft = scrollLeft - dx * 1.5;
+            let newTop = scrollTop - dy * 1.5;
+            const maxLeft = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+            const maxTop = scrollWrapper.scrollHeight - scrollWrapper.clientHeight;
+            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            newTop = Math.max(0, Math.min(newTop, maxTop));
+            scrollWrapper.scrollLeft = newLeft;
+            scrollWrapper.scrollTop = newTop;
+        }
+    }
+    function onDragEnd() {
+        isDragging = false;
+        scrollWrapper.style.cursor = 'grab';
+        applyScrollLimits();
+    }
+    scrollWrapper.addEventListener('mousedown', (e) => {
+        if (e.target.closest('th')) return;
+        if (e.target.closest('button, select, input, .view-option, .rider-search-input, .rider-clear-btn')) return;
+        e.preventDefault();
+        onDragStart(e.pageX, e.pageY);
+    });
+    window.addEventListener('mousemove', (e) => { if (!isDragging) return; e.preventDefault(); onDragMove(e.pageX, e.pageY); });
+    window.addEventListener('mouseup', onDragEnd);
+    scrollWrapper.addEventListener('touchstart', (e) => {
+        if (e.target.closest('th')) return;
+        if (e.target.closest('button, select, input, .view-option, .rider-search-input, .rider-clear-btn')) return;
+        if (e.touches.length !== 1) return;
+        onDragStart(e.touches[0].pageX, e.touches[0].pageY);
+    }, { passive: false });
+    scrollWrapper.addEventListener('touchmove', (e) => { if (!isDragging) return; onDragMove(e.touches[0].pageX, e.touches[0].pageY, () => e.preventDefault()); }, { passive: false });
+    scrollWrapper.addEventListener('touchend', onDragEnd);
+    scrollWrapper.addEventListener('touchcancel', onDragEnd);
+    window.addEventListener('mouseleave', () => { if (isDragging) onDragEnd(); });
+    document.addEventListener('touchcancel', () => { if (isDragging) onDragEnd(); });
+    scrollWrapper.addEventListener('scroll', () => { if (!isDragging) applyScrollLimits(); });
+
+    orderFileTrigger.onclick = () => fileInput.click();
+    attFileTrigger.onclick = () => attendanceInput.click();
+
+    function isDeliveredOrder(row, statusCol) {
+        if (!statusCol) return true;
+        return String(row[statusCol] || '').trim().includes('妥投');
+    }
+    function parseTimeToDate(v) {
+        if (!v && v !== 0) return null;
+        if (v instanceof Date && !isNaN(v)) return v;
+        let s = String(v).trim();
+        if (s === '') return null;
+        if (!isNaN(s) && s > 40000 && s < 60000) { let d = new Date((s - 25569) * 86400000); if (!isNaN(d)) return d; }
+        let d = new Date(s); if (!isNaN(d)) return d;
+        let m = s.match(/(\d{1,2}):(\d{1,2})/); if (m) { let t = new Date(); t.setHours(+m[1], +m[2], 0, 0); return t; }
+        return null;
+    }
+    function loadExcel(file) {
+        return new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = e => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true, defval: '' });
+                    const sh = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '' });
+                    if (!rows || rows.length < 2) reject('无数据');
+                    const h = rows[0].map(c => String(c || '').trim());
+                    const data = rows.slice(1).filter(r => r.some(c => c !== undefined && c !== '' && c !== null)).map(r => { let o = {}; h.forEach((c, i) => o[c] = r[i]); return o; });
+                    resolve({ columns: h, data });
+                } catch (e) { reject(e); }
+            };
+            r.onerror = () => reject('读取失败');
+            r.readAsArrayBuffer(file);
+        });
+    }
+    function parseAttendance(mapping) {
+        const shiftsMap = new Map();
+        riderTypeMap.clear();
+        if (!attendanceWorkbook?.data) return shiftsMap;
+        const { attRider, attStart, attEnd, attStatus, attRiderType } = mapping;
+        if (!attRider || !attStart || !attEnd) return shiftsMap;
+        for (let row of attendanceWorkbook.data) {
+            let name = String(row[attRider] || '').trim(); if (!name) continue;
+            let start = parseTimeToDate(row[attStart]), end = parseTimeToDate(row[attEnd]);
+            if (start && end) {
+                let status = attStatus ? row[attStatus] : 0;
+                if ((typeof status === 'number' ? status : parseInt(status) || 0) === 0) {
+                    if (!shiftsMap.has(name)) shiftsMap.set(name, []);
+                    shiftsMap.get(name).push({ startHour: start.getHours(), startMin: start.getMinutes(), endHour: end.getHours(), endMin: end.getMinutes() });
+                }
+            }
+            if (attRiderType && !riderTypeMap.has(name)) {
+                let raw = String(row[attRiderType] || '').trim();
+                let cleaned = raw.replace(/排班/g, '').trim();
+                if (cleaned) riderTypeMap.set(name, cleaned);
+            }
+        }
+        return shiftsMap;
+    }
+    function populateSelect(sel, cols, def) {
+        sel.innerHTML = '';
+        if (!cols?.length) { sel.innerHTML = '<option>-- 暂无列 --</option>'; return; }
+        cols.forEach(c => sel.add(new Option(c, c)));
+        sel.value = def && cols.includes(def) ? def : cols[0];
+    }
+    function getHeatColor(v, min, max) {
+        if (max === min || max <= 0) return '#b9f6ca';
+        let t = (v - min) / (max - min);
+        return `rgb(${Math.floor(34+205*t)},${Math.floor(197-129*t)},${Math.floor(94-26*t)})`;
+    }
+    function isWorking(slot, shifts) {
+        if (!shifts?.length) return true;
+        let ss = slot.startHour * 60 + slot.startMin,
+            se = slot.endHour * 60 + slot.endMin;
+        return shifts.some(s => (s.startHour * 60 + s.startMin) < se && (s.endHour * 60 + s.endMin) > ss);
+    }
+    function getBlockSortKey(blockName) {
+        const name = String(blockName).trim();
+        let layerOrder = 4;
+        if (name.includes('内环')) layerOrder = 0;
+        else if (name.includes('外环')) layerOrder = 1;
+        else if (name.includes('环外')) layerOrder = 2;
+        else if (name.includes('跨区')) layerOrder = 3;
+        const dirKeywords = ['中','东','西','南','北','特','跨','接驳'];
+        let dirOrder = 8;
+        for (let i = 0; i < dirKeywords.length; i++) if (name.includes(dirKeywords[i])) { dirOrder = i; break; }
+        let numOrder = 99;
+        const arabicMatch = name.match(/[1-5]/);
+        if (arabicMatch) numOrder = parseInt(arabicMatch[0]);
+        else { const cnNumMap = {'一':1,'二':2,'三':3,'四':4,'五':5}; for (let [cn, val] of Object.entries(cnNumMap)) if (name.includes(cn)) { numOrder = val; break; } }
+        return layerOrder * 10000 + dirOrder * 100 + numOrder;
+    }
+    function computeBlockTimeStats(gran, riderFilterSet) {
+        if (!workbookData || !currentMapping.orderBlock || !currentMapping.orderTime || !currentMapping.orderRider) return null;
+        const data = workbookData.data, blockCol = currentMapping.orderBlock, timeCol = currentMapping.orderTime, riderCol = currentMapping.orderRider, sCol = currentMapping.orderStatus;
+        const freq = gran === '半小时' ? 30 : 60;
+        let slotMap = new Map();
+        for (let row of data) { if (!isDeliveredOrder(row, sCol)) continue; let dt = parseTimeToDate(row[timeCol]); if (!dt) continue; let mins = dt.getHours() * 60 + dt.getMinutes(); let start = Math.floor(mins / freq) * freq; if (!slotMap.has(start)) { let sh = Math.floor(start/60), sm = start%60, eh = Math.floor((start+freq)/60), em = (start+freq)%60; slotMap.set(start, { sortKey: start, startHour: sh, startMin: sm, endHour: eh, endMin: em }); } }
+        let slots = Array.from(slotMap.values()).sort((a,b) => a.sortKey - b.sortKey);
+        if (!slots.length) return null;
+        const blockOrderSet = new Map(), blockSlotOrders = {}, blockTotalOrders = {}, blockSlotRiderCounts = {};
+        for (let row of data) {
+            if (!isDeliveredOrder(row, sCol)) continue;
+            let riderName = String(row[riderCol] || '').trim();
+            if (riderFilterSet && riderFilterSet.size > 0 && !riderFilterSet.has(riderName)) continue;
+            let block = String(row[blockCol] || '').trim(); if (!block) continue;
+            let dt = parseTimeToDate(row[timeCol]); if (!dt) continue;
+            let mins = dt.getHours() * 60 + dt.getMinutes();
+            let start = Math.floor(mins / freq) * freq;
+            let idx = slots.findIndex(s => s.sortKey === start); if (idx === -1) continue;
+            if (!blockOrderSet.has(block)) { blockOrderSet.set(block, true); blockSlotOrders[block] = Array(slots.length).fill(0); blockTotalOrders[block] = 0; blockSlotRiderCounts[block] = Array(slots.length).fill().map(() => ({})); }
+            blockSlotOrders[block][idx]++; blockTotalOrders[block]++;
+            if (riderName) blockSlotRiderCounts[block][idx][riderName] = (blockSlotRiderCounts[block][idx][riderName] || 0) + 1;
+        }
+        const blocks = Array.from(blockOrderSet.keys()).sort((a,b) => getBlockSortKey(a) - getBlockSortKey(b));
+        if (blocks.length === 0) return null;
+        const blockRows = blocks.map(block => ({ block, orders: blockSlotOrders[block], total: blockTotalOrders[block] }));
+        const bSRD = {}; blocks.forEach(block => { bSRD[block] = blockSlotRiderCounts[block]; });
+        return { slots, blocks, blockRows, blockSlotRiderDetails: bSRD };
+    }
+    function computeTypeStats(gran, riderFilterSet) {
+        if (!workbookData || !currentMapping.orderRider || !currentMapping.orderTime) return null;
+        const data = workbookData.data, tCol = currentMapping.orderTime, rCol = currentMapping.orderRider, sCol = currentMapping.orderStatus;
+        const freq = gran === '半小时' ? 30 : 60;
+        let slotMap = new Map();
+        for (let row of data) { if (!isDeliveredOrder(row, sCol)) continue; let dt = parseTimeToDate(row[tCol]); if (!dt) continue; let mins = dt.getHours() * 60 + dt.getMinutes(); let start = Math.floor(mins / freq) * freq; if (!slotMap.has(start)) { let sh = Math.floor(start/60), sm = start%60, eh = Math.floor((start+freq)/60), em = (start+freq)%60; slotMap.set(start, { sortKey: start, startHour: sh, startMin: sm, endHour: eh, endMin: em }); } }
+        let slots = Array.from(slotMap.values()).sort((a,b) => a.sortKey - b.sortKey);
+        if (!slots.length) return null;
+        const typeOrderSet = new Map(), typeSlotOrders = {}, typeSlotRidersSet = {}, typeTotalOrders = {}, typeTotalRidersSet = new Map(), typeSlotRiderCounts = {};
+        for (let row of data) {
+            if (!isDeliveredOrder(row, sCol)) continue;
+            let riderName = String(row[rCol] || '').trim(); if (!riderName) continue;
+            if (riderFilterSet && riderFilterSet.size > 0 && !riderFilterSet.has(riderName)) continue;
+            let dt = parseTimeToDate(row[tCol]); if (!dt) continue;
+            let mins = dt.getHours() * 60 + dt.getMinutes(); let start = Math.floor(mins / freq) * freq;
+            let idx = slots.findIndex(s => s.sortKey === start); if (idx === -1) continue;
+            let riderType = riderTypeMap.get(riderName); if (!riderType) continue;
+            if (!typeOrderSet.has(riderType)) { typeOrderSet.set(riderType, true); typeSlotOrders[riderType] = Array(slots.length).fill(0); typeSlotRidersSet[riderType] = Array(slots.length).fill().map(() => new Set()); typeTotalOrders[riderType] = 0; typeTotalRidersSet.set(riderType, new Set()); typeSlotRiderCounts[riderType] = Array(slots.length).fill().map(() => ({})); }
+            typeSlotOrders[riderType][idx]++; typeSlotRidersSet[riderType][idx].add(riderName); typeTotalOrders[riderType]++; typeTotalRidersSet.get(riderType).add(riderName);
+            typeSlotRiderCounts[riderType][idx][riderName] = (typeSlotRiderCounts[riderType][idx][riderName] || 0) + 1;
+        }
+        const types = Array.from(typeOrderSet.keys()).sort((a,b) => typeTotalOrders[b] - typeTotalOrders[a]);
+        if (types.length === 0) return null;
+        const typeRows = types.map(type => { const orders = typeSlotOrders[type]; const ridersPerSlot = typeSlotRidersSet[type].map(s => s.size); const eff = orders.map((o,i) => ridersPerSlot[i] ? Math.round((o / ridersPerSlot[i]) * 10) / 10 : 0); return { type, orders, ridersPerSlot, eff, totalOrders: typeTotalOrders[type], totalRiders: typeTotalRidersSet.get(type).size }; });
+        const tSRD = {}; types.forEach(type => { tSRD[type] = typeSlotRiderCounts[type]; });
+        return { slots, types, typeRows, typeSlotRiderDetails: tSRD };
+    }
+
+    function renderHeatTable(struct, shifts) {
+        const { timeSlotsRaw, summaryRows, riderDisplay, efficiencyRaw, rawOrders, rawRiders, rawEffValues } = struct;
+        const hasAttendance = shifts && shifts.size > 0;
+        let h = '<tr><th>指标/骑手'; if (tableSortState.colIndex === 0) h += ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += '</th>';
+        timeSlotsRaw.forEach((s, idx) => { let arrow = ''; if (tableSortState.colIndex === idx + 1) arrow = ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += `<th><span class="slot-start">${s.startHour.toString().padStart(2,'0')}:${s.startMin.toString().padStart(2,'0')}</span><span class="slot-end">↓${s.endHour.toString().padStart(2,'0')}:${s.endMin.toString().padStart(2,'0')}</span>${arrow}</th>`; });
+        let totalArrow = ''; if (tableSortState.colIndex === timeSlotsRaw.length + 1) totalArrow = ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += '<th>总计' + totalArrow + '</th></tr>';
+        resultTableHead.innerHTML = h;
+        const range = (arr, dMin, dMax) => { if (!arr?.length) return { min: dMin, max: dMax }; let min = Math.min(...arr, dMin), max = Math.max(...arr, dMax); return { min: max === min ? dMax : max, max }; };
+        const oR = range(rawOrders, 0, 1), rR = range(rawRiders, 0, 1), eR = range(rawEffValues, 0, 0.1);
+        let body = '';
+        summaryRows.forEach((s, idx) => { let cells = `<td style="background:#d0f0c0;font-weight:700;">${s.type}</td>`; s.values.forEach((v, i) => { let bg; if (idx === 0) bg = getHeatColor(v, oR.min, oR.max); else if (idx === 1) bg = getHeatColor(v, rR.min, rR.max); else bg = getHeatColor(parseFloat(v), eR.min, eR.max); cells += `<td style="background:${bg};font-weight:700;">${v}</td>`; }); cells += `<td style="background:#d0f0c0;">${s.total}</td>`; body += `<tr class="summary-row">${cells}</tr>`; });
+        let sep = `<td style="background:#cbd5e6;">────────</td>` + Array(timeSlotsRaw.length).fill('<td style="background:#cbd5e6;">─</td>').join('') + '<td style="background:#cbd5e6;">─</td>';
+        body += `<tr class="separator-row">${sep}</tr>`;
+        let sortedRider = [...riderDisplay];
+        if (tableSortState.colIndex !== null) { const idx = tableSortState.colIndex; sortedRider.sort((a,b) => { let va, vb; if (idx === 0) { va = a.rider; vb = b.rider; } else if (idx > 0 && idx <= timeSlotsRaw.length) { va = a.values[idx-1]; vb = b.values[idx-1]; } else { va = a.total; vb = b.total; } if (typeof va === 'string') return tableSortState.ascending ? va.localeCompare(vb) : vb.localeCompare(va); return tableSortState.ascending ? va - vb : vb - va; }); }
+        sortedRider.forEach(r => {
+            let shiftsArr = shifts.get(r.rider) || []; let isScheduled = hasAttendance && shiftsArr.length > 0;
+            let cells = `<td style="font-weight:700;">${r.rider}</td>`;
+            r.values.forEach((cnt, i) => {
+                let avg = efficiencyRaw[i] || 0; let slot = timeSlotsRaw[i]; let working = isScheduled ? isWorking(slot, shiftsArr) : !hasAttendance;
+                let inner, tdClass = ''; let slotSortKey = slot.sortKey; let clickAttr = '';
+                if (cnt > 0 && allOrderDetails.length > 0) { clickAttr = ` data-clickable="true" data-rider="${r.rider.replace(/"/g,'&quot;')}" data-slot="${slotSortKey}" data-gran="${heatViewGran}"`; }
+                if (hasAttendance) { if (!working) { tdClass = 'non-working-bg'; inner = cnt > 0 ? `<div><span class="cell-number-circle white-circle-bg">${cnt}</span></div>` : '<div style="visibility:hidden;"> </div>'; } else if (cnt === 0) { tdClass = 'zero-working-red'; inner = '<div style="visibility:hidden;"> </div>'; } else { tdClass = 'working-bg'; inner = `<div><span class="cell-number-circle ${cnt>=avg?'green-circle-bg':'red-circle-bg'}">${cnt}</span></div>`; } }
+                else { inner = `<div><span class="cell-number-circle ${cnt===0?'white-circle-bg':(cnt>=avg?'green-circle-bg':'red-circle-bg')}">${cnt}</span></div>`; }
+                let cc = clickAttr ? ' cell-clickable' : ''; cells += `<td class="${tdClass}${cc}"${clickAttr}>${inner}</td>`;
+            });
+            cells += `<td style="font-weight:700;">${r.total}</td>`; body += `<tr>${cells}</tr>`;
+        });
+        resultTableBody.innerHTML = body;
+        resultTableBody.querySelectorAll('td[data-clickable="true"]').forEach(td => {
+            td.addEventListener('click', function(e) { 
+                e.stopPropagation(); 
+                const rider = this.dataset.rider; 
+                const slotKey = parseInt(this.dataset.slot); 
+                const gran = this.dataset.gran; 
+                const ordersHtml = buildRiderSlotOrderDetails(rider, slotKey, gran); 
+                const slotInfo = getSlotInfo(gran, slotKey); 
+                const timeLabel = slotInfo || ''; 
+                if (ordersHtml) { 
+                    openDetailModal(`${rider} · ${timeLabel} 配送明细`, '', ordersHtml, ''); 
+                } else { 
+                    openDetailModal(`${rider}`, '', '<div class="detail-empty">该时段无订单数据（请确认已配置POI名称、揽收时间等字段映射）</div>'); 
+                } 
+            });
+        });
+    }
+
+    function renderBlockTable(stats) {
+        const { blocks, blockOrders, totalOrders, riderRows, validRiderBlockCount } = stats;
+        if (!blocks.length) { resultTableHead.innerHTML = '<tr><th>提示</th></tr>'; resultTableBody.innerHTML = '<tr><td>暂无区块数据</td></tr>'; return; }
+        let thead = '<tr><th>区块'; if (tableSortState.colIndex === 0) thead += ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; thead += '</th><th>总计'; if (tableSortState.colIndex === 1) thead += ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; thead += '</th>';
+        blocks.forEach((b, i) => { let arrow = ''; if (tableSortState.colIndex === i + 2) arrow = ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; thead += `<th>${b}${arrow}</th>`; });
+        thead += '</tr>'; resultTableHead.innerHTML = thead;
+        const percentages = blockOrders.map(v => totalOrders ? ((v / totalOrders) * 100).toFixed(2) + '%' : '0.00%');
+        const validPercent = totalOrders ? ((validRiderBlockCount / totalOrders) * 100).toFixed(2) + '%' : '0.00%';
+        let body = `<tr class="summary-row"><td style="background:#fde68a;">单量</td><td>${totalOrders}</td>${blockOrders.map(v=>`<td style="font-weight:700;">${v}</td>`).join('')}</tr>`;
+        body += `<tr class="summary-row"><td style="background:#fef9e3;">占比</td><td>${validPercent}</td>${percentages.map(p=>`<td>${p}</td>`).join('')}</tr>`;
+        let sep = `<td style="background:#cbd5e6;">────────</td><td style="background:#cbd5e6;">─</td>` + blocks.map(() => '<td style="background:#cbd5e6;">─</td>').join(''); body += `<tr class="separator-row">${sep}</tr>`;
+        const typeBlockCounts = new Map(); const typeTotalOrders = new Map();
+        for (let rider of riderRows) { const type = riderTypeMap.get(rider.rider); if (!type) continue; if (!typeBlockCounts.has(type)) { typeBlockCounts.set(type, Array(blocks.length).fill(0)); typeTotalOrders.set(type, 0); } const arr = typeBlockCounts.get(type); rider.counts.forEach((cnt, i) => { arr[i] += cnt; }); typeTotalOrders.set(type, typeTotalOrders.get(type) + rider.total); }
+        if (typeBlockCounts.size > 0) { const types = Array.from(typeBlockCounts.keys()).sort(); for (let type of types) { const counts = typeBlockCounts.get(type); let row = `<td style="background:#fef3c7;font-weight:700;">${type}</td>`; let typeTotal = typeTotalOrders.get(type); let totalPct = totalOrders ? ((typeTotal / totalOrders) * 100).toFixed(2) + '%' : '0.00%'; row += `<td style="position:relative;background:#fef3c7;"><div class="type-block-cell"><span class="percent">${totalPct}</span><span class="corner-abs">${typeTotal}</span></div></td>`; counts.forEach((cnt, i) => { let blockTotal = blockOrders[i] || 1; let pct = ((cnt / blockTotal) * 100).toFixed(2) + '%'; row += `<td style="position:relative;background:#fef3c7;"><div class="type-block-cell"><span class="percent">${pct}</span><span class="corner-abs">${cnt}</span></div></td>`; }); body += `<tr>${row}</tr>`; } 
+        let sepType = `<td style="background:#cbd5e6;">────────</td>` + blocks.map(() => '<td style="background:#cbd5e6;">─</td>').join('') + '<td style="background:#cbd5e6;">─</td>';
+        body += `<tr class="separator-row">${sepType}</tr>`; }
+        let headerRow = `<td style="background:#f1f5f9;font-weight:700;">姓名</td><td style="background:#f1f5f9;font-weight:700;">单量</td>`; blocks.forEach(b => headerRow += `<td style="background:#f1f5f9;font-weight:700;">${b}</td>`); body += `<tr class="block-header-row">${headerRow}</tr>`;
+        let sortedRiderRows = [...riderRows];
+        if (tableSortState.colIndex !== null) { const idx = tableSortState.colIndex; sortedRiderRows.sort((a,b) => { let va, vb; if (idx === 0) { va = a.rider; vb = b.rider; } else if (idx === 1) { va = a.total; vb = b.total; } else { const blockIdx = idx - 2; va = a.counts[blockIdx] || 0; vb = b.counts[blockIdx] || 0; } if (typeof va === 'string') return tableSortState.ascending ? va.localeCompare(vb) : vb.localeCompare(va); return tableSortState.ascending ? va - vb : vb - va; }); }
+        sortedRiderRows.forEach(r => {
+            const indexed = r.counts.map((v, i) => ({ val: v, idx: i })); indexed.sort((a, b) => b.val - a.val);
+            const rankMap = new Map(); let rank = 1;
+            for (let item of indexed) { if (item.val <= 0) break; if (rank === 1) rankMap.set(item.idx, 'red'); else if (rank === 2) rankMap.set(item.idx, 'yellow'); else if (rank === 3) rankMap.set(item.idx, 'green'); else rankMap.set(item.idx, 'gray'); rank++; }
+            let cells = `<td>${r.rider}</td><td>${r.total}</td>`;
+            r.counts.forEach((cnt, i) => {
+                if (cnt === 0) cells += '<td></td>';
+                else {
+                    const rank = rankMap.get(i);
+                    let cls = rank === 'red' ? 'red-circle-bg' : (rank === 'yellow' ? 'yellow-circle-bg' : (rank === 'green' ? 'green-circle-bg' : 'gray-circle-bg'));
+                    const blockName = blocks[i];
+                    cells += `<td class="cell-clickable" data-clickable="true" data-rider="${r.rider.replace(/"/g,'&quot;')}" data-block="${blockName.replace(/"/g,'&quot;')}" data-count="${cnt}"><span class="cell-number-circle ${cls}">${cnt}</span></td>`;
+                }
+            });
+            body += `<tr>${cells}</tr>`;
+        });
+        resultTableBody.innerHTML = body;
+        resultTableBody.querySelectorAll('td[data-clickable="true"]').forEach(td => {
+            td.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const rider = this.dataset.rider;
+                const block = this.dataset.block;
+                const count = parseInt(this.dataset.count) || 0;
+                showBlockCellOrderDetails(rider, block, count);
+            });
+        });
+        updateStatus('区块占比视图', `${blocks.length}个区块 · ${totalOrders}单`, 'success');
+    }
+
+    function renderTypeTable(typeStats, gran, blockTimeStats) {
+        if (!typeStats || !typeStats.typeRows.length) { resultTableHead.innerHTML = '<tr><th>提示</th></tr>'; resultTableBody.innerHTML = '<tr><td>请上传考勤并在字段映射中配置"骑手类型"列，且确保订单数据有效</td></tr>'; return; }
+        const { slots, typeRows, typeSlotRiderDetails } = typeStats;
+        let h = '<tr><th>骑手类型 / 区块'; if (tableSortState.colIndex === 0) h += ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += '</th>';
+        slots.forEach((s, idx) => { let arrow = ''; if (tableSortState.colIndex === idx + 1) arrow = ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += `<th><span class="slot-start">${s.startHour.toString().padStart(2,'0')}:${s.startMin.toString().padStart(2,'0')}</span><span class="slot-end">↓${s.endHour.toString().padStart(2,'0')}:${s.endMin.toString().padStart(2,'0')}</span>${arrow}</th>`; });
+        let aTotal = ''; if (tableSortState.colIndex === slots.length + 1) aTotal = ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += '<th>总单量' + aTotal + '</th>';
+        let aRiders = ''; if (tableSortState.colIndex === slots.length + 2) aRiders = ' <span class="sort-arrow">' + (tableSortState.ascending ? '▲' : '▼') + '</span>'; h += '<th>总人数' + aRiders + '</th></tr>';
+        resultTableHead.innerHTML = h;
+        let sortedTypeRows = [...typeRows];
+        if (tableSortState.colIndex !== null) { const idx = tableSortState.colIndex; sortedTypeRows.sort((a,b) => { let va, vb; if (idx === 0) { va = a.type; vb = b.type; } else if (idx > 0 && idx <= slots.length) { va = a.orders[idx-1] || 0; vb = b.orders[idx-1] || 0; } else if (idx === slots.length + 1) { va = a.totalOrders; vb = b.totalOrders; } else if (idx === slots.length + 2) { va = a.totalRiders; vb = b.totalRiders; } if (typeof va === 'string') return tableSortState.ascending ? va.localeCompare(vb) : vb.localeCompare(va); return tableSortState.ascending ? va - vb : vb - va; }); }
+        let body = '';
+        sortedTypeRows.forEach(r => { body += `<tr><td style="font-weight:700;background-color:#f0fdf4;">${r.type}</td>`; const rowOrders = r.orders; const rowMin = Math.min(0,...rowOrders), rowMax = Math.max(1,...rowOrders); r.orders.forEach((v,i) => { const bg = getHeatColor(v, rowMin, rowMax); const slotKey = slots[i].sortKey; body += `<td style="background:${bg};font-weight:600;" class="cell-clickable" data-clickable="true" data-type="${r.type.replace(/"/g,'&quot;')}" data-slot="${slotKey}" data-gran="${gran}">${v}</td>`; }); body += `<td style="font-weight:700;background:#f0fdf4;">${r.totalOrders}</td><td style="background:#f0fdf4;">${r.totalRiders}</td></tr>`; });
+        if (blockTimeStats && blockTimeStats.blockRows.length > 0) {
+            const { blockRows, blockSlotRiderDetails: bSRD } = blockTimeStats;
+            let sep = `<td style="background:#cbd5e6;">────────</td>` + slots.map(() => '<td style="background:#cbd5e6;">─</td>').join('') + '<td style="background:#cbd5e6;">─</td><td style="background:#cbd5e6;">─</td>';
+            body += `<tr class="separator-row">${sep}</tr>`;
+            let sortedBlockRows = [...blockRows];
+            if (tableSortState.colIndex !== null && tableSortState.colIndex !== slots.length + 2) { const idx = tableSortState.colIndex; sortedBlockRows.sort((a,b) => { let va, vb; if (idx === 0) { va = a.block; vb = b.block; } else if (idx > 0 && idx <= slots.length) { va = a.orders[idx-1] || 0; vb = b.orders[idx-1] || 0; } else if (idx === slots.length + 1) { va = a.total; vb = b.total; } if (typeof va === 'string') return tableSortState.ascending ? va.localeCompare(vb) : vb.localeCompare(va); return tableSortState.ascending ? va - vb : vb - va; }); }
+            sortedBlockRows.forEach(r => { body += `<tr><td style="font-weight:700;background:#eef2ff;">📦 ${r.block}</td>`; const brOrders = r.orders; const brMin = Math.min(0,...brOrders), brMax = Math.max(1,...brOrders); r.orders.forEach((v,i) => { const bg = getHeatColor(v, brMin, brMax); const slotKey = slots[i].sortKey; body += `<td style="background:${bg};font-weight:600;" class="cell-clickable" data-clickable="true" data-block="${r.block.replace(/"/g,'&quot;')}" data-slot="${slotKey}" data-gran="${gran}">${v}</td>`; }); body += `<td style="font-weight:700;background:#eef2ff;">${r.total}</td><td style="background:#eef2ff;">—</td></tr>`; });
+        }
+        resultTableBody.innerHTML = body;
+        resultTableBody.querySelectorAll('td[data-clickable="true"]').forEach(td => {
+            td.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const typeName = this.dataset.type; const blockName = this.dataset.block; const slotKey = parseInt(this.dataset.slot); const gran = this.dataset.gran;
+                const slotInfo = getSlotInfo(gran, slotKey); const timeLabel = slotInfo || '';
+                let riderCounts = null;
+                if (typeName && typeStats && typeStats.typeSlotRiderDetails && typeStats.typeSlotRiderDetails[typeName]) { const slotIdx = slots.findIndex(s => s.sortKey === slotKey); if (slotIdx >= 0) riderCounts = typeStats.typeSlotRiderDetails[typeName][slotIdx]; }
+                else if (blockName && blockTimeStats && blockTimeStats.blockSlotRiderDetails && blockTimeStats.blockSlotRiderDetails[blockName]) { const slotIdx = slots.findIndex(s => s.sortKey === slotKey); if (slotIdx >= 0) riderCounts = blockTimeStats.blockSlotRiderDetails[blockName][slotIdx]; }
+                if (riderCounts && Object.keys(riderCounts).length > 0) {
+                    const sorted = Object.entries(riderCounts).sort((a,b) => b[1] - a[1]); const total = sorted.reduce((s,[,c]) => s + c, 0);
+                    let html = '<ul class="detail-list">'; const blockForDetail = blockName || '';
+                    sorted.forEach(([name, count]) => { html += `<li class="clickable-row" data-detail-action="rider-orders" data-rider="${name.replace(/"/g,'&quot;')}" data-slot="${slotKey}" data-gran="${gran}" data-block="${blockForDetail.replace(/"/g,'&quot;')}"><span class="name">🏍️ ${name}</span><span class="count">${count}单</span></li>`; });
+                    html += `<li style="font-weight:700;background:#f0fdf4;border-radius:8px;margin-top:4px;"><span>合计</span><span class="count" style="background:#1e6f3f;color:white;">${total}单 · ${sorted.length}人</span></li></ul><div style="font-size:0.7rem;color:#94a3b8;margin-top:6px;text-align:center;">💡 点击骑手查看订单详情</div>`;
+                    const label = typeName ? `${typeName}` : `📦 ${blockName}`;
+                    openDetailModal(`${label} · ${timeLabel} 骑手名单`, '👥', html, ``);
+                } else { openDetailModal('骑手名单', '', '<div class="detail-empty">该时段暂无骑手数据</div>'); }
+            });
+        });
+        updateStatus('骑手类型对比', `${typeRows.length}种类型 · ${typeRows.reduce((s,r)=>s+r.totalOrders,0)}单`, 'success');
+    }
+
+    function updateGranDisplay() {
+        if (currentView === 'block') { granOption.textContent = '禁用'; granOption.classList.add('disabled'); }
+        else { granOption.classList.remove('disabled'); let gran = currentView === 'heat' ? heatViewGran : typeViewGran; granOption.textContent = gran === 'half' ? '半小时' : '小时'; }
+    }
+    function updateRiderOverlay() {
+        const hasData = workbookData?.data?.length > 0 && allRiderNames.length > 0;
+        const isTypeView = currentView === 'type';
+        if (!hasData || isTypeView) { riderOverlay.style.display = 'block'; } else { riderOverlay.style.display = 'none'; }
+    }
+    function setActiveView(view) {
+        if (view === 'gran') { if (currentView === 'block') return; if (currentView === 'heat') { heatViewGran = heatViewGran === 'half' ? 'hour' : 'half'; } else if (currentView === 'type') { typeViewGran = typeViewGran === 'half' ? 'hour' : 'half'; } updateGranDisplay(); renderCurrentView(); return; }
+        tableSortState = { colIndex: null, ascending: true };
+        if (view === 'type') { selectedRiders.clear(); riderSearchInput.value = ''; if (riderDropdown) riderDropdown.classList.remove('show'); if (currentView === 'heat') typeViewGran = heatViewGran; }
+        if (view !== currentView) { scrollWrapper.scrollLeft = 0; scrollWrapper.scrollTop = 0; }
+        currentView = view;
+        document.querySelectorAll('.view-option:not(.gran-option)').forEach(o => o.classList.remove('active'));
+        document.querySelector(`.view-option[data-view="${view}"]:not(.gran-option)`)?.classList.add('active');
+        heatmapLegend.style.display = (view === 'heat') ? 'flex' : 'none';
+        blockLegend.style.display = (view === 'block') ? 'flex' : 'none';
+        typeLegend.style.display = (view === 'type') ? 'flex' : 'none';
+        appContainer.classList.remove('block-view-active', 'type-view-active');
+        if (view === 'block') appContainer.classList.add('block-view-active');
+        if (view === 'type') appContainer.classList.add('type-view-active');
+        updateGranDisplay(); updateRiderOverlay(); renderCurrentView();
+    }
+    viewToggleGroup.addEventListener('click', (e) => { const opt = e.target.closest('.view-option'); if (!opt) return; setActiveView(opt.dataset.view); });
+
+    function renderCurrentView() {
+        if (currentView === 'block') { if (blockStats) { let displayRiders = selectedRiders.size > 0 ? blockStats.riderRows.filter(r => selectedRiders.has(r.rider)) : blockStats.riderRows; renderBlockTable({ ...blockStats, riderRows: displayRiders }); } else { resultTableHead.innerHTML = '<tr><th>提示</th></tr>'; resultTableBody.innerHTML = '<tr><td>请在字段映射中设置"区块列"并上传订单</td></tr>'; } }
+        else if (currentView === 'type') { const typeStats = typeViewGran === 'half' ? typeStatsHalf : typeStatsHour; const blockTimeStats = typeViewGran === 'half' ? blockTimeStatsHalf : blockTimeStatsHour; if (typeStats) renderTypeTable(typeStats, typeViewGran, blockTimeStats); else { resultTableHead.innerHTML = '<tr><th>提示</th></tr>'; resultTableBody.innerHTML = '<tr><td>请上传考勤并配置"骑手类型"映射列，然后点击"开始分析"</td></tr>'; } }
+        else if (currentView === 'heat') { const struct = heatViewGran === 'half' ? structHalfHour : structHour; if (!struct?.riderDisplay) return; let filtered = selectedRiders.size > 0 ? struct.riderDisplay.filter(r => selectedRiders.has(r.rider)) : struct.riderDisplay; renderHeatTable({ ...struct, riderDisplay: filtered }, riderShiftsMap); updateStatus(`时效视图 (${heatViewGran==='half'?'半小时':'小时'})`, `${filtered.length}位骑手 · ${struct.rawOrders.reduce((a,b)=>a+b,0)}单`, 'success'); }
+    }
+
+    function updateStatus(msg, badge, type = 'info') {
+        statusMessage.textContent = msg; statusIcon.textContent = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+        statusBadge.textContent = badge || ''; statusBadge.style.display = badge ? 'inline' : 'none';
+    }
+    resultTableHead.addEventListener('click', (e) => { const th = e.target.closest('th'); if (!th) return; const colIndex = th.cellIndex; if (colIndex === -1) return; if (colIndex === tableSortState.colIndex) { tableSortState.ascending = !tableSortState.ascending; } else { tableSortState.colIndex = colIndex; tableSortState.ascending = true; } renderCurrentView(); });
+    function extractStoreName() { if (!workbookData || !currentMapping.orderStore) return ''; const col = currentMapping.orderStore; for (let row of workbookData.data) if (row[col]) return String(row[col]).trim().replace(/[\\/:*?"<>|]/g, ''); return ''; }
+    function renderPreview(data, cols) { if (!data?.length) return; let h = '<thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>'; data.slice(0, 80).forEach(r => h += '<tr>' + cols.map(c => `<td>${String(r[c]||'').substring(0,30)}</td>`).join('') + '</tr>'); previewTable.innerHTML = h + '</tbody>'; }
+
+    async function autoAnalyzeIfReady() {
+        if (!workbookData?.data?.length || !currentMapping.orderTime || !currentMapping.orderRider) return;
+        try {
+            structHalfHour = analyzeData('半小时'); structHour = analyzeData('小时');
+            riderSlotBlockMap = buildRiderSlotBlockMap();
+            if (currentMapping.orderBlock) blockStats = computeBlockStats();
+            typeStatsHalf = computeTypeStats('半小时', null); typeStatsHour = computeTypeStats('小时', null);
+            blockTimeStatsHalf = computeBlockTimeStats('半小时', null); blockTimeStatsHour = computeBlockTimeStats('小时', null);
+            updateRiderFilterUI(structHalfHour.riderDisplay.map(r => r.rider));
+            exportReportBtn.disabled = true; renderCurrentView();
+        } catch (e) { updateStatus(`自动分析失败: ${e.message}`, '', 'warning'); }
+    }
+    function openMappingModal() {
+        populateSelect(mapOrderRider, workbookData?.columns || [], currentMapping.orderRider);
+        populateSelect(mapOrderTime, workbookData?.columns || [], currentMapping.orderTime);
+        populateSelect(mapOrderAcceptTime, workbookData?.columns || [], currentMapping.orderAcceptTime);
+        populateSelect(mapOrderDuration, workbookData?.columns || [], currentMapping.orderDuration);
+        populateSelect(mapOrderPOI, workbookData?.columns || [], currentMapping.orderPOI);
+        populateSelect(mapOrderStore, workbookData?.columns || [], currentMapping.orderStore);
+        populateSelect(mapOrderBlock, workbookData?.columns || [], currentMapping.orderBlock);
+        populateSelect(mapOrderStatus, workbookData?.columns || [], currentMapping.orderStatus);
+        populateSelect(mapAttRider, attendanceWorkbook?.columns || [], currentMapping.attRider);
+        populateSelect(mapAttStart, attendanceWorkbook?.columns || [], currentMapping.attStart);
+        populateSelect(mapAttEnd, attendanceWorkbook?.columns || [], currentMapping.attEnd);
+        populateSelect(mapAttStatus, attendanceWorkbook?.columns || [], currentMapping.attStatus);
+        populateSelect(mapAttRiderType, attendanceWorkbook?.columns || [], currentMapping.attRiderType);
+        mappingModal.style.display = 'flex';
+    }
+
+    fileInput.onchange = async e => {
+        const f = e.target.files[0]; if (!f) return;
+        orderFileTrigger.textContent = `📄 ${f.name}`; updateStatus('加载订单...', f.name, 'info');
+        try {
+            const { columns, data } = await loadExcel(f); workbookData = { columns, data }; renderPreview(data, columns);
+            ['orderRider','orderTime','orderAcceptTime','orderDuration','orderPOI','orderStore','orderBlock','orderStatus'].forEach(k => { if (!columns.includes(currentMapping[k])) { let patterns = { orderRider: /骑手|配送员/, orderTime: /配送完成时间|完成时间/, orderAcceptTime: /揽收时间|批次揽收/, orderDuration: /揽收到配送完成|配送完成/, orderPOI: /POI|名称|地址/, orderStore: /门店|店铺/, orderBlock: /区块|区域/, orderStatus: /状态/ }; let m = columns.find(c => patterns[k]?.test(c)); if (m) currentMapping[k] = m; } });
+            storeName = extractStoreName(); updateStatus('订单加载成功', `${data.length}行`, 'success'); await autoAnalyzeIfReady();
+        } catch (err) { orderFileTrigger.textContent = '📁 点击选择订单文件'; updateStatus(`读取失败: ${err.message}`, '', 'error'); }
+        fileInput.value = '';
+    };
+    attendanceInput.onchange = async e => {
+        const f = e.target.files[0];
+        if (!f) { riderShiftsMap.clear(); riderTypeMap.clear(); attFileTrigger.textContent = '📁 点击选择考勤文件(可选)'; attendanceWorkbook = null; await autoAnalyzeIfReady(); return; }
+        attFileTrigger.textContent = `📄 ${f.name}`;
+        try {
+            const wb = await loadExcel(f); attendanceWorkbook = wb;
+            ['attRider','attStart','attEnd','attRiderType'].forEach(k => { if (!wb.columns.includes(currentMapping[k])) { let m = wb.columns.find(c => new RegExp(k==='attRider'?'骑手':(k==='attStart'?'开始':(k==='attEnd'?'结束':k==='attRiderType'?'类型':''))).test(c)); if (m) currentMapping[k] = m; } });
+            riderShiftsMap = parseAttendance(currentMapping); let cnt = 0; for (let v of riderShiftsMap.values()) cnt += v.length;
+            await autoAnalyzeIfReady();
+            updateStatus(cnt ? '考勤加载成功' : '未找到有效班次', cnt ? `${riderShiftsMap.size}人·${cnt}班次` : '全时段工作', cnt ? 'success' : 'warning');
+        } catch (err) { riderShiftsMap.clear(); riderTypeMap.clear(); attFileTrigger.textContent = '📁 点击选择考勤文件(可选)'; updateStatus(`读取失败: ${err.message}`, '', 'error'); }
+        attendanceInput.value = '';
+    };
+    analyzeBtn.onclick = async () => {
+        if (!workbookData?.data?.length || !currentMapping.orderTime || !currentMapping.orderRider) { updateStatus('请上传并配置映射', '', 'error'); return; }
+        analyzeBtn.disabled = true; exportReportBtn.disabled = true; progressBar.style.display = 'block'; progressFill.style.width = '30%'; updateStatus('分析中...', '', 'info');
+        try {
+            structHalfHour = analyzeData('半小时'); structHour = analyzeData('小时'); riderSlotBlockMap = buildRiderSlotBlockMap();
+            if (currentMapping.orderBlock) blockStats = computeBlockStats(); else blockStats = null;
+            typeStatsHalf = computeTypeStats('半小时', null); typeStatsHour = computeTypeStats('小时', null);
+            blockTimeStatsHalf = computeBlockTimeStats('半小时', null); blockTimeStatsHour = computeBlockTimeStats('小时', null);
+            updateRiderFilterUI(structHalfHour.riderDisplay.map(r => r.rider));
+            progressFill.style.width = '100%'; setTimeout(() => progressBar.style.display = 'none', 300);
+            exportReportBtn.disabled = true; renderCurrentView();
+        } catch (e) { updateStatus(`失败: ${e.message}`, '', 'error'); progressBar.style.display = 'none'; resultTableHead.innerHTML = '<tr><th>错误</th></tr>'; resultTableBody.innerHTML = `<tr><td>${e.message}</td></tr>`; } finally { analyzeBtn.disabled = false; progressFill.style.width = '0%'; }
+    };
+    function analyzeData(gran) {
+        const data = workbookData.data, tCol = currentMapping.orderTime, rCol = currentMapping.orderRider, sCol = currentMapping.orderStatus;
+        let valid = []; for (let r of data) { if (!isDeliveredOrder(r, sCol)) continue; let rider = r[rCol]; if (!rider && rider !== 0) continue; let dt = parseTimeToDate(r[tCol]); if (!dt) continue; valid.push({ rider: String(rider).trim(), time: dt }); }
+        if (!valid.length) throw new Error('无有效数据');
+        const freq = gran === '半小时' ? 30 : 60; let slotMap = new Map();
+        valid.forEach(v => { let mins = v.time.getHours() * 60 + v.time.getMinutes(); let start = Math.floor(mins / freq) * freq; if (!slotMap.has(start)) { let sh = Math.floor(start/60), sm = start%60, eh = Math.floor((start+freq)/60), em = (start+freq)%60; slotMap.set(start, { sortKey: start, startHour: sh, startMin: sm, endHour: eh, endMin: em }); } });
+        let slots = Array.from(slotMap.values()).sort((a,b) => a.sortKey - b.sortKey); if (!slots.length) throw new Error('时段为空');
+        let slotOrders = Array(slots.length).fill(0), slotRiderSet = Array(slots.length).fill().map(() => new Set()), riderMap = new Map();
+        valid.forEach(v => { let mins = v.time.getHours() * 60 + v.time.getMinutes(); let start = Math.floor(mins / freq) * freq; let idx = slots.findIndex(s => s.sortKey === start); if (idx === -1) return; if (!riderMap.has(v.rider)) riderMap.set(v.rider, new Map()); let rm = riderMap.get(v.rider); rm.set(idx, (rm.get(idx) || 0) + 1); slotOrders[idx]++; slotRiderSet[idx].add(v.rider); });
+        let slotRiders = slotRiderSet.map(s => s.size), eff = slotOrders.map((o,i) => slotRiders[i] ? o / slotRiders[i] : 0);
+        let riderRows = []; for (let [rider, m] of riderMap) { let counts = slots.map((_,i) => m.get(i) || 0); riderRows.push({ rider, counts, total: counts.reduce((a,b) => a+b, 0) }); }
+        riderRows.sort((a,b) => b.total - a.total);
+        let totalOrders = slotOrders.reduce((a,b) => a+b, 0), totalRiders = new Set(valid.map(v => v.rider)).size;
+        let summary = [ { type: '时段单量', values: slotOrders, total: totalOrders }, { type: '时段人数', values: slotRiders, total: totalRiders }, { type: '时段效率', values: eff.map(v => Math.round(v*10)/10), total: totalRiders ? (totalOrders/totalRiders).toFixed(1) : '0' } ];
+        return { timeSlotsRaw: slots, summaryRows: summary, riderDisplay: riderRows.map(r => ({ rider: r.rider, values: r.counts, total: r.total })), efficiencyRaw: eff, rawOrders: slotOrders, rawRiders: slotRiders, rawEffValues: eff };
+    }
+    function computeBlockStats() {
+        if (!workbookData || !currentMapping.orderBlock || !currentMapping.orderRider) throw new Error('缺少区块映射');
+        const data = workbookData.data, blockCol = currentMapping.orderBlock, riderCol = currentMapping.orderRider, sCol = currentMapping.orderStatus;
+        const blockCounts = new Map(), riderBlockMap = new Map(); let totalOrders = 0, validRiderBlockCount = 0;
+        for (let row of data) { if (!isDeliveredOrder(row, sCol)) continue; let rider = String(row[riderCol] || '').trim(); let block = String(row[blockCol] || '').trim(); if (!block) continue; totalOrders++; blockCounts.set(block, (blockCounts.get(block) || 0) + 1); if (rider) { validRiderBlockCount++; if (!riderBlockMap.has(rider)) riderBlockMap.set(rider, new Map()); const riderMap = riderBlockMap.get(rider); riderMap.set(block, (riderMap.get(block) || 0) + 1); } }
+        if (totalOrders === 0) throw new Error('无有效订单');
+        const sortedBlocks = Array.from(blockCounts.keys()).sort((a,b) => getBlockSortKey(a) - getBlockSortKey(b));
+        const blockOrders = sortedBlocks.map(b => blockCounts.get(b) || 0);
+        const riderRows = []; for (let [rider, blockMap] of riderBlockMap) { const counts = sortedBlocks.map(b => blockMap.get(b) || 0); const total = counts.reduce((s,v) => s+v, 0); riderRows.push({ rider, counts, total }); }
+        riderRows.sort((a,b) => b.total - a.total);
+        return { blocks: sortedBlocks, blockOrders, totalOrders, riderRows, validRiderBlockCount };
+    }
+
+    function updateRiderFilterUI(names) { allRiderNames = names || []; if (!allRiderNames.length) { riderFilterCompact.style.display = 'none'; return; } riderFilterCompact.style.display = 'inline-flex'; selectedRiders.clear(); riderSearchInput.value = ''; renderRiderDropdown(); updateRiderOverlay(); }
+    function renderRiderDropdown() { const filter = riderSearchInput.value.toLowerCase().trim(); const filtered = filter ? allRiderNames.filter(n => n.toLowerCase().includes(filter)) : allRiderNames; if (filtered.length === 0) { riderDropdown.innerHTML = '<div class="rider-no-result">😕 无匹配骑手</div>'; return; } riderDropdown.innerHTML = filtered.map(name => { const checked = selectedRiders.has(name); return `<div class="rider-option${checked?' checked':''}" data-value="${name}"><span class="rider-checkbox">✓</span>${name}</div>`; }).join(''); }
+    riderSearchInput.addEventListener('focus', () => { riderDropdown.classList.add('show'); renderRiderDropdown(); });
+    riderSearchInput.addEventListener('input', () => { renderRiderDropdown(); });
+    riderSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') { riderDropdown.classList.remove('show'); riderSearchInput.blur(); } });
+    riderDropdown.addEventListener('click', (e) => { e.stopPropagation(); const opt = e.target.closest('.rider-option'); if (!opt) return; const value = opt.dataset.value; selectedRiders.has(value) ? selectedRiders.delete(value) : selectedRiders.add(value); renderRiderDropdown(); riderSearchInput.focus(); renderCurrentView(); });
+    riderClearBtn.addEventListener('click', (e) => { e.stopPropagation(); selectedRiders.clear(); riderSearchInput.value = ''; renderRiderDropdown(); renderCurrentView(); riderDropdown.classList.remove('show'); });
+    document.addEventListener('click', (e) => { if (!riderFilterCompact.contains(e.target)) riderDropdown.classList.remove('show'); });
+
+    exportReportBtn.onclick = null;
+    togglePreviewBtn.onclick = () => { const vis = document.getElementById('previewContainer').style.display !== 'none'; document.getElementById('previewContainer').style.display = vis ? 'none' : 'block'; togglePreviewBtn.innerText = vis ? '展开' : '收起'; };
+    mappingConfigBtn.onclick = openMappingModal;
+    closeModalBtn.onclick = () => mappingModal.style.display = 'none';
+    applyMappingBtn.onclick = async () => {
+        if (!workbookData) { updateStatus('请上传订单', '', 'error'); return; }
+        currentMapping = { orderRider: mapOrderRider.value, orderTime: mapOrderTime.value, orderAcceptTime: mapOrderAcceptTime.value, orderDuration: mapOrderDuration.value, orderPOI: mapOrderPOI.value, orderStore: mapOrderStore.value, orderBlock: mapOrderBlock.value, orderStatus: mapOrderStatus.value, attRider: mapAttRider.value, attStart: mapAttStart.value, attEnd: mapAttEnd.value, attStatus: mapAttStatus.value, attRiderType: mapAttRiderType.value };
+        if (!currentMapping.orderTime || !currentMapping.orderRider) { updateStatus('缺少必要映射', '', 'error'); return; }
+        mappingModal.style.display = 'none'; storeName = extractStoreName(); riderShiftsMap = (attendanceWorkbook && currentMapping.attRider) ? parseAttendance(currentMapping) : new Map(); await analyzeBtn.onclick();
+    };
+    window.onclick = e => { if (e.target === mappingModal) mappingModal.style.display = 'none'; };
+
+    document.getElementById('previewContainer').style.display = "none";
+    progressBar.style.display = "none";
+    exportReportBtn.disabled = true;
+    updateGranDisplay();
+    setActiveView('heat');
+})();
+</script>
+</body>
+</html>
