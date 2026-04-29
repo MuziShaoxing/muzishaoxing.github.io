@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>单袋比 · 领用分析</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #0d9488;
+            --accent-hover: #0f766e;
+            --accent-soft: #f0fdfa;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --warning-bg: #fef9c3;
+            --warning-border: #fde047;
+            --danger-text: #dc2626;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Inter', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px 16px 32px;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .global-header {
+            max-width: 1300px;
+            width: 100%;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 16px 22px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .global-header .app-title {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .global-header .app-title .emoji {
+            font-size: 1.5rem;
+        }
+        .global-header .version-pill {
+            font-size: 0.65rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid #bae6fd;
+        }
+        .global-header .meta-info {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .global-header .meta-info .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        .app-shell {
+            max-width: 1300px;
+            width: 100%;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .sidebar {
+            flex: 0 0 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+        }
+
+        .sidebar-panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: -0.2px;
+        }
+        .panel-title .icon-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .icon-circle.required { background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; }
+        .icon-circle.optional { background: #f0fdfa; color: #0d9488; border: 1.5px solid #99f6e4; }
+        .badge-required { font-size: 0.6rem; background: #fef2f2; color: #dc2626; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+        .badge-optional { font-size: 0.6rem; background: #f0fdfa; color: #0d9488; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+
+        .upload-zone {
+            background: #fafbfc;
+            border: 2px dashed #d1d5db;
+            border-radius: var(--radius-md);
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .upload-zone:hover { border-color: var(--accent); background: #f5fdfb; }
+        .upload-zone input { display: none; }
+        .upload-zone .upload-icon { font-size: 1.6rem; display: block; margin-bottom: 2px; }
+        .upload-zone .upload-label { font-weight: 600; font-size: 0.8rem; color: #374151; }
+        .upload-zone .upload-hint { font-size: 0.65rem; color: #9ca3af; margin-top: 1px; }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            width: 100%;
+            justify-content: center;
+        }
+        .status-chip.idle { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
+        .status-chip.success { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+        .status-chip.warning { background: #fefce8; color: #a16207; border: 1px solid #fde047; }
+        .status-chip.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        .btn-paste {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            padding: 7px 15px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: #475569;
+            transition: all var(--transition);
+        }
+        .btn-paste:hover { border-color: var(--accent); color: var(--accent); background: #fafdfc; }
+
+        .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #475569; cursor: pointer; }
+        .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+        .select-row {
+            background: #f8fafc;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+        }
+        .select-row select {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: white;
+            cursor: pointer;
+        }
+        .select-row select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+        .select-row select:disabled { opacity: 0.5; cursor: not-allowed; background: #f1f5f9; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(13,148,136,0.3); }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: none; }
+        .btn-outline { background: white; border: 1.5px solid #d1d5db; color: #475569; }
+        .btn-outline:hover { border-color: #94a3b8; background: #f8fafc; }
+        .btn-ghost { background: transparent; border: 1.5px solid transparent; color: #64748b; padding: 6px 12px; font-size: 0.72rem; }
+        .btn-ghost:hover { background: #f1f5f9; color: #475569; }
+
+        .warn-text {
+            font-size: 0.68rem;
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            display: none;
+            text-align: center;
+        }
+        .warn-text.visible { display: block; }
+        .info-text {
+            font-size: 0.68rem;
+            color: #0f766e;
+            background: #f0fdfa;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #99f6e4;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+        }
+        .info-text.visible { display: flex; }
+        .hint-text { font-size: 0.7rem; color: #64748b; text-align: center; font-style: italic; }
+
+        .main-area { flex: 1 1 500px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+
+        .action-bar {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 12px 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .param-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 6px 12px;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+        }
+        .param-inline label { font-weight: 600; font-size: 0.8rem; color: #374151; }
+        .param-inline input {
+            width: 70px;
+            padding: 6px 10px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 20px;
+            text-align: center;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stats-strip { display: flex; flex-wrap: wrap; gap: 10px; }
+        .stat-tile {
+            flex: 1 1 80px;
+            min-width: 70px;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 8px 4px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: default;
+        }
+        .stat-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .stat-tile .tile-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .stat-tile .tile-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.2;
+        }
+        .tile-value.green { color: #059669; } .tile-value.red { color: #dc2626; } .tile-value.teal { color: #0d9488; }
+        .stat-tile.accent-tile { border-left: 3px solid var(--accent); }
+
+        .table-container {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 520px;
+            flex: 1 1 auto;
+        }
+        .table-header-fixed {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+        .table-header-fixed th {
+            font-weight: 700;
+            text-align: center;
+            padding: 11px 6px;
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            border-right: 1px solid #e2e8f0;
+            cursor: pointer;
+            user-select: none;
+            color: #475569;
+        }
+        .table-header-fixed th:hover { background: #eef2f7; }
+        .table-header-fixed th:last-child { border-right: none; }
+        .table-header-fixed th:first-child { text-align: right; padding-right: 14px; }
+        .table-header-fixed th:last-child { text-align: left; padding-left: 14px; }
+
+        .table-scroll-body {
+            overflow-x: auto;
+            overflow-y: auto;
+            flex: 1 1 auto;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        .table-scroll-body::-webkit-scrollbar { width: 5px; height: 5px; }
+        .table-scroll-body::-webkit-scrollbar-track { background: transparent; }
+        .table-scroll-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .data-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .data-table td {
+            padding: 9px 6px;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .data-table td:last-child { border-right: none; }
+        .data-table td:first-child {
+            text-align: right;
+            padding-right: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            /* 仅在需要时换行 */
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
+        .data-table td:last-child { text-align: left; padding-left: 14px; white-space: nowrap; }
+        .data-table td:nth-child(2),
+        .data-table td:nth-child(3),
+        .data-table td:nth-child(4),
+        .data-table td:nth-child(5) {
+            text-align: center;
+            white-space: nowrap;
+        }
+        tbody tr:nth-child(odd) { background-color: #fafcfd; }
+        tbody tr:nth-child(even) { background-color: #ffffff; }
+        tbody tr:hover { background-color: #f0fdfa !important; }
+
+        .mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+        .cell-warn-highlight { background-color: #fef9c3 !important; border-radius: 2px; font-weight: 700; }
+        .cell-over-limit { color: #dc2626 !important; font-weight: 700; }
+        .row-zero-history { background-color: #fef2f2 !important; }
+        .empty-state td { text-align: center !important; color: #94a3b8; padding: 40px 10px !important; font-size: 0.85rem; }
+
+        .legend-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 0.68rem;
+            color: #64748b;
+            padding: 6px 0;
+        }
+        .legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; }
+        .legend-dot.l-yellow { background: #fef9c3; border: 1px solid #fde047; }
+        .legend-dot.l-red { background: #fef2f2; border: 1px solid #fecaca; }
+
+        .btn-share { background: #f0fdfa; border: 1.5px solid #99f6e4; color: #0f766e; }
+        .btn-share:hover { background: #e6fffa; border-color: #5eead4; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15,23,42,0.45);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 22px 20px;
+            width: 620px;
+            max-width: 93vw;
+            max-height: 85vh;
+            overflow: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-box textarea { width: 100%; padding: 12px; border-radius: var(--radius-md); border: 2px solid #d1d5db; font-family: monospace; font-size: 0.72rem; resize: vertical; background: #fafbfc; }
+        .modal-box textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(13,148,136,0.08); }
+        .modal-meta { font-size: 0.7rem; color: #64748b; display: flex; justify-content: space-between; }
+        .preview-table-wrap { max-height: 260px; overflow: auto; background: #f8fafc; border-radius: var(--radius-sm); padding: 8px; border: 1px solid #e2e8f0; }
+        .mini-table { width: 100%; font-size: 0.68rem; border-collapse: collapse; background: white; }
+        .mini-table th { padding: 5px 4px; background: #f1f5f9; text-align: center; border: 1px solid #e2e8f0; font-weight: 600; }
+        .mini-table td { padding: 4px; text-align: center; border: 1px solid #f1f5f9; }
+        .mini-table td:first-child { text-align: left; font-weight: 500; }
+        .mini-table tr:nth-child(odd) { background: #fafcfd; }
+
+        @media (max-width: 860px) {
+            body { padding: 12px 10px 16px; }
+            .app-shell { flex-direction: column; }
+            .sidebar { width: 100%; position: static; }
+            .global-header .app-title { font-size: 1.15rem; }
+            .stat-tile { flex: 0 0 calc(33% - 8px); padding: 6px 4px; }
+            .stat-tile .tile-value { font-size: 1.4rem; }
+            .table-container { max-height: calc(100vh - 220px); }
+            .table-header-fixed th, .data-table td { font-size: 0.55rem; padding: 5px 2px; }
+            .table-header-fixed th { font-size: 0.5rem; }
+            .data-table { min-width: 100% !important; }
+            .btn { padding: 8px 14px; font-size: 0.72rem; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .action-bar > * { width: 100%; justify-content: center; }
+        }
+        @media (max-width: 480px) {
+            .stat-tile { flex: 0 0 calc(50% - 6px); }
+            .stat-tile .tile-value { font-size: 1.2rem; }
+            .global-header { padding: 12px 14px; }
+            .global-header .app-title { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="global-header">
+        <span class="app-title"><span class="emoji">🛵</span>骑手单袋比 · 领用分析</span>
+        <span class="version-pill">V8.0 完整版</span>
+        <div class="meta-info">
+            <span id="metaOrders">单量: —</span>
+            <span class="dot"></span>
+            <span id="metaApply">申请: —</span>
+        </div>
+    </header>
+
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-panel">
+                <div class="panel-title" style="justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 7px;">
+                        <span class="icon-circle required">📦</span> 骑手单量 <span class="badge-required">必须</span>
+                    </span>
+                    <button class="btn btn-outline" id="btnClear" style="padding: 6px 14px; font-size: 0.7rem;">🗑️ 清空</button>
+                </div>
+                <div class="upload-zone" id="zoneOrders">
+                    <input type="file" id="inputOrders" accept=".xlsx,.xls,.csv">
+                    <span class="upload-icon">📎</span>
+                    <span class="upload-label">上传「配送员履约明细表」</span>
+                </div>
+                <div id="chipOrders" class="status-chip idle">⏳ 等待上传</div>
+            </div>
+            <div class="sidebar-panel">
+                <div class="panel-title"><span class="icon-circle required">📋</span> 当月申请数量 <span class="badge-required">必须</span></div>
+                <div class="upload-zone" id="zoneApply">
+                    <input type="file" id="inputApply" accept=".xlsx,.xls,.csv">
+                    <span class="upload-icon">📎</span>
+                    <span class="upload-label">上传「骑手单袋比明细」</span>
+                </div>
+                <div id="chipApply" class="status-chip idle">⏳ 等待上传</div>
+                <div class="select-row"><select id="selectRange" disabled><option>请先上传申请表格</option></select></div>
+                <div id="warnRange" class="warn-text">⚠️ 统计范围不匹配</div>
+                <div id="infoRange" class="info-text"></div>
+            </div>
+            <div class="sidebar-panel">
+                <div class="panel-title"><span class="icon-circle optional">📝</span> 当日申请数据 <span class="badge-optional">可选</span></div>
+                <button class="btn-paste" id="btnPaste">📋 粘贴数据（每组11行）</button>
+                <label class="checkbox-row"><input type="checkbox" id="chkExcludeRejected" checked>🚫 剔除审批「拒绝」的记录</label>
+                <div id="chipToday" class="status-chip idle">⚪ 尚未粘贴</div>
+                <div id="rejectNote" class="warn-text"></div>
+            </div>
+        </aside>
+
+        <main class="main-area">
+            <div class="action-bar">
+                <div class="param-inline"><label for="inputPeak">单袋比系数</label><input type="number" id="inputPeak" value="1.2" step="0.1" min="0"></div>
+                <button class="btn btn-primary" id="btnRun" disabled>🚀 生成报表</button>
+                <button class="btn btn-share" id="btnShare">📄 分享报告</button>
+                <span class="hint-text" id="hintStatus" style="margin-left:auto;">请先完成数据上传</span>
+            </div>
+            <div class="stats-strip" id="statsStrip" style="display:none;">
+                <div class="stat-tile accent-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green" id="valTotalNeed">0</div></div>
+                <div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red" id="valTotalOver">0</div></div>
+                <div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal" id="valNeedRiders">0</div></div>
+                <div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red" id="valOverRiders">0</div></div>
+                <div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal" id="valHistRatio">0.00</div></div>
+                <div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal" id="valCurrRatio">0.00</div></div>
+            </div>
+            <div class="table-container">
+                <table class="table-header-fixed">
+                    <colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup>
+                    <thead><tr>
+                        <th data-sort-col="name">骑手</th><th data-sort-col="orders">总单量</th><th data-sort-col="history">当月申请</th>
+                        <th data-sort-col="today">今日申请</th><th data-sort-col="ratio">单袋比</th><th data-sort-col="diff">差异</th>
+                    </tr></thead>
+                </table>
+                <div class="table-scroll-body">
+                    <table class="data-table">
+                        <colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup>
+                        <tbody id="tableBody"><tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="legend-strip">
+                <span><span class="legend-dot l-yellow"></span> 需补 &gt; 50 高亮</span>
+                <span style="color:#dc2626;font-weight:600;">● 差异 &lt; 0 超标</span>
+                <span><span class="legend-dot l-red"></span> 当月申请 = 0 标红行</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            const state = {
+                ordersMap: new Map(),
+                rawApplyData: [],
+                applyRanges: new Set(),
+                applyDates: new Set(),
+                historyApplyMap: new Map(),
+                todayApplyMap: new Map(),
+                todayTotal: 0, todayRejected: 0, todayValid: 0,
+                selectedRange: '', isRangeValid: false,
+                tableData: [], sortColumn: 'diff', sortDirection: 'desc',
+            };
+            const $ = id => document.getElementById(id);
+            const zoneOrders=$('zoneOrders'), inputOrders=$('inputOrders'), chipOrders=$('chipOrders');
+            const zoneApply=$('zoneApply'), inputApply=$('inputApply'), chipApply=$('chipApply');
+            const selectRange=$('selectRange'), warnRange=$('warnRange'), infoRange=$('infoRange');
+            const btnPaste=$('btnPaste'), chkExcludeRejected=$('chkExcludeRejected'), chipToday=$('chipToday'), rejectNote=$('rejectNote');
+            const inputPeak=$('inputPeak'), btnRun=$('btnRun'), btnClear=$('btnClear'), hintStatus=$('hintStatus');
+            const metaOrders=$('metaOrders'), metaApply=$('metaApply');
+            const statsStrip=$('statsStrip'), valTotalNeed=$('valTotalNeed'), valTotalOver=$('valTotalOver'), valNeedRiders=$('valNeedRiders'), valOverRiders=$('valOverRiders'), valHistRatio=$('valHistRatio'), valCurrRatio=$('valCurrRatio');
+            const btnShare=$('btnShare'), tableBody=$('tableBody');
+
+            const getLatestDate = s => s?.size ? [...s].sort().pop() : '';
+            const formatDate = d => d?.length===8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
+            const expectedRange = d => d?.length===8 ? `${d.slice(0,4)}${d.slice(4,6)}01~${d}` : '';
+            const escapeHtml = str => { const d=document.createElement('div'); d.textContent=str; return d.innerHTML; };
+
+            function filterHistoryByRange(range) {
+                if(!range || !state.rawApplyData.length) { state.historyApplyMap = new Map(); return; }
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                const res = new Map();
+                state.rawApplyData.forEach(r => { if(r.range===range || r.range===exp) res.set(r.name, (res.get(r.name)||0)+r.qty); });
+                state.historyApplyMap = res;
+            }
+
+            function updateRangeSelect() {
+                if(!state.applyRanges.size) {
+                    selectRange.disabled=true; selectRange.innerHTML='<option>请先上传申请表格</option>';
+                    state.isRangeValid=false; warnRange.classList.remove('visible'); infoRange.classList.remove('visible'); return;
+                }
+                selectRange.disabled=false;
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                let html='', hasValid=false;
+                [...state.applyRanges].sort().forEach(r => {
+                    const ok = r===exp; if(ok) hasValid=true;
+                    html += `<option value="${escapeHtml(r)}" ${ok?'selected':''}>${escapeHtml(r)} ${ok?'✓ 有效':'✗ 无效'}</option>`;
+                });
+                selectRange.innerHTML=html;
+                if(hasValid) {
+                    state.selectedRange=exp; state.isRangeValid=true;
+                    warnRange.classList.remove('visible'); infoRange.classList.add('visible');
+                    infoRange.innerHTML = `✅ 有效统计范围: ${escapeHtml(exp)}<br>最新日期: ${escapeHtml(formatDate(getLatestDate(state.applyDates)))}`;
+                    filterHistoryByRange(exp);
+                } else {
+                    state.selectedRange=selectRange.value; state.isRangeValid=false;
+                    warnRange.classList.add('visible'); warnRange.textContent = `⚠️ 统计范围不匹配！期望: ${exp}`;
+                    infoRange.classList.remove('visible'); state.historyApplyMap.clear();
+                }
+                refreshApplyChip();
+            }
+
+            function refreshAllChips() {
+                if(state.ordersMap.size) {
+                    const t=[...state.ordersMap.values()].reduce((a,b)=>a+b,0);
+                    chipOrders.className='status-chip success'; chipOrders.textContent=`✅ 已加载 ${state.ordersMap.size} 人 · 总单量 ${t.toFixed(0)}`;
+                    metaOrders.textContent=`单量: ${state.ordersMap.size}人 / ${t.toFixed(0)}单`;
+                } else { chipOrders.className='status-chip idle'; chipOrders.textContent='⏳ 等待上传'; metaOrders.textContent='单量: —'; }
+                refreshApplyChip();
+                if(!state.historyApplyMap.size && state.applyRanges.size && !state.isRangeValid) { chipApply.className='status-chip warning'; chipApply.textContent='⚠️ 范围无效，请检查'; }
+                if(state.todayApplyMap.size) {
+                    let txt=`✅ 当日申请 ${state.todayApplyMap.size}人 · 总数 ${[...state.todayApplyMap.values()].reduce((a,b)=>a+b,0).toFixed(0)}`;
+                    if(chkExcludeRejected.checked && state.todayRejected) txt+=` (已剔除拒绝 ${state.todayRejected})`;
+                    chipToday.className='status-chip success'; chipToday.textContent=txt;
+                    if(chkExcludeRejected.checked && state.todayRejected) { rejectNote.classList.add('visible'); rejectNote.textContent=`🚫 已剔除 ${state.todayRejected} 条拒绝记录`; }
+                    else rejectNote.classList.remove('visible');
+                } else { chipToday.className='status-chip idle'; chipToday.textContent='⚪ 尚未粘贴'; rejectNote.classList.remove('visible'); }
+                updateMetaApply(); updateRunButton();
+            }
+
+            function refreshApplyChip() {
+                if(state.historyApplyMap.size && state.isRangeValid) {
+                    const t=[...state.historyApplyMap.values()].reduce((a,b)=>a+b,0);
+                    chipApply.className='status-chip success'; chipApply.textContent=`✅ 当月申请总数 ${t.toFixed(0)} · ${state.historyApplyMap.size}人`;
+                } else if(!state.applyRanges.size) { chipApply.className='status-chip idle'; chipApply.textContent='⏳ 等待上传'; }
+            }
+
+            function updateMetaApply() {
+                if(state.historyApplyMap.size && state.isRangeValid) {
+                    const t=[...state.historyApplyMap.values()].reduce((a,b)=>a+b,0);
+                    metaApply.textContent=`申请: ${state.historyApplyMap.size}人 / ${t.toFixed(0)}件`;
+                } else metaApply.textContent='申请: —';
+            }
+
+            function updateRunButton() {
+                const ok = state.ordersMap.size && state.historyApplyMap.size && state.isRangeValid;
+                btnRun.disabled = !ok;
+                hintStatus.textContent = !ok ? (state.ordersMap.size&&state.historyApplyMap.size ? '⚠️ 请选择正确的统计范围' : '⏳ 请先完成数据上传') : '✅ 数据就绪';
+            }
+
+            function parseOrdersFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+                        if(rows.length<2) reject(new Error('至少两行数据'));
+                        const h = rows[1].map(c=>String(c||'').trim());
+                        let ni=-1, qi=-1;
+                        h.forEach((c,i)=>{ if(c==='配送员名字') ni=i; if(c==='总签收单量') qi=i; });
+                        if(ni===-1||qi===-1) reject(new Error('缺少必要列'));
+                        const map = new Map();
+                        for(let i=2;i<rows.length;i++) { const r=rows[i]; if(!r) continue; const n=String(r[ni]||'').trim(); if(!n) continue; map.set(n, (map.get(n)||0)+(parseFloat(r[qi])||0)); }
+                        resolve(map);
+                    };
+                    reader.onerror = () => reject(new Error('读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function parseApplyFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+                        if(!rows.length) reject(new Error('空表格'));
+                        const h = rows[0].map(c=>String(c||'').trim());
+                        let ni=-1, qi=-1, ri=-1, di=-1;
+                        h.forEach((c,i)=>{ if(c==='骑手姓名') ni=i; if(c==='确认申领商品数量') qi=i; if(c==='统计范围') ri=i; if(c==='统计日期') di=i; });
+                        if(ni===-1||qi===-1) reject(new Error('缺少必要列'));
+                        const ranges=new Set(), dates=new Set(), raw=[];
+                        for(let i=1;i<rows.length;i++) { const r=rows[i]; if(!r) continue; const n=String(r[ni]||'').trim(); if(!n) continue; const q=parseFloat(r[qi])||0; const range=ri!==-1&&r[ri]?String(r[ri]).trim():''; const date=di!==-1&&r[di]?String(r[di]).trim():''; raw.push({name:n,qty:q,range,date}); if(range) ranges.add(range); if(date) dates.add(date); }
+                        resolve({rawData:raw, ranges, dates});
+                    };
+                    reader.onerror = () => reject(new Error('读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function parseDailyPaste(text, exclude) {
+                const lines = text.split(/\r?\n/).filter(l=>l.trim());
+                const map=new Map(), details=[];
+                let total=0, rej=0, valid=0;
+                for(let i=0;i+11<=lines.length;i+=11) {
+                    total++;
+                    const g=lines.slice(i,i+11), n=g[3]?.trim(), q=parseFloat(g[6]), s=g[7]?.trim();
+                    if(exclude && s==='拒绝') { rej++; details.push({name:n,qty:q,status:s,valid:false}); continue; }
+                    if(n && !isNaN(q) && q>0) { map.set(n, (map.get(n)||0)+q); valid++; details.push({name:n,qty:q,status:s,valid:true}); }
+                }
+                return {map, total, rejected:rej, valid, details};
+            }
+
+            function openPasteModal() {
+                document.querySelector('.modal-overlay')?.remove();
+                const overlay = document.createElement('div'); overlay.className='modal-overlay';
+                overlay.innerHTML = `<div class="modal-box"><h3>粘贴当日申请数据</h3><p style="font-size:0.7rem;">每组11行：第4行=姓名 / 第7行=数量 / 第8行=状态</p><textarea id="pasteTextarea" rows="10"></textarea><div class="modal-meta"><span>📊 <strong id="modalLineCount">0</strong>行 / <strong id="modalGroupCount">0</strong>组</span></div><label class="checkbox-row"><input type="checkbox" id="modalExcludeChk" ${chkExcludeRejected.checked?'checked':''}>剔除拒绝</label><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost" id="modalCancel">取消</button><button class="btn btn-outline" id="modalPreview">预览</button><button class="btn btn-primary" id="modalConfirm">导入</button></div><div id="modalPreviewArea" style="display:none;margin-top:8px;"><div class="preview-table-wrap" id="modalPreviewContent"></div></div></div>`;
+                document.body.appendChild(overlay);
+                const ta=document.getElementById('pasteTextarea'), lc=document.getElementById('modalLineCount'), gc=document.getElementById('modalGroupCount');
+                const chk=document.getElementById('modalExcludeChk'), prevArea=document.getElementById('modalPreviewArea'), prevContent=document.getElementById('modalPreviewContent');
+                let parsed=null;
+                const upd=()=>{ const l=ta.value.split(/\r?\n/).filter(l=>l.trim()); lc.textContent=l.length; gc.textContent=Math.floor(l.length/11); };
+                ta.addEventListener('input', upd); upd();
+                document.getElementById('modalCancel').onclick=()=>overlay.remove();
+                document.getElementById('modalPreview').onclick=()=>{
+                    parsed=parseDailyPaste(ta.value, chk.checked);
+                    const {total,rejected,valid,details}=parsed;
+                    let html=`<div style="font-size:0.7rem;">📊 总组数:${total} | 有效:${valid}`;
+                    if(chk.checked&&rejected) html+=` | <span style="color:#dc2626;">已剔除拒绝:${rejected}</span>`;
+                    html+='</div><table class="mini-table"><thead><tr><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>';
+                    const vd=details.filter(d=>d.valid);
+                    if(!vd.length) html+='<tr><td colspan="3">暂无有效数据</td></tr>';
+                    else { const sm=new Map(); vd.forEach(d=>sm.set(d.name,(sm.get(d.name)||0)+d.qty)); let tq=0; [...sm.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([n,q])=>{ html+=`<tr><td>${escapeHtml(n)}</td><td class="mono">${q}</td><td>有效</td></tr>`; tq+=q; }); html+=`<tr><td><strong>合计</strong></td><td class="mono"><strong>${tq}</strong></td><td></td></tr>`; }
+                    if(chk.checked&&rejected) { const rd=details.filter(d=>!d.valid); if(rd.length){ html+='<tr><td colspan="3" style="color:#dc2626;">已剔除的拒绝记录:</td></tr>'; rd.forEach(d=>{ html+=`<tr style="color:#94a3b8;"><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`; }); } }
+                    html+='</tbody></table>'; prevContent.innerHTML=html; prevArea.style.display='block';
+                };
+                document.getElementById('modalConfirm').onclick=()=>{
+                    if(!parsed) parsed=parseDailyPaste(ta.value, chk.checked);
+                    if(!parsed.map.size) { alert('无有效数据'); return; }
+                    state.todayApplyMap=parsed.map; state.todayTotal=parsed.total; state.todayRejected=parsed.rejected;
+                    chkExcludeRejected.checked=chk.checked;
+                    refreshAllChips(); if(state.tableData.length) renderTable(); overlay.remove();
+                };
+                overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+            }
+
+            function sortTableData(data, col, dir) {
+                return [...data].sort((a,b)=> col==='name' ? (dir==='asc'?a.name.localeCompare(b.name,'zh'):b.name.localeCompare(a.name,'zh')) : (dir==='asc'?(a[col]||0)-(b[col]||0):(b[col]||0)-(a[col]||0)) );
+            }
+
+            function syncColumnWidths() {
+                const headerTable = document.querySelector('.table-header-fixed');
+                const scrollBody = document.querySelector('.table-scroll-body');
+                if (!headerTable || !scrollBody) return;
+                headerTable.style.width = scrollBody.clientWidth + 'px';
+            }
+
+            function renderTable() {
+                if(!state.isRangeValid) { alert('统计范围不匹配'); return; }
+                const p = parseFloat(inputPeak.value)||1.2;
+                const all = new Set([...state.ordersMap.keys(), ...state.historyApplyMap.keys(), ...state.todayApplyMap.keys()]);
+                state.tableData = [];
+                all.forEach(n => {
+                    const o=state.ordersMap.get(n)||0, h=state.historyApplyMap.get(n)||0, t=state.todayApplyMap.get(n)||0;
+                    state.tableData.push({name:n, orders:o, history:h, today:t, ratio:o?(h+t)/o:0, diff:o*p-h-t});
+                });
+                state.tableData = sortTableData(state.tableData, state.sortColumn, state.sortDirection);
+                let html='';
+                state.tableData.forEach(r => {
+                    const d=r.diff, intDiff=d>0?Math.floor(d):Math.ceil(d), diffStr=intDiff>0?`需补:${intDiff}`:(intDiff<0?`超标:${Math.abs(intDiff)}`:'0');
+                    const rowClass=r.history===0?'row-zero-history':'', cellClass=d<0?'cell-over-limit':(intDiff>50?'cell-warn-highlight':'');
+                    html+=`<tr class="${rowClass}"><td>${escapeHtml(r.name)}</td><td class="mono">${r.orders.toFixed(0)}</td><td class="mono">${r.history.toFixed(0)}</td><td class="mono">${r.today.toFixed(0)}</td><td class="mono">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono ${cellClass}">${diffStr}</td></tr>`;
+                });
+                tableBody.innerHTML = html || '<tr class="empty-state"><td colspan="6">无数据</td></tr>';
+                updateStatsCards();
+                requestAnimationFrame(syncColumnWidths);
+            }
+
+            function updateStatsCards() {
+                if(!state.tableData.length) { statsStrip.style.display='none'; return; }
+                let tn=0,to=0,nr=0,oR=0,so=0,sh=0,st=0;
+                state.tableData.forEach(r => {
+                    so+=r.orders; sh+=r.history; st+=r.today;
+                    if(r.diff>0) { tn+=r.diff; nr++; } else if(r.diff<0) { to+=Math.abs(r.diff); oR++; }
+                });
+                valTotalNeed.textContent=Math.floor(tn); valTotalOver.textContent=Math.floor(to);
+                valNeedRiders.textContent=nr; valOverRiders.textContent=oR;
+                valHistRatio.textContent=(so?sh/so:0).toFixed(2); valCurrRatio.textContent=(so?(sh+st)/so:0).toFixed(2);
+                statsStrip.style.display='flex';
+            }
+
+            function generateShareReport() {
+                if(!state.tableData.length) { alert('请先生成报表'); return; }
+                const now = new Date().toLocaleString('zh-CN',{hour12:false}), peakVal=(parseFloat(inputPeak.value)||1.2).toFixed(2);
+                const sorted = [...state.tableData].sort((a,b)=>b.diff-a.diff);
+                let rowsHtml='';
+                sorted.forEach(r => {
+                    const d=r.diff, intDiff=d>0?Math.floor(d):Math.ceil(d), diffStr=intDiff>0?`需补:${intDiff}`:(intDiff<0?`超标:${Math.abs(intDiff)}`:'0');
+                    rowsHtml+=`<tr class="${r.history===0?'row-zero-history':''}"><td>${escapeHtml(r.name)}</td><td class="mono">${r.orders.toFixed(0)}</td><td class="mono">${r.history.toFixed(0)}</td><td class="mono">${r.today.toFixed(0)}</td><td class="mono">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono ${d<0?'cell-over-limit':(intDiff>50?'cell-warn-highlight':'')}">${diffStr}</td></tr>`;
+                });
+                const reportHtml = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>单袋比领用报告</title><style>:root{--bg:#f9fafb;--surface:#fff;--text:#1e293b;--text-secondary:#64748b;--accent:#0d9488;--border:#e2e8f0;--warning-bg:#fef9c3;--danger-text:#dc2626;--danger-bg:#fef2f2;--shadow-md:0 4px 16px rgba(0,0,0,0.06);--radius-lg:20px;--radius-md:14px;}*{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;height:100vh;padding:20px 16px 20px;overflow:hidden;color:var(--text);-webkit-font-smoothing:antialiased;user-select:none!important;}.report-wrapper{max-width:1100px;width:100%;height:100%;display:flex;flex-direction:column;gap:14px;}.report-wrapper h2{font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:6px;}.meta-line{font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;}.stats-strip{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;flex-shrink:0;}.stat-tile{flex:0 0 calc(16.666% - 10px);min-width:70px;background:var(--surface);border-radius:var(--radius-md);padding:8px 4px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.04);border:1px solid var(--border);}.stat-tile .tile-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);}.stat-tile .tile-value{font-size:2rem;font-weight:700;font-family:'JetBrains Mono',monospace;}.tile-value.green{color:#059669;}.tile-value.red{color:#dc2626;}.tile-value.teal{color:#0d9488;}.table-container{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}.table-header-fixed{width:100%;table-layout:fixed;border-collapse:collapse;background:#f8fafc;border-bottom:2px solid #e2e8f0;flex-shrink:0;}.table-header-fixed th{font-weight:700;text-align:center;padding:11px 6px;font-size:0.75rem;white-space:nowrap;border-right:1px solid #e2e8f0;color:#475569;}.table-header-fixed th:last-child{border-right:none;}.table-header-fixed th:first-child{text-align:right;padding-right:14px;}.table-header-fixed th:last-child{text-align:left;padding-left:14px;}.table-scroll-body{overflow-x:auto;overflow-y:auto;flex:1 1 auto;min-height:0;scrollbar-width:thin;}.data-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.8rem;min-width:700px;}.data-table td{padding:9px 6px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;vertical-align:middle;}.data-table td:last-child{border-right:none;}.data-table td:first-child{text-align:right;padding-right:14px;font-weight:600;white-space:normal;overflow-wrap:break-word;}.data-table td:last-child{text-align:left;padding-left:14px;white-space:nowrap;}.data-table td:nth-child(2),.data-table td:nth-child(3),.data-table td:nth-child(4),.data-table td:nth-child(5){text-align:center;white-space:nowrap;}tbody tr:nth-child(odd){background:#fafcfd;}tbody tr:nth-child(even){background:#fff;}.mono{font-family:'JetBrains Mono',monospace;font-weight:500;}.cell-warn-highlight{background-color:#fef9c3!important;font-weight:700;}.cell-over-limit{color:#dc2626!important;font-weight:700;}.row-zero-history{background-color:#fef2f2!important;}.legend-strip{display:flex;align-items:center;justify-content:center;gap:16px;font-size:0.68rem;color:#64748b;padding:6px 0;flex-shrink:0;}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;}.legend-dot.yellow{background:#fef9c3;border:1px solid #fde047;}.legend-dot.red{background:#fef2f2;border:1px solid #fecaca;}@media(max-width:768px){.stat-tile{flex:0 0 calc(25% - 10px);}.stat-tile .tile-value{font-size:1.4rem;}.stat-tile .tile-label{font-size:0.65rem;}.table-header-fixed th,.data-table td{font-size:0.62rem;padding:5px 2px;}.data-table{min-width:100%!important;}}@media(max-width:480px){.stat-tile{flex:0 0 calc(50% - 8px);}.stat-tile .tile-value{font-size:1.2rem;}}</style></head><body><div class="report-wrapper"><h2>🛵 骑手单袋比领用报告</h2><div class="meta-line"><span>生成时间：<strong>${now}</strong></span><span>单袋比系数：<strong>${peakVal}</strong></span></div><div class="stats-strip"><div class="stat-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green">${valTotalNeed.textContent}</div></div><div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red">${valTotalOver.textContent}</div></div><div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal">${valNeedRiders.textContent}</div></div><div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red">${valOverRiders.textContent}</div></div><div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal">${valHistRatio.textContent}</div></div><div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal">${valCurrRatio.textContent}</div></div></div><div class="table-container"><table class="table-header-fixed"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><thead><tr><th>骑手</th><th>总单量</th><th>当月申请</th><th>今日申请</th><th>单袋比</th><th>差异</th></tr></thead></table><div class="table-scroll-body"><table class="data-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><tbody>${rowsHtml}</tbody></table></div></div><div class="legend-strip"><span><span class="legend-dot yellow"></span>需补&gt;50高亮</span><span style="color:#dc2626;">●差异&lt;0超标</span><span><span class="legend-dot red"></span>当月申请=0标红</span></div></div><script>document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('copy',e=>e.preventDefault());<\/script></body></html>`;
+                const blob = new Blob([reportHtml], {type:'text/html'});
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `单袋比报告-${new Date().toISOString().slice(0,10)}.html`; a.click();
+            }
+
+            inputOrders.addEventListener('change', async e => { const f=e.target.files[0]; if(!f) return; try { state.ordersMap = await parseOrdersFile(f); refreshAllChips(); if(state.tableData.length) renderTable(); } catch(er) { alert(er.message); } inputOrders.value=''; });
+            inputApply.addEventListener('change', async e => { const f=e.target.files[0]; if(!f) return; try { const res=await parseApplyFile(f); state.rawApplyData=res.rawData; state.applyRanges=res.ranges; state.applyDates=res.dates; updateRangeSelect(); refreshAllChips(); if(state.tableData.length) renderTable(); } catch(er) { alert(er.message); } inputApply.value=''; });
+            zoneOrders.addEventListener('click', ()=>inputOrders.click());
+            zoneApply.addEventListener('click', ()=>inputApply.click());
+            selectRange.addEventListener('change', () => { const sel=selectRange.value, exp=expectedRange(getLatestDate(state.applyDates)); state.selectedRange=sel; state.isRangeValid=sel===exp; if(state.isRangeValid) { warnRange.classList.remove('visible'); infoRange.classList.add('visible'); infoRange.innerHTML=`✅ 有效统计范围: ${escapeHtml(exp)}<br>最新日期: ${escapeHtml(formatDate(getLatestDate(state.applyDates)))}`; filterHistoryByRange(sel); } else { warnRange.classList.add('visible'); infoRange.classList.remove('visible'); state.historyApplyMap.clear(); } refreshAllChips(); if(state.tableData.length && state.isRangeValid) renderTable(); else if(!state.isRangeValid) { tableBody.innerHTML='<tr class="empty-state"><td colspan="6">⚠️ 请选择正确的统计范围</td></tr>'; statsStrip.style.display='none'; state.tableData=[]; } });
+            btnPaste.addEventListener('click', openPasteModal);
+            btnRun.addEventListener('click', renderTable);
+            btnClear.addEventListener('click', ()=>{ state.ordersMap.clear(); state.rawApplyData=[]; state.applyRanges.clear(); state.applyDates.clear(); state.historyApplyMap.clear(); state.todayApplyMap.clear(); state.tableData=[]; state.isRangeValid=false; selectRange.disabled=true; selectRange.innerHTML='<option>请先上传申请表格</option>'; tableBody.innerHTML='<tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr>'; statsStrip.style.display='none'; refreshAllChips(); inputPeak.value='1.2'; chkExcludeRejected.checked=true; chipOrders.className='status-chip idle'; chipOrders.textContent='⏳ 等待上传'; chipApply.className='status-chip idle'; chipApply.textContent='⏳ 等待上传'; chipToday.className='status-chip idle'; chipToday.textContent='⚪ 尚未粘贴'; metaOrders.textContent='单量: —'; metaApply.textContent='申请: —'; hintStatus.textContent='请先完成数据上传'; });
+            document.querySelectorAll('.table-header-fixed th[data-sort-col]').forEach(th => { th.addEventListener('click', ()=>{ const col=th.dataset.sortCol; if(!col) return; if(state.sortColumn===col) state.sortDirection = state.sortDirection==='asc'?'desc':'asc'; else { state.sortColumn=col; state.sortDirection='desc'; } if(state.tableData.length) renderTable(); }); });
+            btnShare.addEventListener('click', generateShareReport);
+            window.addEventListener('resize', () => { if(state.tableData.length) requestAnimationFrame(syncColumnWidths); });
+            inputPeak.value='1.2'; chkExcludeRejected.checked=true; selectRange.disabled=true; refreshAllChips(); hintStatus.textContent='请先完成数据上传';
+        })();
+    </script>
+</body>
+</html>

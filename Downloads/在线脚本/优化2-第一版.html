@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>单袋比 · 领用分析</title>
+    <!-- SheetJS 库用于读取 Excel 文件 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+
+    <style>
+        /* ===== CSS 变量：全新配色方案 ===== */
+        :root {
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #0d9488;
+            --accent-hover: #0f766e;
+            --accent-soft: #f0fdfa;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --warning-bg: #fef9c3;
+            --warning-border: #fde047;
+            --danger-text: #dc2626;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== 全局重置与基础样式 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Inter', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px 16px 32px;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* ===== 主容器：左右分栏布局（桌面端） ===== */
+        .app-shell {
+            max-width: 1300px;
+            width: 100%;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 左侧面板 ===== */
+        .sidebar {
+            flex: 0 0 340px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+        }
+
+        .sidebar-panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: -0.2px;
+        }
+        .panel-title .icon-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .icon-circle.required {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1.5px solid #fecaca;
+        }
+        .icon-circle.optional {
+            background: #f0fdfa;
+            color: #0d9488;
+            border: 1.5px solid #99f6e4;
+        }
+        .icon-circle.settings {
+            background: #f8fafc;
+            color: #475569;
+            border: 1.5px solid #e2e8f0;
+        }
+        .badge-required {
+            font-size: 0.6rem;
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .badge-optional {
+            font-size: 0.6rem;
+            background: #f0fdfa;
+            color: #0d9488;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* 上传区域 */
+        .upload-zone {
+            background: #fafbfc;
+            border: 2px dashed #d1d5db;
+            border-radius: var(--radius-md);
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: #f5fdfb;
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.06);
+        }
+        .upload-zone input {
+            display: none;
+        }
+        .upload-zone .upload-icon {
+            font-size: 1.6rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .upload-zone .upload-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #374151;
+        }
+        .upload-zone .upload-hint {
+            font-size: 0.65rem;
+            color: #9ca3af;
+            margin-top: 1px;
+        }
+
+        /* 状态指示器 */
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            transition: all var(--transition);
+            width: 100%;
+            justify-content: center;
+        }
+        .status-chip.idle {
+            background: #f8fafc;
+            color: #94a3b8;
+            border: 1px solid #e2e8f0;
+        }
+        .status-chip.success {
+            background: #f0fdfa;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+        }
+        .status-chip.warning {
+            background: #fefce8;
+            color: #a16207;
+            border: 1px solid #fde047;
+        }
+        .status-chip.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        /* 粘贴按钮 */
+        .btn-paste {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            padding: 7px 15px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: #475569;
+            transition: all var(--transition);
+        }
+        .btn-paste:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: #fafdfc;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* 复选框行 */
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #475569;
+            cursor: pointer;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* 参数输入 */
+        .param-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 8px 14px;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+        }
+        .param-row label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            color: #374151;
+        }
+        .param-row input {
+            width: 70px;
+            padding: 6px 10px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 20px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            transition: all var(--transition);
+        }
+        .param-row input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        /* 下拉选择 */
+        .select-row {
+            background: #f8fafc;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+        }
+        .select-row select {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: white;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .select-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+        .select-row select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f1f5f9;
+        }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            box-shadow: 0 4px 16px rgba(13, 148, 136, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-outline {
+            background: white;
+            border: 1.5px solid #d1d5db;
+            color: #475569;
+        }
+        .btn-outline:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1.5px solid transparent;
+            color: #64748b;
+            padding: 6px 12px;
+            font-size: 0.72rem;
+        }
+        .btn-ghost:hover {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* 警告文本 */
+        .warn-text {
+            font-size: 0.68rem;
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            display: none;
+            text-align: center;
+        }
+        .warn-text.visible {
+            display: block;
+        }
+        .info-text {
+            font-size: 0.68rem;
+            color: #0f766e;
+            background: #f0fdfa;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #99f6e4;
+            text-align: center;
+            display: none;
+        }
+        .info-text.visible {
+            display: block;
+        }
+        .hint-text {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* ===== 右侧主内容区 ===== */
+        .main-area {
+            flex: 1 1 500px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* 顶部标题栏 */
+        .top-bar {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 16px 22px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .top-bar .app-title {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--text);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .top-bar .app-title .emoji {
+            font-size: 1.5rem;
+        }
+        .top-bar .version-pill {
+            font-size: 0.65rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid #bae6fd;
+        }
+        .top-bar .meta-info {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .top-bar .meta-info .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        /* 统计卡片行 */
+        .stats-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .stat-tile {
+            flex: 1 1 80px;
+            min-width: 70px;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 12px 8px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: default;
+        }
+        .stat-tile:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .stat-tile .tile-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .stat-tile .tile-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            line-height: 1.2;
+        }
+        .stat-tile .tile-value.green {
+            color: #059669;
+        }
+        .stat-tile .tile-value.red {
+            color: #dc2626;
+        }
+        .stat-tile .tile-value.teal {
+            color: #0d9488;
+        }
+        .stat-tile.accent-tile {
+            border-left: 3px solid var(--accent);
+        }
+
+        /* 表格容器 */
+        .table-container {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 520px;
+            flex: 1 1 auto;
+        }
+        .table-header-fixed {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+        .table-header-fixed th {
+            font-weight: 700;
+            text-align: center;
+            padding: 11px 6px;
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            border-right: 1px solid #e2e8f0;
+            cursor: pointer;
+            user-select: none;
+            transition: background var(--transition);
+            color: #475569;
+            position: relative;
+        }
+        .table-header-fixed th:hover {
+            background: #eef2f7;
+        }
+        .table-header-fixed th:last-child {
+            border-right: none;
+        }
+        .table-header-fixed th .sort-arrow {
+            font-size: 0.6rem;
+            margin-left: 2px;
+            opacity: 0.5;
+        }
+        .table-header-fixed th.sorted .sort-arrow {
+            opacity: 1;
+            color: var(--accent);
+        }
+        .table-header-fixed th:first-child {
+            text-align: right;
+            padding-right: 14px;
+        }
+        .table-header-fixed th:last-child {
+            text-align: left;
+            padding-left: 14px;
+        }
+
+        .table-scroll-body {
+            overflow-x: auto;
+            overflow-y: auto;
+            flex: 1 1 auto;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        .table-scroll-body::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .table-scroll-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .table-scroll-body::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .data-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 700px;
+        }
+        .data-table td {
+            padding: 9px 6px;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .data-table td:last-child {
+            border-right: none;
+        }
+        .data-table td:first-child {
+            text-align: right;
+            padding-right: 14px;
+            white-space: nowrap;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .data-table td:last-child {
+            text-align: left;
+            padding-left: 14px;
+            white-space: nowrap;
+        }
+        .data-table td:nth-child(2),
+        .data-table td:nth-child(3),
+        .data-table td:nth-child(4),
+        .data-table td:nth-child(5) {
+            text-align: center;
+            white-space: nowrap;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #fafcfd;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        tbody tr:hover {
+            background-color: #f0fdfa !important;
+        }
+
+        /* 数据单元格样式 */
+        .mono {
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-weight: 500;
+        }
+        .cell-warn-highlight {
+            background-color: #fef9c3 !important;
+            border-radius: 2px;
+            font-weight: 700;
+        }
+        .cell-over-limit {
+            color: #dc2626 !important;
+            font-weight: 700;
+        }
+        .row-zero-history {
+            background-color: #fef2f2 !important;
+        }
+        .empty-state td {
+            text-align: center !important;
+            color: #94a3b8;
+            padding: 40px 10px !important;
+            font-size: 0.85rem;
+        }
+
+        /* 图例 */
+        .legend-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 0.68rem;
+            color: #64748b;
+            padding: 6px 0;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 2px;
+            margin-right: 3px;
+            vertical-align: middle;
+        }
+        .legend-dot.l-yellow {
+            background: #fef9c3;
+            border: 1px solid #fde047;
+        }
+        .legend-dot.l-red {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        /* 分享按钮样式 */
+        .btn-share {
+            background: #f0fdfa;
+            border: 1.5px solid #99f6e4;
+            color: #0f766e;
+            font-weight: 600;
+        }
+        .btn-share:hover {
+            background: #e6fffa;
+            border-color: #5eead4;
+        }
+
+        /* 模态弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.45);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal-box {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 22px 20px 18px;
+            width: 620px;
+            max-width: 93vw;
+            max-height: 85vh;
+            overflow: auto;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .modal-box h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .modal-box textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            border: 2px solid #d1d5db;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-size: 0.72rem;
+            resize: vertical;
+            background: #fafbfc;
+            line-height: 1.5;
+        }
+        .modal-box textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.08);
+        }
+        .modal-meta {
+            font-size: 0.7rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .preview-table-wrap {
+            max-height: 260px;
+            overflow: auto;
+            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .mini-table {
+            width: 100%;
+            font-size: 0.68rem;
+            border-collapse: collapse;
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        .mini-table th {
+            padding: 5px 4px;
+            background: #f1f5f9;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 0.66rem;
+        }
+        .mini-table td {
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #f1f5f9;
+        }
+        .mini-table td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        .mini-table tr:nth-child(odd) {
+            background: #fafcfd;
+        }
+
+        /* ===== 响应式：移动端 ===== */
+        @media (max-width: 860px) {
+            .app-shell {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .sidebar {
+                flex: 0 0 auto;
+                width: 100%;
+                position: static;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .sidebar-panel {
+                padding: 14px 16px 16px;
+                border-radius: var(--radius-md);
+            }
+            .main-area {
+                flex: 1 1 auto;
+                width: 100%;
+            }
+            .top-bar .app-title {
+                font-size: 1.15rem;
+            }
+            .stat-tile {
+                flex: 0 0 calc(33% - 8px);
+                min-width: 0;
+                padding: 10px 4px;
+                border-radius: var(--radius-sm);
+            }
+            .stat-tile .tile-value {
+                font-size: 1.2rem;
+            }
+            .stat-tile .tile-label {
+                font-size: 0.52rem;
+            }
+            .table-container {
+                max-height: 320px;
+            }
+            .table-header-fixed th,
+            .data-table td {
+                font-size: 0.62rem;
+                padding: 5px 2px;
+            }
+            .table-header-fixed th {
+                font-size: 0.55rem;
+            }
+            .data-table {
+                min-width: 100% !important;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.72rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .stat-tile {
+                flex: 0 0 calc(50% - 6px);
+            }
+            .stat-tile .tile-value {
+                font-size: 1rem;
+            }
+            .top-bar {
+                padding: 12px 14px;
+            }
+            .top-bar .app-title {
+                font-size: 1rem;
+            }
+            .sidebar-panel {
+                padding: 10px 12px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 应用外壳：左右分栏 ===== -->
+    <div class="app-shell">
+
+        <!-- ========== 左侧面板：数据管理 ========== -->
+        <aside class="sidebar">
+
+            <!-- 面板1：骑手单量 -->
+            <div class="sidebar-panel">
+                <div class="panel-title">
+                    <span class="icon-circle required">📦</span> 骑手单量
+                    <span class="badge-required">必须</span>
+                </div>
+                <div class="upload-zone" id="zoneOrders">
+                    <input type="file" id="inputOrders" accept=".xlsx,.xls,.csv">
+                    <span class="upload-icon">📎</span>
+                    <span class="upload-label">上传「配送员履约明细表」</span>
+                    <span class="upload-hint">.xlsx / .xls / .csv</span>
+                </div>
+                <div id="chipOrders" class="status-chip idle">⏳ 等待上传</div>
+            </div>
+
+            <!-- 面板2：当月申请 -->
+            <div class="sidebar-panel">
+                <div class="panel-title">
+                    <span class="icon-circle required">📋</span> 当月申请数量
+                    <span class="badge-required">必须</span>
+                </div>
+                <div class="upload-zone" id="zoneApply">
+                    <input type="file" id="inputApply" accept=".xlsx,.xls,.csv">
+                    <span class="upload-icon">📎</span>
+                    <span class="upload-label">上传「骑手单袋比明细」</span>
+                    <span class="upload-hint">.xlsx / .xls / .csv</span>
+                </div>
+                <div id="chipApply" class="status-chip idle">⏳ 等待上传</div>
+                <div class="select-row">
+                    <select id="selectRange" disabled>
+                        <option>请先上传申请表格</option>
+                    </select>
+                </div>
+                <div id="warnRange" class="warn-text">⚠️ 统计范围不匹配</div>
+                <div id="infoRange" class="info-text"></div>
+            </div>
+
+            <!-- 面板3：当日申请（可选） -->
+            <div class="sidebar-panel">
+                <div class="panel-title">
+                    <span class="icon-circle optional">📝</span> 当日申请数据
+                    <span class="badge-optional">可选</span>
+                </div>
+                <button class="btn-paste" id="btnPaste">📋 粘贴数据（每组11行）</button>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="chkExcludeRejected" checked>
+                    <span>🚫 剔除审批「拒绝」的记录</span>
+                </label>
+                <div id="chipToday" class="status-chip idle">⚪ 尚未粘贴</div>
+                <div id="rejectNote" class="warn-text"></div>
+            </div>
+
+            <!-- 面板4：参数与操作 -->
+            <div class="sidebar-panel">
+                <div class="panel-title">
+                    <span class="icon-circle settings">⚙️</span> 参数与操作
+                </div>
+                <div class="param-row">
+                    <label for="inputPeak">单袋比系数</label>
+                    <input type="number" id="inputPeak" value="1.2" step="0.1" min="0">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btnRun" disabled>🚀 生成报表</button>
+                    <button class="btn btn-outline" id="btnClear">🗑️ 清空</button>
+                </div>
+                <div class="hint-text" id="hintStatus">请先完成数据上传</div>
+            </div>
+        </aside>
+
+        <!-- ========== 右侧主内容区 ========== -->
+        <main class="main-area">
+
+            <!-- 标题栏 -->
+            <div class="top-bar">
+                <span class="app-title"><span class="emoji">🛵</span>骑手单袋比 · 领用分析</span>
+                <span class="version-pill">V8.0 重构版</span>
+                <span class="meta-info">
+                    <span id="metaOrders">单量: —</span>
+                    <span class="dot"></span>
+                    <span id="metaApply">申请: —</span>
+                </span>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="stats-strip" id="statsStrip" style="display:none;">
+                <div class="stat-tile accent-tile">
+                    <div class="tile-label">📦 总需补袋数</div>
+                    <div class="tile-value green" id="valTotalNeed">0</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="tile-label">⚠️ 总超标袋数</div>
+                    <div class="tile-value red" id="valTotalOver">0</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="tile-label">👥 需补骑手</div>
+                    <div class="tile-value teal" id="valNeedRiders">0</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="tile-label">🚨 超标骑手</div>
+                    <div class="tile-value red" id="valOverRiders">0</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="tile-label">📈 当月单袋比</div>
+                    <div class="tile-value teal" id="valHistRatio">0.00</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="tile-label">🔄 当前单袋比</div>
+                    <div class="tile-value teal" id="valCurrRatio">0.00</div>
+                </div>
+                <button class="btn btn-share" id="btnShare" style="align-self:center;">📄 分享报告</button>
+            </div>
+
+            <!-- 表格 -->
+            <div class="table-container" id="tableContainer">
+                <table class="table-header-fixed">
+                    <colgroup>
+                        <col style="width:21%;"><col style="width:14%;"><col style="width:14%;">
+                        <col style="width:14%;"><col style="width:12%;"><col style="width:25%;">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th data-sort-col="name">骑手<span class="sort-arrow">↕</span></th>
+                            <th data-sort-col="orders">总单量<span class="sort-arrow">↕</span></th>
+                            <th data-sort-col="history">当月申请<span class="sort-arrow">↕</span></th>
+                            <th data-sort-col="today">今日申请<span class="sort-arrow">↕</span></th>
+                            <th data-sort-col="ratio">单袋比<span class="sort-arrow">↕</span></th>
+                            <th data-sort-col="diff">差异<span class="sort-arrow">↕</span></th>
+                        </tr>
+                    </thead>
+                </table>
+                <div class="table-scroll-body">
+                    <table class="data-table">
+                        <colgroup>
+                            <col style="width:21%;"><col style="width:14%;"><col style="width:14%;">
+                            <col style="width:14%;"><col style="width:12%;"><col style="width:25%;">
+                        </colgroup>
+                        <tbody id="tableBody">
+                            <tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 图例 -->
+            <div class="legend-strip">
+                <span><span class="legend-dot l-yellow"></span> 需补 &gt; 50 高亮</span>
+                <span style="color:#dc2626;font-weight:600;">● 差异 &lt; 0 超标</span>
+                <span><span class="legend-dot l-red"></span> 当月申请 = 0 标红行</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            /* ================================================================
+               全局状态容器
+               ================================================================ */
+            const state = {
+                ordersMap: new Map(), // 骑手名 → 总单量
+                rawApplyData: [], // 原始申请记录数组
+                applyRanges: new Set(), // 所有统计范围
+                applyDates: new Set(), // 所有统计日期
+                historyApplyMap: new Map(), // 骑手名 → 当月申请总数(按范围过滤后)
+                todayApplyMap: new Map(), // 骑手名 → 当日申请总数
+                todayTotal: 0,
+                todayRejected: 0,
+                todayValid: 0,
+                selectedRange: '', // 当前选中的统计范围
+                isRangeValid: false, // 范围是否有效
+                tableData: [], // 渲染的表格数据
+                sortColumn: 'diff', // 默认按差异排序
+                sortDirection: 'desc', // 默认降序
+            };
+
+            /* ================================================================
+               DOM 快捷引用
+               ================================================================ */
+            const $ = (id) => document.getElementById(id);
+
+            // 左侧面板元素
+            const zoneOrders = $('zoneOrders');
+            const inputOrders = $('inputOrders');
+            const chipOrders = $('chipOrders');
+            const zoneApply = $('zoneApply');
+            const inputApply = $('inputApply');
+            const chipApply = $('chipApply');
+            const selectRange = $('selectRange');
+            const warnRange = $('warnRange');
+            const infoRange = $('infoRange');
+            const btnPaste = $('btnPaste');
+            const chkExcludeRejected = $('chkExcludeRejected');
+            const chipToday = $('chipToday');
+            const rejectNote = $('rejectNote');
+            const inputPeak = $('inputPeak');
+            const btnRun = $('btnRun');
+            const btnClear = $('btnClear');
+            const hintStatus = $('hintStatus');
+
+            // 右侧面板元素
+            const metaOrders = $('metaOrders');
+            const metaApply = $('metaApply');
+            const statsStrip = $('statsStrip');
+            const valTotalNeed = $('valTotalNeed');
+            const valTotalOver = $('valTotalOver');
+            const valNeedRiders = $('valNeedRiders');
+            const valOverRiders = $('valOverRiders');
+            const valHistRatio = $('valHistRatio');
+            const valCurrRatio = $('valCurrRatio');
+            const btnShare = $('btnShare');
+            const tableBody = $('tableBody');
+            const tableContainer = $('tableContainer');
+
+            /* ================================================================
+               工具函数
+               ================================================================ */
+            /** 从日期集合获取最新日期 (YYYYMMDD 字符串可直接比较) */
+            const getLatestDate = (dateSet) => dateSet?.size ? [...dateSet].sort().pop() : '';
+
+            /** 格式化日期：20260428 → 2026-04-28 */
+            const formatDate = (d) => d?.length === 8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
+
+            /** 根据最新日期生成期望的统计范围：20260428 → 20260401~20260428 */
+            const expectedRange = (d) => d?.length === 8 ? `${d.slice(0,4)}${d.slice(4,6)}01~${d}` : '';
+
+            /** HTML 转义 */
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
+
+            /* ================================================================
+               数据过滤：按选中范围过滤当月申请
+               ================================================================ */
+            function filterHistoryByRange(range) {
+                if (!range || !state.rawApplyData.length) {
+                    state.historyApplyMap = new Map();
+                    return;
+                }
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                const result = new Map();
+                state.rawApplyData.forEach(rec => {
+                    if (rec.range === range || rec.range === exp) {
+                        result.set(rec.name, (result.get(rec.name) || 0) + rec.qty);
+                    }
+                });
+                state.historyApplyMap = result;
+            }
+
+            /* ================================================================
+               更新统计范围下拉框
+               ================================================================ */
+            function updateRangeSelect() {
+                if (!state.applyRanges.size) {
+                    selectRange.disabled = true;
+                    selectRange.innerHTML = '<option>请先上传申请表格</option>';
+                    state.isRangeValid = false;
+                    state.selectedRange = '';
+                    warnRange.classList.remove('visible');
+                    infoRange.classList.remove('visible');
+                    return;
+                }
+                selectRange.disabled = false;
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                let optionsHtml = '';
+                let hasValid = false;
+                [...state.applyRanges].sort().forEach(r => {
+                    const isMatch = r === exp;
+                    if (isMatch) hasValid = true;
+                    optionsHtml +=
+                        `<option value="${escapeHtml(r)}" ${isMatch ? 'selected' : ''}>${escapeHtml(r)} ${isMatch ? '✓ 有效' : '✗ 无效'}</option>`;
+                });
+                selectRange.innerHTML = optionsHtml;
+
+                if (hasValid) {
+                    state.selectedRange = exp;
+                    state.isRangeValid = true;
+                    warnRange.classList.remove('visible');
+                    infoRange.classList.add('visible');
+                    infoRange.textContent = `✅ 有效统计范围: ${exp} | 最新日期: ${formatDate(getLatestDate(state.applyDates))}`;
+                    filterHistoryByRange(exp);
+                } else {
+                    state.selectedRange = selectRange.value;
+                    state.isRangeValid = false;
+                    warnRange.classList.add('visible');
+                    warnRange.textContent = `⚠️ 统计范围不匹配！期望: ${exp}`;
+                    infoRange.classList.remove('visible');
+                    state.historyApplyMap.clear();
+                }
+                refreshApplyChip();
+            }
+
+            /* ================================================================
+               刷新所有状态指示器 & 按钮
+               ================================================================ */
+            function refreshAllChips() {
+                // 骑手单量状态
+                if (state.ordersMap.size) {
+                    const total = [...state.ordersMap.values()].reduce((a, b) => a + b, 0);
+                    chipOrders.className = 'status-chip success';
+                    chipOrders.textContent = `✅ 已加载 ${state.ordersMap.size} 人 · 总单量 ${total.toFixed(0)}`;
+                    metaOrders.textContent = `单量: ${state.ordersMap.size}人 / ${total.toFixed(0)}单`;
+                } else {
+                    chipOrders.className = 'status-chip idle';
+                    chipOrders.textContent = '⏳ 等待上传';
+                    metaOrders.textContent = '单量: —';
+                }
+
+                // 当月申请状态
+                refreshApplyChip();
+                if (!state.historyApplyMap.size && state.applyRanges.size && !state.isRangeValid) {
+                    chipApply.className = 'status-chip warning';
+                    chipApply.textContent = '⚠️ 范围无效，请检查';
+                }
+
+                // 当日申请状态
+                if (state.todayApplyMap.size) {
+                    let txt = `✅ 当日申请 ${state.todayApplyMap.size}人 · 总数 ${[...state.todayApplyMap.values()].reduce((a,b)=>a+b,0).toFixed(0)}`;
+                    if (chkExcludeRejected.checked && state.todayRejected) {
+                        txt += ` (已剔除拒绝 ${state.todayRejected})`;
+                    }
+                    chipToday.className = 'status-chip success';
+                    chipToday.textContent = txt;
+                    if (chkExcludeRejected.checked && state.todayRejected) {
+                        rejectNote.classList.add('visible');
+                        rejectNote.textContent = `🚫 已剔除 ${state.todayRejected} 条拒绝记录`;
+                    } else {
+                        rejectNote.classList.remove('visible');
+                    }
+                } else {
+                    chipToday.className = 'status-chip idle';
+                    chipToday.textContent = '⚪ 尚未粘贴';
+                    rejectNote.classList.remove('visible');
+                }
+
+                updateMetaApply();
+                updateRunButton();
+            }
+
+            function refreshApplyChip() {
+                if (state.historyApplyMap.size && state.isRangeValid) {
+                    const total = [...state.historyApplyMap.values()].reduce((a, b) => a + b, 0);
+                    chipApply.className = 'status-chip success';
+                    chipApply.textContent = `✅ 当月申请总数 ${total.toFixed(0)} · ${state.historyApplyMap.size}人`;
+                } else if (!state.applyRanges.size) {
+                    chipApply.className = 'status-chip idle';
+                    chipApply.textContent = '⏳ 等待上传';
+                }
+            }
+
+            function updateMetaApply() {
+                if (state.historyApplyMap.size && state.isRangeValid) {
+                    const total = [...state.historyApplyMap.values()].reduce((a, b) => a + b, 0);
+                    metaApply.textContent = `申请: ${state.historyApplyMap.size}人 / ${total.toFixed(0)}件`;
+                } else {
+                    metaApply.textContent = '申请: —';
+                }
+            }
+
+            function updateRunButton() {
+                const ready = state.ordersMap.size > 0 && state.historyApplyMap.size > 0 && state.isRangeValid;
+                btnRun.disabled = !ready;
+                if (!state.ordersMap.size || !state.historyApplyMap.size) {
+                    hintStatus.textContent = '⏳ 请先完成数据上传';
+                } else if (!state.isRangeValid) {
+                    hintStatus.textContent = '⚠️ 请选择正确的统计范围';
+                } else {
+                    hintStatus.textContent = '✅ 数据就绪，可点击生成报表';
+                }
+            }
+
+            /* ================================================================
+               文件解析：骑手单量
+               ================================================================ */
+            function parseOrdersFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                            if (rows.length < 2) return reject(new Error('至少需要两行数据'));
+                            const headers = rows[1].map(c => String(c || '').trim());
+                            let nameIdx = -1,
+                                qtyIdx = -1;
+                            headers.forEach((c, i) => {
+                                if (c === '配送员名字') nameIdx = i;
+                                if (c === '总签收单量') qtyIdx = i;
+                            });
+                            if (nameIdx === -1 || qtyIdx === -1) return reject(new Error(
+                                '缺少必要列：「配送员名字」或「总签收单量」'));
+                            const result = new Map();
+                            for (let i = 2; i < rows.length; i++) {
+                                const row = rows[i];
+                                if (!row) continue;
+                                const name = String(row[nameIdx] || '').trim();
+                                if (!name) continue;
+                                const qty = parseFloat(row[qtyIdx]) || 0;
+                                result.set(name, (result.get(name) || 0) + qty);
+                            }
+                            resolve(result);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('文件读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            /* ================================================================
+               文件解析：当月申请
+               ================================================================ */
+            function parseApplyFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                            if (!rows.length) return reject(new Error('空表格'));
+                            const headers = rows[0].map(c => String(c || '').trim());
+                            let nameIdx = -1,
+                                qtyIdx = -1,
+                                rangeIdx = -1,
+                                dateIdx = -1;
+                            headers.forEach((c, i) => {
+                                if (c === '骑手姓名') nameIdx = i;
+                                if (c === '确认申领商品数量') qtyIdx = i;
+                                if (c === '统计范围') rangeIdx = i;
+                                if (c === '统计日期') dateIdx = i;
+                            });
+                            if (nameIdx === -1 || qtyIdx === -1) return reject(new Error(
+                                '缺少必要列：「骑手姓名」或「确认申领商品数量」'));
+                            const rangesFound = new Set();
+                            const datesFound = new Set();
+                            const rawData = [];
+                            for (let i = 1; i < rows.length; i++) {
+                                const row = rows[i];
+                                if (!row) continue;
+                                const name = String(row[nameIdx] || '').trim();
+                                if (!name) continue;
+                                const qty = parseFloat(row[qtyIdx]) || 0;
+                                const range = rangeIdx !== -1 && row[rangeIdx] ? String(row[rangeIdx]).trim() : '';
+                                const date = dateIdx !== -1 && row[dateIdx] ? String(row[dateIdx]).trim() : '';
+                                rawData.push({ name, qty, range, date });
+                                if (range) rangesFound.add(range);
+                                if (date) datesFound.add(date);
+                            }
+                            resolve({ rawData, ranges: rangesFound, dates: datesFound });
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('文件读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            /* ================================================================
+               粘贴数据解析：每组11行
+               第4行(index 3)=姓名, 第7行(index 6)=数量, 第8行(index 7)=状态
+               ================================================================ */
+            function parseDailyPaste(text, excludeRejected) {
+                const lines = text.split(/\r?\n/).filter(l => l.trim());
+                const resultMap = new Map();
+                const details = [];
+                let totalGroups = 0,
+                    rejectedCount = 0,
+                    validCount = 0;
+                for (let i = 0; i + 11 <= lines.length; i += 11) {
+                    totalGroups++;
+                    const group = lines.slice(i, i + 11);
+                    const name = group[3]?.trim();
+                    const qty = parseFloat(group[6]);
+                    const status = group[7]?.trim();
+                    if (excludeRejected && status === '拒绝') {
+                        rejectedCount++;
+                        details.push({ name, qty, status, valid: false });
+                        continue;
+                    }
+                    if (name && !isNaN(qty) && qty > 0) {
+                        resultMap.set(name, (resultMap.get(name) || 0) + qty);
+                        validCount++;
+                        details.push({ name, qty, status, valid: true });
+                    }
+                }
+                return { map: resultMap, total: totalGroups, rejected: rejectedCount, valid: validCount, details };
+            }
+
+            /* ================================================================
+               粘贴弹窗
+               ================================================================ */
+            function openPasteModal() {
+                // 移除已有弹窗
+                const existing = document.querySelector('.modal-overlay');
+                if (existing) existing.remove();
+
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `
+                    <div class="modal-box">
+                        <h3>📋 粘贴当日申请数据</h3>
+                        <p style="font-size:0.7rem;color:#64748b;">每组11行：第4行=姓名 / 第7行=数量 / 第8行=状态</p>
+                        <textarea id="pasteTextarea" rows="10" placeholder="在此粘贴数据..."></textarea>
+                        <div class="modal-meta">
+                            <span>📊 <strong id="modalLineCount">0</strong>行 / <strong id="modalGroupCount">0</strong>组</span>
+                        </div>
+                        <label class="checkbox-row" style="margin-top:4px;">
+                            <input type="checkbox" id="modalExcludeChk" ${chkExcludeRejected.checked ? 'checked' : ''}>
+                            <span>🚫 剔除审批「拒绝」的记录</span>
+                        </label>
+                        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px;">
+                            <button class="btn btn-ghost" id="modalCancel">取消</button>
+                            <button class="btn btn-outline" id="modalPreview">👁️ 预览</button>
+                            <button class="btn btn-primary" id="modalConfirm">✅ 导入数据</button>
+                        </div>
+                        <div id="modalPreviewArea" style="display:none;margin-top:8px;">
+                            <div class="preview-table-wrap" id="modalPreviewContent"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                const textarea = overlay.querySelector('#pasteTextarea');
+                const lineCountEl = overlay.querySelector('#modalLineCount');
+                const groupCountEl = overlay.querySelector('#modalGroupCount');
+                const modalExcludeChk = overlay.querySelector('#modalExcludeChk');
+                const previewArea = overlay.querySelector('#modalPreviewArea');
+                const previewContent = overlay.querySelector('#modalPreviewContent');
+                let cachedParsed = null;
+
+                const updateCounts = () => {
+                    const lines = textarea.value.split(/\r?\n/).filter(l => l.trim());
+                    lineCountEl.textContent = lines.length;
+                    groupCountEl.textContent = Math.floor(lines.length / 11);
+                };
+                textarea.addEventListener('input', updateCounts);
+                updateCounts();
+
+                overlay.querySelector('#modalCancel').onclick = () => overlay.remove();
+                overlay.querySelector('#modalPreview').onclick = () => {
+                    cachedParsed = parseDailyPaste(textarea.value, modalExcludeChk.checked);
+                    const { total, rejected, valid, details } = cachedParsed;
+                    let html = `<div style="font-size:0.7rem;margin-bottom:6px;">📊 总组数:${total} | 有效:${valid}`;
+                    if (modalExcludeChk.checked && rejected) html +=
+                        ` | <span style="color:#dc2626;">已剔除拒绝:${rejected}</span>`;
+                    html += '</div><table class="mini-table"><thead><tr><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>';
+                    const validDetails = details.filter(d => d.valid);
+                    if (!validDetails.length) {
+                        html += '<tr><td colspan="3">暂无有效数据</td></tr>';
+                    } else {
+                        const sm = new Map();
+                        validDetails.forEach(d => { sm.set(d.name, (sm.get(d.name) || 0) + d.qty); });
+                        let tq = 0;
+                        [...sm.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([n, q]) => {
+                            html +=
+                                `<tr><td>${escapeHtml(n)}</td><td class="mono">${q}</td><td>有效</td></tr>`;
+                            tq += q;
+                        });
+                        html +=
+                            `<tr><td><strong>合计</strong></td><td class="mono"><strong>${tq}</strong></td><td></td></tr>`;
+                    }
+                    if (modalExcludeChk.checked && rejected) {
+                        const rd = details.filter(d => !d.valid);
+                        if (rd.length) {
+                            html +=
+                                '<tr><td colspan="3" style="color:#dc2626;font-size:0.65rem;">🚫 已剔除的拒绝记录:</td></tr>';
+                            rd.forEach(d => {
+                                html +=
+                                    `<tr style="color:#94a3b8;font-size:0.65rem;"><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`;
+                            });
+                        }
+                    }
+                    html += '</tbody></table>';
+                    previewContent.innerHTML = html;
+                    previewArea.style.display = 'block';
+                };
+                overlay.querySelector('#modalConfirm').onclick = () => {
+                    if (!cachedParsed) cachedParsed = parseDailyPaste(textarea.value, modalExcludeChk.checked);
+                    if (!cachedParsed.map.size) {
+                        alert('无有效数据，请检查粘贴内容');
+                        return;
+                    }
+                    state.todayApplyMap = cachedParsed.map;
+                    state.todayTotal = cachedParsed.total;
+                    state.todayRejected = cachedParsed.rejected;
+                    state.todayValid = cachedParsed.valid;
+                    chkExcludeRejected.checked = modalExcludeChk.checked;
+                    refreshAllChips();
+                    if (state.tableData.length > 0 && state.isRangeValid && state.ordersMap.size && state
+                        .historyApplyMap.size) {
+                        renderTable();
+                    }
+                    overlay.remove();
+                };
+                // 点击遮罩关闭
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) overlay.remove();
+                });
+            }
+
+            /* ================================================================
+               排序与渲染表格
+               ================================================================ */
+            function sortTableData(data, column, direction) {
+                return [...data].sort((a, b) => {
+                    if (column === 'name') {
+                        return direction === 'asc' ?
+                            a.name.localeCompare(b.name, 'zh') :
+                            b.name.localeCompare(a.name, 'zh');
+                    }
+                    const va = a[column] || 0;
+                    const vb = b[column] || 0;
+                    return direction === 'asc' ? va - vb : vb - va;
+                });
+            }
+
+            function renderTable() {
+                if (!state.isRangeValid) {
+                    alert('❌ 统计范围不匹配，请选择正确的范围');
+                    return;
+                }
+                const peakRatio = parseFloat(inputPeak.value) || 1.2;
+                const allNames = new Set([
+                    ...state.ordersMap.keys(),
+                    ...state.historyApplyMap.keys(),
+                    ...state.todayApplyMap.keys(),
+                ]);
+                state.tableData = [];
+                allNames.forEach(name => {
+                    const orders = state.ordersMap.get(name) || 0;
+                    const history = state.historyApplyMap.get(name) || 0;
+                    const today = state.todayApplyMap.get(name) || 0;
+                    const ratio = orders ? (history + today) / orders : 0;
+                    const diff = orders * peakRatio - history - today;
+                    state.tableData.push({ name, orders, history, today, ratio, diff });
+                });
+                state.tableData = sortTableData(state.tableData, state.sortColumn, state.sortDirection);
+
+                let rowsHtml = '';
+                state.tableData.forEach(r => {
+                    const diff = r.diff;
+                    const intDiff = diff > 0 ? Math.floor(diff) : Math.ceil(diff);
+                    const diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` :
+                        '0');
+                    const rowClass = r.history === 0 ? 'row-zero-history' : '';
+                    const cellClass = diff < 0 ? 'cell-over-limit' : (intDiff > 50 ? 'cell-warn-highlight' : '');
+                    rowsHtml += `
+                        <tr class="${rowClass}">
+                            <td>${escapeHtml(r.name)}</td>
+                            <td class="mono">${r.orders.toFixed(0)}</td>
+                            <td class="mono">${r.history.toFixed(0)}</td>
+                            <td class="mono">${r.today.toFixed(0)}</td>
+                            <td class="mono">${r.orders ? r.ratio.toFixed(2) : '—'}</td>
+                            <td class="mono ${cellClass}">${diffStr}</td>
+                        </tr>`;
+                });
+                tableBody.innerHTML = rowsHtml || '<tr class="empty-state"><td colspan="6">无数据</td></tr>';
+                updateStatsCards();
+            }
+
+            /* ================================================================
+               更新统计卡片
+               ================================================================ */
+            function updateStatsCards() {
+                if (!state.tableData.length) {
+                    statsStrip.style.display = 'none';
+                    return;
+                }
+                let totalNeed = 0,
+                    totalOver = 0,
+                    needRiders = 0,
+                    overRiders = 0,
+                    sumOrders = 0,
+                    sumHistory = 0,
+                    sumToday = 0;
+                state.tableData.forEach(r => {
+                    sumOrders += r.orders;
+                    sumHistory += r.history;
+                    sumToday += r.today;
+                    if (r.diff > 0) { totalNeed += r.diff;
+                        needRiders++; } else if (r.diff < 0) { totalOver += Math.abs(r.diff);
+                        overRiders++; }
+                });
+                valTotalNeed.textContent = Math.floor(totalNeed);
+                valTotalOver.textContent = Math.floor(totalOver);
+                valNeedRiders.textContent = needRiders;
+                valOverRiders.textContent = overRiders;
+                valHistRatio.textContent = (sumOrders ? sumHistory / sumOrders : 0).toFixed(2);
+                valCurrRatio.textContent = (sumOrders ? (sumHistory + sumToday) / sumOrders : 0).toFixed(2);
+                statsStrip.style.display = 'flex';
+            }
+
+            /* ================================================================
+               生成分享报告
+               ================================================================ */
+            function generateShareReport() {
+                if (!state.tableData.length) {
+                    alert('请先生成报表');
+                    return;
+                }
+                const now = new Date().toLocaleString('zh-CN', { hour12: false });
+                const peakVal = (parseFloat(inputPeak.value) || 1.2).toFixed(2);
+                const totalNeed = valTotalNeed.textContent;
+                const totalOver = valTotalOver.textContent;
+                const needRiders = valNeedRiders.textContent;
+                const overRiders = valOverRiders.textContent;
+                const historyRatio = valHistRatio.textContent;
+                const currentRatio = valCurrRatio.textContent;
+
+                const sorted = [...state.tableData].sort((a, b) => b.diff - a.diff);
+                let rowsHtml = '';
+                sorted.forEach(r => {
+                    const diff = r.diff;
+                    const intDiff = diff > 0 ? Math.floor(diff) : Math.ceil(diff);
+                    const diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` :
+                        '0');
+                    const rowClass = r.history === 0 ? 'row-zero-history' : '';
+                    const cellClass = diff < 0 ? 'cell-over-limit' : (intDiff > 50 ? 'cell-warn-highlight' : '');
+                    rowsHtml += `
+                        <tr class="${rowClass}">
+                            <td>${escapeHtml(r.name)}</td>
+                            <td class="mono">${r.orders.toFixed(0)}</td>
+                            <td class="mono">${r.history.toFixed(0)}</td>
+                            <td class="mono">${r.today.toFixed(0)}</td>
+                            <td class="mono">${r.orders ? r.ratio.toFixed(2) : '—'}</td>
+                            <td class="mono ${cellClass}">${diffStr}</td>
+                        </tr>`;
+                });
+
+                const reportHtml = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=yes"><title>单袋比领用报告</title><style>:root{--bg:#f9fafb;--surface:#fff;--text:#1e293b;--text-secondary:#64748b;--accent:#0d9488;--border:#e2e8f0;--warning-bg:#fef9c3;--danger-text:#dc2626;--danger-bg:#fef2f2;--shadow-md:0 4px 16px rgba(0,0,0,0.06);--radius-lg:20px;--radius-md:14px;}*{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:20px 16px 32px;color:var(--text);-webkit-font-smoothing:antialiased;user-select:none!important;-webkit-user-select:none!important;}*{user-select:none!important;-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;}.report-wrapper{max-width:1100px;width:100%;display:flex;flex-direction:column;gap:14px;}.report-header{background:var(--surface);border-radius:var(--radius-lg);padding:18px 22px;box-shadow:var(--shadow-md);border:1px solid var(--border);text-align:center;}.report-header h2{font-size:1.5rem;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-bottom:6px;}.meta-line{font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}.meta-line .dot{width:4px;height:4px;border-radius:50%;background:#94a3b8;}.stats-strip{display:flex;flex-wrap:wrap;gap:10px;}.stat-tile{flex:1 1 80px;min-width:70px;background:var(--surface);border-radius:var(--radius-md);padding:12px 8px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.04);border:1px solid var(--border);}.stat-tile .tile-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);}.stat-tile .tile-value{font-size:1.5rem;font-weight:700;font-family:'JetBrains Mono',monospace;}.tile-value.green{color:#059669;}.tile-value.red{color:#dc2626;}.tile-value.teal{color:#0d9488;}.table-container{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden;max-height:520px;display:flex;flex-direction:column;}.table-header-fixed{width:100%;table-layout:fixed;border-collapse:collapse;background:#f8fafc;border-bottom:2px solid #e2e8f0;flex-shrink:0;}.table-header-fixed th{font-weight:700;text-align:center;padding:11px 6px;font-size:0.75rem;white-space:nowrap;border-right:1px solid #e2e8f0;color:#475569;}.table-header-fixed th:last-child{border-right:none;}.table-header-fixed th:first-child{text-align:right;padding-right:14px;}.table-header-fixed th:last-child{text-align:left;padding-left:14px;}.table-scroll-body{overflow-x:auto;overflow-y:auto;flex:1 1 auto;min-height:0;scrollbar-width:thin;}.data-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.8rem;min-width:700px;}.data-table td{padding:9px 6px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;vertical-align:middle;}.data-table td:last-child{border-right:none;}.data-table td:first-child{text-align:right;padding-right:14px;white-space:nowrap;font-weight:600;}.data-table td:last-child{text-align:left;padding-left:14px;white-space:nowrap;}.data-table td:nth-child(2),.data-table td:nth-child(3),.data-table td:nth-child(4),.data-table td:nth-child(5){text-align:center;white-space:nowrap;}tbody tr:nth-child(odd){background:#fafcfd;}tbody tr:nth-child(even){background:#fff;}.mono{font-family:'JetBrains Mono',monospace;font-weight:500;}.cell-warn-highlight{background-color:#fef9c3!important;font-weight:700;}.cell-over-limit{color:#dc2626!important;font-weight:700;}.row-zero-history{background-color:#fef2f2!important;}.legend-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:16px;font-size:0.68rem;color:#64748b;padding:6px 0;}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;}.legend-dot.yellow{background:#fef9c3;border:1px solid #fde047;}.legend-dot.red{background:#fef2f2;border:1px solid #fecaca;}@media(max-width:768px){.stat-tile{flex:0 0 calc(33% - 8px);}.stat-tile .tile-value{font-size:1.1rem;}.table-header-fixed th,.data-table td{font-size:0.62rem;padding:5px 2px;}.data-table{min-width:100%!important;}.table-container{max-height:320px;}}</style></head><body><div class="report-wrapper"><div class="report-header"><h2>🛵 骑手单袋比领用报告</h2><div class="meta-line"><span>生成时间：<strong>${now}</strong></span><span class="dot"></span><span>单袋比系数：<strong>${peakVal}</strong></span></div></div><div class="stats-strip"><div class="stat-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green">${totalNeed}</div></div><div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red">${totalOver}</div></div><div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal">${needRiders}</div></div><div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red">${overRiders}</div></div><div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal">${historyRatio}</div></div><div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal">${currentRatio}</div></div></div><div class="table-container"><table class="table-header-fixed"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><thead><tr><th>骑手</th><th>总单量</th><th>当月申请</th><th>今日申请</th><th>单袋比</th><th>差异</th></tr></thead></table><div class="table-scroll-body"><table class="data-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><tbody>${rowsHtml}</tbody></table></div></div><div class="legend-strip"><span><span class="legend-dot yellow"></span>需补>50高亮</span><span style="color:#dc2626;font-weight:600;">●差异<0超标</span><span><span class="legend-dot red"></span>当月申请=0标红</span></div></div><script>document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('copy',e=>e.preventDefault());<\/script></body></html>`;
+
+                const d = new Date();
+                const shortDate = String(d.getFullYear()).slice(-2) +
+                    String(d.getMonth() + 1).padStart(2, '0') +
+                    String(d.getDate()).padStart(2, '0');
+                const blob = new Blob([reportHtml], { type: 'text/html' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `单袋比领用报告-${shortDate}.html`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+            }
+
+            /* ================================================================
+               事件绑定
+               ================================================================ */
+            // 文件上传：骑手单量
+            inputOrders.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    state.ordersMap = await parseOrdersFile(file);
+                    refreshAllChips();
+                    if (state.tableData.length > 0 && state.isRangeValid && state.ordersMap.size && state
+                        .historyApplyMap.size) {
+                        renderTable();
+                    }
+                } catch (err) {
+                    alert('❌ ' + err.message);
+                    chipOrders.className = 'status-chip error';
+                    chipOrders.textContent = '❌ 解析失败';
+                }
+                inputOrders.value = '';
+            });
+
+            // 文件上传：当月申请
+            inputApply.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    const result = await parseApplyFile(file);
+                    state.rawApplyData = result.rawData;
+                    state.applyRanges = result.ranges;
+                    state.applyDates = result.dates;
+                    updateRangeSelect();
+                    refreshAllChips();
+                    if (state.tableData.length > 0 && state.isRangeValid && state.ordersMap.size && state
+                        .historyApplyMap.size) {
+                        renderTable();
+                    }
+                } catch (err) {
+                    alert('❌ ' + err.message);
+                    chipApply.className = 'status-chip error';
+                    chipApply.textContent = '❌ 解析失败';
+                }
+                inputApply.value = '';
+            });
+
+            // 上传区域点击委托
+            zoneOrders.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') inputOrders.click();
+            });
+            zoneApply.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') inputApply.click();
+            });
+
+            // 统计范围下拉变化
+            selectRange.addEventListener('change', () => {
+                const selected = selectRange.value;
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                state.selectedRange = selected;
+                state.isRangeValid = selected === exp;
+                if (state.isRangeValid) {
+                    warnRange.classList.remove('visible');
+                    infoRange.classList.add('visible');
+                    infoRange.textContent =
+                        `✅ 有效统计范围: ${exp} | 最新日期: ${formatDate(getLatestDate(state.applyDates))}`;
+                    filterHistoryByRange(selected);
+                } else {
+                    warnRange.classList.add('visible');
+                    warnRange.textContent = `⚠️ 统计范围不匹配！期望: ${exp}`;
+                    infoRange.classList.remove('visible');
+                    state.historyApplyMap.clear();
+                }
+                refreshAllChips();
+                if (state.tableData.length > 0 && state.isRangeValid && state.ordersMap.size && state.historyApplyMap
+                    .size) {
+                    renderTable();
+                } else if (!state.isRangeValid) {
+                    tableBody.innerHTML =
+                        '<tr class="empty-state"><td colspan="6">⚠️ 请选择正确的统计范围</td></tr>';
+                    statsStrip.style.display = 'none';
+                    state.tableData = [];
+                }
+            });
+
+            // 粘贴按钮
+            btnPaste.addEventListener('click', openPasteModal);
+
+            // 剔除拒绝复选框
+            chkExcludeRejected.addEventListener('change', () => {
+                if (state.todayApplyMap.size && state.todayRejected > 0 && !chkExcludeRejected.checked) {
+                    // 用户取消剔除——需要重新解析（但原始数据已丢失，提示重新粘贴）
+                    rejectNote.classList.add('visible');
+                    rejectNote.textContent = '⚠️ 已切换，如需恢复被剔除数据请重新粘贴';
+                }
+                refreshAllChips();
+            });
+
+            // 生成报表
+            btnRun.addEventListener('click', renderTable);
+
+            // 清空
+            btnClear.addEventListener('click', () => {
+                state.ordersMap.clear();
+                state.rawApplyData = [];
+                state.applyRanges.clear();
+                state.applyDates.clear();
+                state.historyApplyMap.clear();
+                state.todayApplyMap.clear();
+                state.todayTotal = 0;
+                state.todayRejected = 0;
+                state.todayValid = 0;
+                state.selectedRange = '';
+                state.isRangeValid = false;
+                state.tableData = [];
+                state.sortColumn = 'diff';
+                state.sortDirection = 'desc';
+                inputPeak.value = '1.2';
+                chkExcludeRejected.checked = true;
+                selectRange.disabled = true;
+                selectRange.innerHTML = '<option>请先上传申请表格</option>';
+                warnRange.classList.remove('visible');
+                infoRange.classList.remove('visible');
+                rejectNote.classList.remove('visible');
+                tableBody.innerHTML = '<tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr>';
+                statsStrip.style.display = 'none';
+                refreshAllChips();
+                chipOrders.className = 'status-chip idle';
+                chipOrders.textContent = '⏳ 等待上传';
+                chipApply.className = 'status-chip idle';
+                chipApply.textContent = '⏳ 等待上传';
+                chipToday.className = 'status-chip idle';
+                chipToday.textContent = '⚪ 尚未粘贴';
+                metaOrders.textContent = '单量: —';
+                metaApply.textContent = '申请: —';
+                hintStatus.textContent = '请先完成数据上传';
+            });
+
+            // 表头点击排序
+            document.querySelectorAll('.table-header-fixed th[data-sort-col]').forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.dataset.sortCol;
+                    if (!col) return;
+                    if (state.sortColumn === col) {
+                        state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        state.sortColumn = col;
+                        state.sortDirection = 'desc';
+                    }
+                    // 更新表头样式
+                    document.querySelectorAll('.table-header-fixed th').forEach(t => t.classList
+                        .remove('sorted'));
+                    th.classList.add('sorted');
+                    if (state.tableData.length > 0) renderTable();
+                });
+            });
+
+            // 分享报告
+            btnShare.addEventListener('click', generateShareReport);
+
+            // 单袋比系数变化时，如有数据则重新渲染
+            inputPeak.addEventListener('change', () => {
+                if (state.tableData.length > 0 && state.isRangeValid && state.ordersMap.size && state
+                    .historyApplyMap.size) {
+                    renderTable();
+                }
+            });
+
+            /* ================================================================
+               初始化
+               ================================================================ */
+            inputPeak.value = '1.2';
+            chkExcludeRejected.checked = true;
+            selectRange.disabled = true;
+            refreshAllChips();
+            hintStatus.textContent = '请先完成数据上传';
+            // 初始排序标记
+            const defaultSortTh = document.querySelector('.table-header-fixed th[data-sort-col="diff"]');
+            if (defaultSortTh) defaultSortTh.classList.add('sorted');
+        })();
+    </script>
+</body>
+</html>

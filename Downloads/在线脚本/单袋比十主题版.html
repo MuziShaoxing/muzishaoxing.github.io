@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>单袋比 · 领用分析</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        :root {
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #0d9488;
+            --accent-hover: #0f766e;
+            --accent-soft: #f0fdfa;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --warning-bg: #fef9c3;
+            --warning-border: #fde047;
+            --danger-text: #dc2626;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --radius-btn: 24px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-body: 'Inter', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-display: 'Inter', system-ui, sans-serif;
+            --header-bg: #ffffff;
+            --table-stripe-odd: #fafcfd;
+            --table-stripe-even: #ffffff;
+            --table-hover: #f0fdfa;
+            --input-bg: #ffffff;
+            --upload-dash: #d1d5db;
+            --stat-border-style: solid;
+            --layout-gap: 16px;
+            --sidebar-width: 340px;
+            --letter-spacing: -0.2px;
+            --border-width: 1px;
+            --overlay-bg: rgba(15, 23, 42, 0.45);
+            --btn-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+            --header-border: 1px solid var(--border);
+            --panel-border: 1px solid var(--border);
+            --tag-bg: #e0f2fe;
+            --tag-color: #0369a1;
+            --sort-arrow-color: #94a3b8;
+            --scrollbar-thumb: #cbd5e1;
+            --table-header-bg: #f8fafc;
+        }
+
+        [data-theme="1"] {
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #888888;
+            --accent: #2c2c2c;
+            --accent-hover: #000000;
+            --accent-soft: #f5f5f5;
+            --border: #e0e0e0;
+            --border-light: #f0f0f0;
+            --warning-bg: #fffde7;
+            --warning-border: #ffe082;
+            --danger-text: #c62828;
+            --danger-bg: #ffebee;
+            --danger-border: #ef9a9a;
+            --shadow-sm: none;
+            --shadow-md: none;
+            --shadow-lg: none;
+            --radius-sm: 0px;
+            --radius-md: 0px;
+            --radius-lg: 0px;
+            --radius-xl: 0px;
+            --radius-btn: 0px;
+            --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            --font-display: 'Helvetica Neue', Arial, sans-serif;
+            --header-bg: #ffffff;
+            --table-stripe-odd: #fafafa;
+            --table-stripe-even: #ffffff;
+            --table-hover: #f5f5f5;
+            --input-bg: #fafafa;
+            --upload-dash: #bdbdbd;
+            --stat-border-style: solid;
+            --layout-gap: 20px;
+            --sidebar-width: 320px;
+            --letter-spacing: 0px;
+            --border-width: 1px;
+            --overlay-bg: rgba(0, 0, 0, 0.35);
+            --btn-shadow: none;
+            --header-border: 1px solid #e0e0e0;
+            --panel-border: 1px solid #e0e0e0;
+            --tag-bg: #eeeeee;
+            --tag-color: #424242;
+            --sort-arrow-color: #bdbdbd;
+            --scrollbar-thumb: #e0e0e0;
+            --table-header-bg: #fafafa;
+        }
+        [data-theme="2"] {
+            --bg: #e8ecf1;
+            --surface: #e8ecf1;
+            --text: #2d3748;
+            --text-secondary: #7a8798;
+            --accent: #6c7a8e;
+            --accent-hover: #4a5568;
+            --accent-soft: #e8ecf1;
+            --border: transparent;
+            --border-light: transparent;
+            --warning-bg: #fef9e7;
+            --warning-border: #f9e79f;
+            --danger-text: #c0392b;
+            --danger-bg: #fdedec;
+            --danger-border: #f5b7b1;
+            --shadow-sm: 4px 4px 8px #c8cdd3, -4px -4px 8px #ffffff;
+            --shadow-md: 6px 6px 14px #c8cdd3, -6px -6px 14px #ffffff;
+            --shadow-lg: 10px 10px 22px #c8cdd3, -10px -10px 22px #ffffff;
+            --radius-sm: 12px;
+            --radius-md: 18px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --radius-btn: 30px;
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-display: 'Inter', system-ui, sans-serif;
+            --header-bg: #e8ecf1;
+            --table-stripe-odd: #eaedf2;
+            --table-stripe-even: #e8ecf1;
+            --table-hover: #dfe3e8;
+            --input-bg: #e8ecf1;
+            --upload-dash: #bcc3ce;
+            --stat-border-style: none;
+            --layout-gap: 14px;
+            --sidebar-width: 345px;
+            --letter-spacing: -0.3px;
+            --border-width: 0px;
+            --overlay-bg: rgba(30, 40, 55, 0.5);
+            --btn-shadow: 3px 3px 7px #c8cdd3, -3px -3px 7px #ffffff;
+            --header-border: none;
+            --panel-border: none;
+            --tag-bg: #dce1e8;
+            --tag-color: #4a5568;
+            --sort-arrow-color: #a0aab4;
+            --scrollbar-thumb: #c8cdd3;
+            --table-header-bg: #e0e4ea;
+        }
+        [data-theme="3"] {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --text: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #f59e0b;
+            --accent-hover: #d97706;
+            --accent-soft: #1e293b;
+            --border: #334155;
+            --border-light: #1e293b;
+            --warning-bg: #422006;
+            --warning-border: #92400e;
+            --danger-text: #fca5a5;
+            --danger-bg: #450a0a;
+            --danger-border: #991b1b;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --radius-btn: 24px;
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-display: 'Georgia', 'Times New Roman', serif;
+            --header-bg: #1e293b;
+            --table-stripe-odd: #1a2332;
+            --table-stripe-even: #1e293b;
+            --table-hover: #283548;
+            --input-bg: #0f172a;
+            --upload-dash: #475569;
+            --stat-border-style: solid;
+            --layout-gap: 16px;
+            --sidebar-width: 340px;
+            --letter-spacing: 0px;
+            --border-width: 1px;
+            --overlay-bg: rgba(0, 0, 0, 0.7);
+            --btn-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+            --header-border: 1px solid #334155;
+            --panel-border: 1px solid #334155;
+            --tag-bg: #713f12;
+            --tag-color: #fcd34d;
+            --sort-arrow-color: #64748b;
+            --scrollbar-thumb: #475569;
+            --table-header-bg: #1a2332;
+        }
+        [data-theme="4"] {
+            --bg: #fdf6e3;
+            --surface: #fefcf5;
+            --text: #3e2723;
+            --text-secondary: #8d6e63;
+            --accent: #8b4513;
+            --accent-hover: #5d2e0c;
+            --accent-soft: #fef9f0;
+            --border: #d7ccc8;
+            --border-light: #efebe9;
+            --warning-bg: #fff8e1;
+            --warning-border: #ffcc02;
+            --danger-text: #b71c1c;
+            --danger-bg: #fef0ef;
+            --danger-border: #e0b4b4;
+            --shadow-sm: 1px 1px 0 #d7ccc8;
+            --shadow-md: 3px 3px 0 #d7ccc8;
+            --shadow-lg: 5px 5px 0 #c7b8b0;
+            --radius-sm: 2px;
+            --radius-md: 4px;
+            --radius-lg: 6px;
+            --radius-xl: 8px;
+            --radius-btn: 3px;
+            --font-body: 'Georgia', 'Times New Roman', 'Noto Serif SC', serif;
+            --font-display: 'Georgia', 'Times New Roman', serif;
+            --font-mono: 'Courier New', monospace;
+            --header-bg: #fefcf5;
+            --table-stripe-odd: #fdf8ef;
+            --table-stripe-even: #fefcf5;
+            --table-hover: #faf3e6;
+            --input-bg: #fefcf5;
+            --upload-dash: #bcaaa4;
+            --stat-border-style: solid;
+            --layout-gap: 16px;
+            --sidebar-width: 340px;
+            --letter-spacing: 0.2px;
+            --border-width: 2px;
+            --overlay-bg: rgba(62, 39, 35, 0.5);
+            --btn-shadow: 2px 2px 0 #8b4513;
+            --header-border: 2px solid #d7ccc8;
+            --panel-border: 2px solid #d7ccc8;
+            --tag-bg: #efebe9;
+            --tag-color: #5d4037;
+            --sort-arrow-color: #bcaaa4;
+            --scrollbar-thumb: #d7ccc8;
+            --table-header-bg: #faf3e6;
+        }
+        [data-theme="5"] {
+            --bg: #f0f4f8;
+            --surface: rgba(255, 255, 255, 0.55);
+            --text: #1a202c;
+            --text-secondary: #718096;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-soft: rgba(255, 255, 255, 0.4);
+            --border: rgba(255, 255, 255, 0.6);
+            --border-light: rgba(255, 255, 255, 0.3);
+            --warning-bg: rgba(254, 249, 195, 0.7);
+            --warning-border: rgba(253, 224, 71, 0.6);
+            --danger-text: #e53e3e;
+            --danger-bg: rgba(254, 242, 242, 0.7);
+            --danger-border: rgba(254, 202, 202, 0.6);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.14);
+            --radius-sm: 14px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-xl: 36px;
+            --radius-btn: 28px;
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-display: 'Inter', system-ui, sans-serif;
+            --header-bg: rgba(255, 255, 255, 0.45);
+            --table-stripe-odd: rgba(250, 252, 253, 0.5);
+            --table-stripe-even: rgba(255, 255, 255, 0.35);
+            --table-hover: rgba(240, 253, 250, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.5);
+            --upload-dash: #b0bec5;
+            --stat-border-style: solid;
+            --layout-gap: 18px;
+            --sidebar-width: 345px;
+            --letter-spacing: -0.2px;
+            --border-width: 1px;
+            --overlay-bg: rgba(15, 23, 42, 0.35);
+            --btn-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+            --header-border: 1px solid rgba(255, 255, 255, 0.5);
+            --panel-border: 1px solid rgba(255, 255, 255, 0.55);
+            --tag-bg: rgba(224, 231, 255, 0.6);
+            --tag-color: #4338ca;
+            --sort-arrow-color: #a0aec0;
+            --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+            --table-header-bg: rgba(248, 250, 252, 0.6);
+        }
+        [data-theme="6"] {
+            --bg: #0a0e0a;
+            --surface: #111811;
+            --text: #33ff33;
+            --text-secondary: #66aa66;
+            --accent: #00ff41;
+            --accent-hover: #00cc33;
+            --accent-soft: #0a1a0a;
+            --border: #225522;
+            --border-light: #1a331a;
+            --warning-bg: #1a2e00;
+            --warning-border: #44aa00;
+            --danger-text: #ff4444;
+            --danger-bg: #1a0000;
+            --danger-border: #550000;
+            --shadow-sm: none;
+            --shadow-md: 0 0 10px rgba(0, 255, 65, 0.15);
+            --shadow-lg: 0 0 24px rgba(0, 255, 65, 0.2);
+            --radius-sm: 0px;
+            --radius-md: 0px;
+            --radius-lg: 0px;
+            --radius-xl: 0px;
+            --radius-btn: 0px;
+            --font-body: 'JetBrains Mono', 'Courier New', 'Source Code Pro', monospace;
+            --font-display: 'JetBrains Mono', monospace;
+            --header-bg: #0d140d;
+            --table-stripe-odd: #0d140d;
+            --table-stripe-even: #111811;
+            --table-hover: #152215;
+            --input-bg: #0a0e0a;
+            --upload-dash: #336633;
+            --stat-border-style: solid;
+            --layout-gap: 12px;
+            --sidebar-width: 330px;
+            --letter-spacing: 1px;
+            --border-width: 2px;
+            --overlay-bg: rgba(0, 0, 0, 0.8);
+            --btn-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
+            --header-border: 2px solid #225522;
+            --panel-border: 2px solid #225522;
+            --tag-bg: #0a2e0a;
+            --tag-color: #00ff41;
+            --sort-arrow-color: #336633;
+            --scrollbar-thumb: #225522;
+            --table-header-bg: #0d140d;
+        }
+        [data-theme="7"] {
+            --bg: #f5f0eb;
+            --surface: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #6b6b80;
+            --accent: #e85d3a;
+            --accent-hover: #c94a2c;
+            --accent-soft: #fef9f7;
+            --border: #e8e0d8;
+            --border-light: #f5f0eb;
+            --warning-bg: #fffdf0;
+            --warning-border: #f0d860;
+            --danger-text: #d63031;
+            --danger-bg: #fff5f5;
+            --danger-border: #fcc5c5;
+            --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.15);
+            --radius-sm: 16px;
+            --radius-md: 24px;
+            --radius-lg: 32px;
+            --radius-xl: 40px;
+            --radius-btn: 32px;
+            --font-body: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+            --font-display: 'Georgia', 'Playfair Display', serif;
+            --header-bg: #ffffff;
+            --table-stripe-odd: #fdfaf7;
+            --table-stripe-even: #ffffff;
+            --table-hover: #fef5f1;
+            --input-bg: #fdfaf7;
+            --upload-dash: #d5c8b8;
+            --stat-border-style: solid;
+            --layout-gap: 20px;
+            --sidebar-width: 355px;
+            --letter-spacing: -0.3px;
+            --border-width: 1px;
+            --overlay-bg: rgba(26, 26, 46, 0.4);
+            --btn-shadow: 0 6px 20px rgba(232, 93, 58, 0.3);
+            --header-border: 1px solid #e8e0d8;
+            --panel-border: 1px solid #e8e0d8;
+            --tag-bg: #fef5f1;
+            --tag-color: #c94a2c;
+            --sort-arrow-color: #c5b8a8;
+            --scrollbar-thumb: #d5c8b8;
+            --table-header-bg: #fdfaf7;
+        }
+        [data-theme="8"] {
+            --bg: #0a0015;
+            --surface: #120022;
+            --text: #e0d0ff;
+            --text-secondary: #9b7ec4;
+            --accent: #ff2d95;
+            --accent-hover: #e00070;
+            --accent-soft: #1a0030;
+            --border: #3a1a6e;
+            --border-light: #200840;
+            --warning-bg: #2e0030;
+            --warning-border: #cc00aa;
+            --danger-text: #ff5555;
+            --danger-bg: #200010;
+            --danger-border: #660030;
+            --shadow-sm: 0 0 6px rgba(255, 45, 149, 0.3);
+            --shadow-md: 0 0 18px rgba(255, 45, 149, 0.4);
+            --shadow-lg: 0 0 40px rgba(180, 0, 255, 0.5);
+            --radius-sm: 4px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-btn: 16px;
+            --font-body: 'Inter', 'Rajdhani', system-ui, sans-serif;
+            --font-display: 'Orbitron', 'Rajdhani', sans-serif;
+            --header-bg: #120022;
+            --table-stripe-odd: #10001e;
+            --table-stripe-even: #120022;
+            --table-hover: #1a0035;
+            --input-bg: #0a0015;
+            --upload-dash: #5a2d8a;
+            --stat-border-style: solid;
+            --layout-gap: 14px;
+            --sidebar-width: 340px;
+            --letter-spacing: 0.5px;
+            --border-width: 1.5px;
+            --overlay-bg: rgba(5, 0, 20, 0.75);
+            --btn-shadow: 0 0 16px rgba(255, 45, 149, 0.5);
+            --header-border: 1.5px solid #3a1a6e;
+            --panel-border: 1.5px solid #3a1a6e;
+            --tag-bg: #2a0050;
+            --tag-color: #e0a0ff;
+            --sort-arrow-color: #6a3d99;
+            --scrollbar-thumb: #3a1a6e;
+            --table-header-bg: #10001e;
+        }
+        [data-theme="9"] {
+            --bg: #f7f4ef;
+            --surface: #fdfbf7;
+            --text: #3d3929;
+            --text-secondary: #8b8470;
+            --accent: #6b8f3b;
+            --accent-hover: #4a6d28;
+            --accent-soft: #f6f8f0;
+            --border: #d4ceb8;
+            --border-light: #ede8d8;
+            --warning-bg: #fefce8;
+            --warning-border: #e8d848;
+            --danger-text: #b8452e;
+            --danger-bg: #fef6f4;
+            --danger-border: #e8c8b8;
+            --shadow-sm: 0 1px 3px rgba(60, 50, 30, 0.05);
+            --shadow-md: 0 4px 14px rgba(60, 50, 30, 0.07);
+            --shadow-lg: 0 8px 28px rgba(60, 50, 30, 0.1);
+            --radius-sm: 20px;
+            --radius-md: 28px;
+            --radius-lg: 36px;
+            --radius-xl: 48px;
+            --radius-btn: 40px;
+            --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-display: 'Inter', system-ui, sans-serif;
+            --header-bg: #fdfbf7;
+            --table-stripe-odd: #f9f7f1;
+            --table-stripe-even: #fdfbf7;
+            --table-hover: #f4f1e8;
+            --input-bg: #fdfbf7;
+            --upload-dash: #c8c0a8;
+            --stat-border-style: solid;
+            --layout-gap: 18px;
+            --sidebar-width: 350px;
+            --letter-spacing: -0.2px;
+            --border-width: 1px;
+            --overlay-bg: rgba(40, 35, 25, 0.4);
+            --btn-shadow: 0 4px 12px rgba(107, 143, 59, 0.25);
+            --header-border: 1px solid #d4ceb8;
+            --panel-border: 1px solid #d4ceb8;
+            --tag-bg: #edf2e4;
+            --tag-color: #4a6d28;
+            --sort-arrow-color: #c8c0a8;
+            --scrollbar-thumb: #d4ceb8;
+            --table-header-bg: #f6f4ec;
+        }
+        [data-theme="10"] {
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --text: #000000;
+            --text-secondary: #555555;
+            --accent: #0055ff;
+            --accent-hover: #003dbb;
+            --accent-soft: #f5f7ff;
+            --border: #000000;
+            --border-light: #e5e5e5;
+            --warning-bg: #ffff00;
+            --warning-border: #000000;
+            --danger-text: #ff0000;
+            --danger-bg: #fff5f5;
+            --danger-border: #000000;
+            --shadow-sm: none;
+            --shadow-md: 4px 4px 0 #000000;
+            --shadow-lg: 8px 8px 0 #000000;
+            --radius-sm: 0px;
+            --radius-md: 0px;
+            --radius-lg: 0px;
+            --radius-xl: 0px;
+            --radius-btn: 0px;
+            --font-body: 'Helvetica Neue', 'Arial', 'Inter', sans-serif;
+            --font-display: 'Helvetica Neue', 'Arial', sans-serif;
+            --header-bg: #ffffff;
+            --table-stripe-odd: #fafafa;
+            --table-stripe-even: #ffffff;
+            --table-hover: #f0f4ff;
+            --input-bg: #ffffff;
+            --upload-dash: #000000;
+            --stat-border-style: solid;
+            --layout-gap: 16px;
+            --sidebar-width: 340px;
+            --letter-spacing: -0.5px;
+            --border-width: 2px;
+            --overlay-bg: rgba(0, 0, 0, 0.5);
+            --btn-shadow: 3px 3px 0 #000000;
+            --header-border: 2px solid #000000;
+            --panel-border: 2px solid #000000;
+            --tag-bg: #000000;
+            --tag-color: #ffffff;
+            --sort-arrow-color: #000000;
+            --scrollbar-thumb: #000000;
+            --table-header-bg: #f5f5f5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px 16px 32px;
+            -webkit-font-smoothing: antialiased;
+            color: var(--text);
+            line-height: 1.5;
+            letter-spacing: var(--letter-spacing);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .global-header {
+            max-width: 1300px;
+            width: 100%;
+            background: var(--header-bg);
+            border-radius: var(--radius-lg);
+            padding: 16px 22px;
+            box-shadow: var(--shadow-md);
+            border: var(--header-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 10;
+        }
+        .global-header .app-title {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--text);
+            letter-spacing: var(--letter-spacing);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-display);
+        }
+        .global-header .app-title .emoji {
+            font-size: 1.5rem;
+        }
+        .global-header .version-pill {
+            font-size: 0.65rem;
+            background: var(--tag-bg);
+            color: var(--tag-color);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .global-header .meta-info {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .global-header .meta-info .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--sort-arrow-color);
+        }
+
+        .theme-switcher {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--input-bg);
+            border-radius: var(--radius-btn);
+            padding: 3px 5px;
+            border: var(--border-width) solid var(--border);
+            flex-wrap: wrap;
+            transition: all 0.3s;
+        }
+        .theme-switcher .theme-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .theme-switcher .theme-dot:hover {
+            transform: scale(1.2);
+            border-color: var(--accent);
+        }
+        .theme-switcher .theme-dot.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+        .theme-switcher .theme-dot[data-t="1"] {
+            background: #e0e0e0;
+        }
+        .theme-switcher .theme-dot[data-t="2"] {
+            background: linear-gradient(135deg, #c8cdd3, #e8ecf1);
+        }
+        .theme-switcher .theme-dot[data-t="3"] {
+            background: #1e293b;
+        }
+        .theme-switcher .theme-dot[data-t="4"] {
+            background: #fdf6e3;
+        }
+        .theme-switcher .theme-dot[data-t="5"] {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        }
+        .theme-switcher .theme-dot[data-t="6"] {
+            background: #0a0e0a;
+        }
+        .theme-switcher .theme-dot[data-t="7"] {
+            background: #f5f0eb;
+        }
+        .theme-switcher .theme-dot[data-t="8"] {
+            background: #120022;
+        }
+        .theme-switcher .theme-dot[data-t="9"] {
+            background: #d4ceb8;
+        }
+        .theme-switcher .theme-dot[data-t="10"] {
+            background: #ffffff;
+            border: 2px solid #000;
+        }
+
+        .app-shell {
+            max-width: 1300px;
+            width: 100%;
+            display: flex;
+            gap: var(--layout-gap);
+            align-items: flex-start;
+            flex-wrap: wrap;
+            transition: gap 0.3s;
+        }
+
+        .sidebar {
+            flex: 0 0 var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            transition: flex-basis 0.3s;
+        }
+
+        .sidebar-panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px 20px;
+            box-shadow: var(--shadow-md);
+            border: var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all 0.3s;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: var(--letter-spacing);
+            font-family: var(--font-display);
+        }
+        .panel-title .icon-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .icon-circle.required {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border: 1.5px solid var(--danger-border);
+        }
+        .icon-circle.optional {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1.5px solid var(--border);
+        }
+        .badge-required {
+            font-size: 0.6rem;
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .badge-optional {
+            font-size: 0.6rem;
+            background: var(--accent-soft);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .upload-zone {
+            background: var(--input-bg);
+            border: 2px dashed var(--upload-dash);
+            border-radius: var(--radius-md);
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+        }
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        .upload-zone input {
+            display: none;
+        }
+        .upload-zone .upload-icon {
+            font-size: 1.6rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .upload-zone .upload-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+        .upload-zone .upload-hint {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            width: 100%;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .status-chip.idle {
+            background: var(--input-bg);
+            color: var(--text-secondary);
+            border: var(--border-width) solid var(--border);
+        }
+        .status-chip.success {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: var(--border-width) solid var(--border);
+        }
+        .status-chip.warning {
+            background: var(--warning-bg);
+            color: #a16207;
+            border: var(--border-width) solid var(--warning-border);
+        }
+        .status-chip.error {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            border: var(--border-width) solid var(--danger-border);
+        }
+
+        .btn-paste {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--surface);
+            border: var(--border-width) solid var(--border);
+            padding: 7px 15px;
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: var(--text);
+            transition: all var(--transition);
+        }
+        .btn-paste:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .select-row {
+            background: var(--input-bg);
+            border-radius: var(--radius-btn);
+            border: var(--border-width) solid var(--border);
+            padding: 4px 8px;
+            transition: all 0.3s;
+        }
+        .select-row select {
+            width: 100%;
+            padding: 7px 10px;
+            border: var(--border-width) solid var(--border);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--surface);
+            cursor: pointer;
+            color: var(--text);
+            transition: all 0.3s;
+        }
+        .select-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        .select-row select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--border-light);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px 20px;
+            border-radius: var(--radius-btn);
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            letter-spacing: var(--letter-spacing);
+            white-space: nowrap;
+            font-family: var(--font-body);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+            box-shadow: var(--btn-shadow);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-outline {
+            background: var(--surface);
+            border: var(--border-width) solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            border-color: var(--text-secondary);
+            background: var(--input-bg);
+        }
+        .btn-ghost {
+            background: transparent;
+            border: var(--border-width) solid transparent;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            font-size: 0.72rem;
+        }
+        .btn-ghost:hover {
+            background: var(--border-light);
+            color: var(--text);
+        }
+
+        .warn-text {
+            font-size: 0.68rem;
+            color: var(--danger-text);
+            background: var(--danger-bg);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: var(--border-width) solid var(--danger-border);
+            display: none;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .warn-text.visible {
+            display: block;
+        }
+        .info-text {
+            font-size: 0.68rem;
+            color: var(--accent);
+            background: var(--accent-soft);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: var(--border-width) solid var(--border);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.5;
+            transition: all 0.3s;
+        }
+        .info-text.visible {
+            display: flex;
+        }
+        .hint-text {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: center;
+            font-style: italic;
+        }
+
+        .main-area {
+            flex: 1 1 500px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .action-bar {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 12px 20px;
+            box-shadow: var(--shadow-sm);
+            border: var(--panel-border);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            transition: all 0.3s;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .param-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--input-bg);
+            padding: 6px 12px;
+            border-radius: var(--radius-btn);
+            border: var(--border-width) solid var(--border);
+            transition: all 0.3s;
+        }
+        .param-inline label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+        .param-inline input {
+            width: 70px;
+            padding: 6px 10px;
+            border: var(--border-width) solid var(--border);
+            border-radius: 20px;
+            text-align: center;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .stats-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .stat-tile {
+            flex: 1 1 80px;
+            min-width: 70px;
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 8px 4px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            border: var(--border-width) var(--stat-border-style) var(--border);
+            transition: all var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: default;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .stat-tile:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .stat-tile .tile-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .stat-tile .tile-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            line-height: 1.2;
+        }
+        .tile-value.green {
+            color: #059669;
+        }
+        .tile-value.red {
+            color: #dc2626;
+        }
+        .tile-value.teal {
+            color: var(--accent);
+        }
+        .stat-tile.accent-tile {
+            border-left: 3px solid var(--accent);
+        }
+
+        .table-container {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: var(--panel-border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 520px;
+            flex: 1 1 auto;
+            transition: all 0.3s;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .table-header-fixed {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            background: var(--table-header-bg);
+            border-bottom: 2px solid var(--border);
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .table-header-fixed th {
+            font-weight: 700;
+            text-align: center;
+            padding: 11px 6px;
+            font-size: 0.75rem;
+            letter-spacing: var(--letter-spacing);
+            white-space: nowrap;
+            border-right: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+            color: var(--text);
+            transition: all 0.2s;
+            font-family: var(--font-display);
+        }
+        .table-header-fixed th:hover {
+            background: var(--table-hover);
+        }
+        .table-header-fixed th:last-child {
+            border-right: none;
+        }
+        .table-header-fixed th:first-child {
+            text-align: right;
+            padding-right: 14px;
+        }
+        .table-header-fixed th:last-child {
+            text-align: left;
+            padding-left: 14px;
+        }
+
+        .table-scroll-body {
+            overflow-x: auto;
+            overflow-y: auto;
+            flex: 1 1 auto;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) transparent;
+        }
+        .table-scroll-body::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .table-scroll-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .table-scroll-body::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 10px;
+        }
+
+        .data-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            font-family: var(--font-body);
+        }
+        .data-table td {
+            padding: 9px 6px;
+            border-bottom: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+        .data-table td:last-child {
+            border-right: none;
+        }
+        .data-table td:first-child {
+            text-align: right;
+            padding-right: 14px;
+            font-weight: 600;
+            color: var(--text);
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
+        .data-table td:last-child {
+            text-align: left;
+            padding-left: 14px;
+            white-space: nowrap;
+        }
+        .data-table td:nth-child(2),
+        .data-table td:nth-child(3),
+        .data-table td:nth-child(4),
+        .data-table td:nth-child(5) {
+            text-align: center;
+            white-space: nowrap;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: var(--table-stripe-odd);
+        }
+        tbody tr:nth-child(even) {
+            background-color: var(--table-stripe-even);
+        }
+        tbody tr:hover {
+            background-color: var(--table-hover) !important;
+        }
+
+        .mono {
+            font-family: var(--font-mono);
+            font-weight: 500;
+        }
+        .cell-warn-highlight {
+            background-color: var(--warning-bg) !important;
+            border-radius: 2px;
+            font-weight: 700;
+        }
+        .cell-over-limit {
+            color: var(--danger-text) !important;
+            font-weight: 700;
+        }
+        .row-zero-history {
+            background-color: var(--danger-bg) !important;
+        }
+        .empty-state td {
+            text-align: center !important;
+            color: var(--text-secondary);
+            padding: 40px 10px !important;
+            font-size: 0.85rem;
+        }
+
+        .legend-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            padding: 6px 0;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 2px;
+            margin-right: 3px;
+        }
+        .legend-dot.l-yellow {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+        }
+        .legend-dot.l-red {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger-border);
+        }
+
+        .btn-share {
+            background: var(--accent-soft);
+            border: var(--border-width) solid var(--border);
+            color: var(--accent);
+        }
+        .btn-share:hover {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--overlay-bg);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            padding: 22px 20px;
+            width: 620px;
+            max-width: 93vw;
+            max-height: 85vh;
+            overflow: auto;
+            box-shadow: var(--shadow-lg);
+            border: var(--panel-border);
+        }
+        .modal-box textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            resize: vertical;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+        .modal-box textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+        .modal-meta {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+        .preview-table-wrap {
+            max-height: 260px;
+            overflow: auto;
+            background: var(--input-bg);
+            border-radius: var(--radius-sm);
+            padding: 8px;
+            border: var(--border-width) solid var(--border);
+        }
+        .mini-table {
+            width: 100%;
+            font-size: 0.68rem;
+            border-collapse: collapse;
+            background: var(--surface);
+        }
+        .mini-table th {
+            padding: 5px 4px;
+            background: var(--table-header-bg);
+            text-align: center;
+            border: 1px solid var(--border);
+            font-weight: 600;
+            color: var(--text);
+        }
+        .mini-table td {
+            padding: 4px;
+            text-align: center;
+            border: 1px solid var(--border-light);
+        }
+        .mini-table td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        .mini-table tr:nth-child(odd) {
+            background: var(--table-stripe-odd);
+        }
+
+        @media (max-width: 860px) {
+            body {
+                padding: 12px 10px 16px;
+            }
+            .app-shell {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: static;
+                flex: 1 1 auto;
+            }
+            .global-header .app-title {
+                font-size: 1.15rem;
+            }
+            .stat-tile {
+                flex: 0 0 calc(33% - 8px);
+                padding: 6px 4px;
+            }
+            .stat-tile .tile-value {
+                font-size: 1.4rem;
+            }
+            .table-container {
+                max-height: calc(100vh - 220px);
+            }
+            .table-header-fixed th,
+            .data-table td {
+                font-size: 0.55rem;
+                padding: 5px 2px;
+            }
+            .table-header-fixed th {
+                font-size: 0.5rem;
+            }
+            .data-table {
+                min-width: 100% !important;
+            }
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.72rem;
+            }
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .action-bar>* {
+                width: 100%;
+                justify-content: center;
+            }
+            .theme-switcher {
+                gap: 3px;
+                padding: 2px 4px;
+            }
+            .theme-switcher .theme-dot {
+                width: 17px;
+                height: 17px;
+            }
+            .global-header {
+                padding: 12px 14px;
+            }
+        }
+        @media (max-width: 480px) {
+            .stat-tile {
+                flex: 0 0 calc(50% - 6px);
+            }
+            .stat-tile .tile-value {
+                font-size: 1.2rem;
+            }
+            .global-header {
+                padding: 10px 12px;
+            }
+            .global-header .app-title {
+                font-size: 1rem;
+            }
+            .theme-switcher .theme-dot {
+                width: 15px;
+                height: 15px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="1">
+
+    <header class="global-header">
+        <span class="app-title"><span class="emoji">🛵</span>骑手单袋比 · 领用分析</span>
+        <div class="theme-switcher" title="切换主题风格">
+            <span style="font-size:0.65rem;color:var(--text-secondary);margin-right:2px;">主题</span>
+            <span class="theme-dot active" data-t="1" onclick="setTheme(1)" title="极简线性"></span>
+            <span class="theme-dot" data-t="2" onclick="setTheme(2)" title="新拟态"></span>
+            <span class="theme-dot" data-t="3" onclick="setTheme(3)" title="暗黑优雅"></span>
+            <span class="theme-dot" data-t="4" onclick="setTheme(4)" title="复古纸张"></span>
+            <span class="theme-dot" data-t="5" onclick="setTheme(5)" title="玻璃态"></span>
+            <span class="theme-dot" data-t="6" onclick="setTheme(6)" title="终端工业"></span>
+            <span class="theme-dot" data-t="7" onclick="setTheme(7)" title="杂志编辑"></span>
+            <span class="theme-dot" data-t="8" onclick="setTheme(8)" title="赛博朋克"></span>
+            <span class="theme-dot" data-t="9" onclick="setTheme(9)" title="自然大地"></span>
+            <span class="theme-dot" data-t="10" onclick="setTheme(10)" title="瑞士国际"></span>
+        </div>
+        <span class="version-pill">V9.0 十主题版</span>
+        <div class="meta-info">
+            <span id="metaOrders">单量: —</span>
+            <span class="dot"></span>
+            <span id="metaApply">申请: —</span>
+        </div>
+    </header>
+
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-panel">
+                <div class="panel-title" style="justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 7px;">
+                        <span class="icon-circle required">📦</span> 骑手单量 <span class="badge-required">必须</span>
+                    </span>
+                    <button class="btn btn-outline" id="btnClear" style="padding: 6px 14px; font-size: 0.7rem;">🗑️ 清空</button>
+                </div>
+                <div class="upload-zone" id="zoneOrders">
+                    <input type="file" id="inputOrders" accept=".xlsx,.xls,.csv">
+                    <span class="upload-icon">📎</span>
+                    <span class="upload-label">上传「配送员履约明细表」</span>
+                </div>
+                <div id="chipOrders" class="status-chip idle">⏳ 等待上传</div>
+            </div>
+            <div class="sidebar-panel">
+                <div class="panel-title"><span class="icon-circle required">📋</span> 当月申请数量 <span class="badge-required">必须</span></div>
+                <div class="upload-zone" id="zoneApply">
+                    <input type="file" id="inputApply" accept=".xlsx,.xls,.csv">
+                    <span class="upload-icon">📎</span>
+                    <span class="upload-label">上传「骑手单袋比明细」</span>
+                </div>
+                <div id="chipApply" class="status-chip idle">⏳ 等待上传</div>
+                <div class="select-row"><select id="selectRange" disabled><option>请先上传申请表格</option></select></div>
+                <div id="warnRange" class="warn-text">⚠️ 统计范围不匹配</div>
+                <div id="infoRange" class="info-text"></div>
+            </div>
+            <div class="sidebar-panel">
+                <div class="panel-title"><span class="icon-circle optional">📝</span> 当日申请数据 <span class="badge-optional">可选</span></div>
+                <button class="btn-paste" id="btnPaste">📋 粘贴数据（每组11行）</button>
+                <label class="checkbox-row"><input type="checkbox" id="chkExcludeRejected" checked>🚫 剔除审批「拒绝」的记录</label>
+                <div id="chipToday" class="status-chip idle">⚪ 尚未粘贴</div>
+                <div id="rejectNote" class="warn-text"></div>
+            </div>
+        </aside>
+
+        <main class="main-area">
+            <div class="action-bar">
+                <div class="param-inline"><label for="inputPeak">单袋比系数</label><input type="number" id="inputPeak" value="1.2" step="0.1" min="0"></div>
+                <button class="btn btn-primary" id="btnRun" disabled>🚀 生成报表</button>
+                <button class="btn btn-share" id="btnShare">📄 分享报告</button>
+                <span class="hint-text" id="hintStatus" style="margin-left:auto;">请先完成数据上传</span>
+            </div>
+            <div class="stats-strip" id="statsStrip" style="display:none;">
+                <div class="stat-tile accent-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green" id="valTotalNeed">0</div></div>
+                <div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red" id="valTotalOver">0</div></div>
+                <div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal" id="valNeedRiders">0</div></div>
+                <div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red" id="valOverRiders">0</div></div>
+                <div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal" id="valHistRatio">0.00</div></div>
+                <div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal" id="valCurrRatio">0.00</div></div>
+            </div>
+            <div class="table-container">
+                <table class="table-header-fixed">
+                    <colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup>
+                    <thead><tr>
+                            <th data-sort-col="name">骑手</th>
+                            <th data-sort-col="orders">总单量</th>
+                            <th data-sort-col="history">当月申请</th>
+                            <th data-sort-col="today">今日申请</th>
+                            <th data-sort-col="ratio">单袋比</th>
+                            <th data-sort-col="diff">差异</th>
+                    </tr></thead>
+                </table>
+                <div class="table-scroll-body">
+                    <table class="data-table">
+                        <colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup>
+                        <tbody id="tableBody"><tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="legend-strip">
+                <span><span class="legend-dot l-yellow"></span> 需补 &gt; 50 高亮</span>
+                <span style="color:var(--danger-text);font-weight:600;">● 差异 &lt; 0 超标</span>
+                <span><span class="legend-dot l-red"></span> 当月申请 = 0 标红行</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            const state = {
+                ordersMap: new Map(),
+                rawApplyData: [],
+                applyRanges: new Set(),
+                applyDates: new Set(),
+                historyApplyMap: new Map(),
+                todayApplyMap: new Map(),
+                todayTotal: 0,
+                todayRejected: 0,
+                todayValid: 0,
+                selectedRange: '',
+                isRangeValid: false,
+                tableData: [],
+                sortColumn: 'diff',
+                sortDirection: 'desc',
+            };
+            const $ = id => document.getElementById(id);
+            const zoneOrders = $('zoneOrders'),
+                inputOrders = $('inputOrders'),
+                chipOrders = $('chipOrders');
+            const zoneApply = $('zoneApply'),
+                inputApply = $('inputApply'),
+                chipApply = $('chipApply');
+            const selectRange = $('selectRange'),
+                warnRange = $('warnRange'),
+                infoRange = $('infoRange');
+            const btnPaste = $('btnPaste'),
+                chkExcludeRejected = $('chkExcludeRejected'),
+                chipToday = $('chipToday'),
+                rejectNote = $('rejectNote');
+            const inputPeak = $('inputPeak'),
+                btnRun = $('btnRun'),
+                btnClear = $('btnClear'),
+                hintStatus = $('hintStatus');
+            const metaOrders = $('metaOrders'),
+                metaApply = $('metaApply');
+            const statsStrip = $('statsStrip'),
+                valTotalNeed = $('valTotalNeed'),
+                valTotalOver = $('valTotalOver'),
+                valNeedRiders = $('valNeedRiders'),
+                valOverRiders = $('valOverRiders'),
+                valHistRatio = $('valHistRatio'),
+                valCurrRatio = $('valCurrRatio');
+            const btnShare = $('btnShare'),
+                tableBody = $('tableBody');
+
+            const getLatestDate = s => s?.size ? [...s].sort().pop() : '';
+            const formatDate = d => d?.length === 8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
+            const expectedRange = d => d?.length === 8 ? `${d.slice(0,4)}${d.slice(4,6)}01~${d}` : '';
+            const escapeHtml = str => { const d = document.createElement('div');
+                d.textContent = str; return d.innerHTML; };
+
+            function filterHistoryByRange(range) {
+                if (!range || !state.rawApplyData.length) { state.historyApplyMap = new Map(); return; }
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                const res = new Map();
+                state.rawApplyData.forEach(r => { if (r.range === range || r.range === exp) res.set(r.name, (
+                        res.get(r.name) || 0) + r.qty); });
+                state.historyApplyMap = res;
+            }
+
+            function updateRangeSelect() {
+                if (!state.applyRanges.size) {
+                    selectRange.disabled = true;
+                    selectRange.innerHTML = '<option>请先上传申请表格</option>';
+                    state.isRangeValid = false;
+                    warnRange.classList.remove('visible');
+                    infoRange.classList.remove('visible');
+                    return;
+                }
+                selectRange.disabled = false;
+                const exp = expectedRange(getLatestDate(state.applyDates));
+                let html = '',
+                    hasValid = false;
+                [...state.applyRanges].sort().forEach(r => {
+                    const ok = r === exp;
+                    if (ok) hasValid = true;
+                    html +=
+                        `<option value="${escapeHtml(r)}" ${ok?'selected':''}>${escapeHtml(r)} ${ok?'✓ 有效':'✗ 无效'}</option>`;
+                });
+                selectRange.innerHTML = html;
+                if (hasValid) {
+                    state.selectedRange = exp;
+                    state.isRangeValid = true;
+                    warnRange.classList.remove('visible');
+                    infoRange.classList.add('visible');
+                    infoRange.innerHTML =
+                        `✅ 有效统计范围: ${escapeHtml(exp)}<br>最新日期: ${escapeHtml(formatDate(getLatestDate(state.applyDates)))}`;
+                    filterHistoryByRange(exp);
+                } else {
+                    state.selectedRange = selectRange.value;
+                    state.isRangeValid = false;
+                    warnRange.classList.add('visible');
+                    warnRange.textContent = `⚠️ 统计范围不匹配！期望: ${exp}`;
+                    infoRange.classList.remove('visible');
+                    state.historyApplyMap.clear();
+                }
+                refreshApplyChip();
+            }
+
+            function refreshAllChips() {
+                if (state.ordersMap.size) {
+                    const t = [...state.ordersMap.values()].reduce((a, b) => a + b, 0);
+                    chipOrders.className = 'status-chip success';
+                    chipOrders.textContent = `✅ 已加载 ${state.ordersMap.size} 人 · 总单量 ${t.toFixed(0)}`;
+                    metaOrders.textContent = `单量: ${state.ordersMap.size}人 / ${t.toFixed(0)}单`;
+                } else { chipOrders.className = 'status-chip idle';
+                    chipOrders.textContent = '⏳ 等待上传';
+                    metaOrders.textContent = '单量: —'; }
+                refreshApplyChip();
+                if (!state.historyApplyMap.size && state.applyRanges.size && !state.isRangeValid) { chipApply.className =
+                        'status-chip warning';
+                    chipApply.textContent = '⚠️ 范围无效，请检查'; }
+                if (state.todayApplyMap.size) {
+                    let txt =
+                        `✅ 当日申请 ${state.todayApplyMap.size}人 · 总数 ${[...state.todayApplyMap.values()].reduce((a,b)=>a+b,0).toFixed(0)}`;
+                    if (chkExcludeRejected.checked && state.todayRejected) txt += ` (已剔除拒绝 ${state.todayRejected})`;
+                    chipToday.className = 'status-chip success';
+                    chipToday.textContent = txt;
+                    if (chkExcludeRejected.checked && state.todayRejected) { rejectNote.classList.add('visible');
+                        rejectNote.textContent = `🚫 已剔除 ${state.todayRejected} 条拒绝记录`; } else rejectNote.classList
+                        .remove('visible');
+                } else { chipToday.className = 'status-chip idle';
+                    chipToday.textContent = '⚪ 尚未粘贴';
+                    rejectNote.classList.remove('visible'); }
+                updateMetaApply();
+                updateRunButton();
+            }
+
+            function refreshApplyChip() {
+                if (state.historyApplyMap.size && state.isRangeValid) {
+                    const t = [...state.historyApplyMap.values()].reduce((a, b) => a + b, 0);
+                    chipApply.className = 'status-chip success';
+                    chipApply.textContent = `✅ 当月申请总数 ${t.toFixed(0)} · ${state.historyApplyMap.size}人`;
+                } else if (!state.applyRanges.size) { chipApply.className = 'status-chip idle';
+                    chipApply.textContent = '⏳ 等待上传'; }
+            }
+
+            function updateMetaApply() {
+                if (state.historyApplyMap.size && state.isRangeValid) {
+                    const t = [...state.historyApplyMap.values()].reduce((a, b) => a + b, 0);
+                    metaApply.textContent = `申请: ${state.historyApplyMap.size}人 / ${t.toFixed(0)}件`;
+                } else metaApply.textContent = '申请: —';
+            }
+
+            function updateRunButton() {
+                const ok = state.ordersMap.size && state.historyApplyMap.size && state.isRangeValid;
+                btnRun.disabled = !ok;
+                hintStatus.textContent = !ok ? (state.ordersMap.size && state.historyApplyMap.size ?
+                    '⚠️ 请选择正确的统计范围' : '⏳ 请先完成数据上传') : '✅ 数据就绪';
+            }
+
+            function parseOrdersFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        if (rows.length < 2) reject(new Error('至少两行数据'));
+                        const h = rows[1].map(c => String(c || '').trim());
+                        let ni = -1,
+                            qi = -1;
+                        h.forEach((c, i) => { if (c === '配送员名字') ni = i; if (c === '总签收单量') qi = i; });
+                        if (ni === -1 || qi === -1) reject(new Error('缺少必要列'));
+                        const map = new Map();
+                        for (let i = 2; i < rows.length; i++) { const r = rows[i]; if (!r) continue; const n = String(r[
+                            ni] || '').trim(); if (!n) continue;
+                            map.set(n, (map.get(n) || 0) + (parseFloat(r[qi]) || 0)); }
+                        resolve(map);
+                    };
+                    reader.onerror = () => reject(new Error('读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function parseApplyFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        if (!rows.length) reject(new Error('空表格'));
+                        const h = rows[0].map(c => String(c || '').trim());
+                        let ni = -1,
+                            qi = -1,
+                            ri = -1,
+                            di = -1;
+                        h.forEach((c, i) => { if (c === '骑手姓名') ni = i; if (c === '确认申领商品数量') qi = i; if (c ===
+                                '统计范围') ri = i; if (c === '统计日期') di = i; });
+                        if (ni === -1 || qi === -1) reject(new Error('缺少必要列'));
+                        const ranges = new Set(),
+                            dates = new Set(),
+                            raw = [];
+                        for (let i = 1; i < rows.length; i++) { const r = rows[i]; if (!r) continue; const n = String(r[
+                            ni] || '').trim(); if (!n) continue; const q = parseFloat(r[qi]) || 0; const range = ri !==
+                                -1 && r[ri] ? String(r[ri]).trim() : ''; const date = di !== -1 && r[di] ? String(r[
+                                di
+                            ]).trim() : '';
+                            raw.push({ name: n, qty: q, range, date }); if (range) ranges.add(range); if (date) dates.add(
+                                date); }
+                        resolve({ rawData: raw, ranges, dates });
+                    };
+                    reader.onerror = () => reject(new Error('读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function parseDailyPaste(text, exclude) {
+                const lines = text.split(/\r?\n/).filter(l => l.trim());
+                const map = new Map(),
+                    details = [];
+                let total = 0,
+                    rej = 0,
+                    valid = 0;
+                for (let i = 0; i + 11 <= lines.length; i += 11) {
+                    total++;
+                    const g = lines.slice(i, i + 11),
+                        n = g[3]?.trim(),
+                        q = parseFloat(g[6]),
+                        s = g[7]?.trim();
+                    if (exclude && s === '拒绝') { rej++;
+                        details.push({ name: n, qty: q, status: s, valid: false }); continue; }
+                    if (n && !isNaN(q) && q > 0) { map.set(n, (map.get(n) || 0) + q);
+                        valid++;
+                        details.push({ name: n, qty: q, status: s, valid: true }); }
+                }
+                return { map, total, rejected: rej, valid, details };
+            }
+
+            function openPasteModal() {
+                document.querySelector('.modal-overlay')?.remove();
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `<div class="modal-box"><h3>粘贴当日申请数据</h3><p style="font-size:0.7rem;">每组11行：第4行=姓名 / 第7行=数量 / 第8行=状态</p><textarea id="pasteTextarea" rows="10"></textarea><div class="modal-meta"><span>📊 <strong id="modalLineCount">0</strong>行 / <strong id="modalGroupCount">0</strong>组</span></div><label class="checkbox-row"><input type="checkbox" id="modalExcludeChk" ${chkExcludeRejected.checked?'checked':''}>剔除拒绝</label><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost" id="modalCancel">取消</button><button class="btn btn-outline" id="modalPreview">预览</button><button class="btn btn-primary" id="modalConfirm">导入</button></div><div id="modalPreviewArea" style="display:none;margin-top:8px;"><div class="preview-table-wrap" id="modalPreviewContent"></div></div></div>`;
+                document.body.appendChild(overlay);
+                const ta = document.getElementById('pasteTextarea'),
+                    lc = document.getElementById('modalLineCount'),
+                    gc = document.getElementById('modalGroupCount');
+                const chk = document.getElementById('modalExcludeChk'),
+                    prevArea = document.getElementById('modalPreviewArea'),
+                    prevContent = document.getElementById('modalPreviewContent');
+                let parsed = null;
+                const upd = () => { const l = ta.value.split(/\r?\n/).filter(l => l.trim());
+                    lc.textContent = l.length;
+                    gc.textContent = Math.floor(l.length / 11); };
+                ta.addEventListener('input', upd);
+                upd();
+                document.getElementById('modalCancel').onclick = () => overlay.remove();
+                document.getElementById('modalPreview').onclick = () => {
+                    parsed = parseDailyPaste(ta.value, chk.checked);
+                    const { total, rejected, valid, details } = parsed;
+                    let html =
+                        `<div style="font-size:0.7rem;">📊 总组数:${total} | 有效:${valid}`;
+                    if (chk.checked && rejected) html +=
+                        ` | <span style="color:var(--danger-text);">已剔除拒绝:${rejected}</span>`;
+                    html +=
+                        '</div><table class="mini-table"><thead><tr><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>';
+                    const vd = details.filter(d => d.valid);
+                    if (!vd.length) html += '<tr><td colspan="3">暂无有效数据</td></tr>';
+                    else { const sm = new Map();
+                        vd.forEach(d => sm.set(d.name, (sm.get(d.name) || 0) + d.qty));
+                        let tq = 0;
+                        [...sm.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([n, q]) => { html +=
+                                `<tr><td>${escapeHtml(n)}</td><td class="mono">${q}</td><td>有效</td></tr>`;
+                            tq += q; });
+                        html +=
+                            `<tr><td><strong>合计</strong></td><td class="mono"><strong>${tq}</strong></td><td></td></tr>`; }
+                    if (chk.checked && rejected) { const rd = details.filter(d => !d.valid); if (rd.length) { html +=
+                            '<tr><td colspan="3" style="color:var(--danger-text);">已剔除的拒绝记录:</td></tr>';
+                            rd.forEach(d => { html +=
+                                `<tr style="color:var(--text-secondary);"><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`; }); } }
+                    html += '</tbody></table>';
+                    prevContent.innerHTML = html;
+                    prevArea.style.display = 'block';
+                };
+                document.getElementById('modalConfirm').onclick = () => {
+                    if (!parsed) parsed = parseDailyPaste(ta.value, chk.checked);
+                    if (!parsed.map.size) { alert('无有效数据'); return; }
+                    state.todayApplyMap = parsed.map;
+                    state.todayTotal = parsed.total;
+                    state.todayRejected = parsed.rejected;
+                    chkExcludeRejected.checked = chk.checked;
+                    refreshAllChips(); if (state.tableData.length) renderTable();
+                    overlay.remove();
+                };
+                overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+            }
+
+            function sortTableData(data, col, dir) {
+                return [...data].sort((a, b) => col === 'name' ? (dir === 'asc' ? a.name.localeCompare(b.name, 'zh') : b
+                    .name.localeCompare(a.name, 'zh')) : (dir === 'asc' ? (a[col] || 0) - (b[col] || 0) : (b[col] || 0) - (
+                    a[col] || 0)));
+            }
+
+            function syncColumnWidths() {
+                const headerTable = document.querySelector('.table-header-fixed');
+                const scrollBody = document.querySelector('.table-scroll-body');
+                if (!headerTable || !scrollBody) return;
+                headerTable.style.width = scrollBody.clientWidth + 'px';
+            }
+
+            function renderTable() {
+                if (!state.isRangeValid) { alert('统计范围不匹配'); return; }
+                const p = parseFloat(inputPeak.value) || 1.2;
+                const all = new Set([...state.ordersMap.keys(), ...state.historyApplyMap.keys(), ...state.todayApplyMap
+                    .keys()
+                ]);
+                state.tableData = [];
+                all.forEach(n => {
+                    const o = state.ordersMap.get(n) || 0,
+                        h = state.historyApplyMap.get(n) || 0,
+                        t = state.todayApplyMap.get(n) || 0;
+                    state.tableData.push({ name: n, orders: o, history: h, today: t, ratio: o ? (h + t) / o : 0,
+                        diff: o * p - h - t });
+                });
+                state.tableData = sortTableData(state.tableData, state.sortColumn, state.sortDirection);
+                let html = '';
+                state.tableData.forEach(r => {
+                    const d = r.diff,
+                        intDiff = d > 0 ? Math.floor(d) : Math.ceil(d),
+                        diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` : '0');
+                    const rowClass = r.history === 0 ? 'row-zero-history' : '',
+                        cellClass = d < 0 ? 'cell-over-limit' : (intDiff > 50 ? 'cell-warn-highlight' : '');
+                    html +=
+                        `<tr class="${rowClass}"><td>${escapeHtml(r.name)}</td><td class="mono">${r.orders.toFixed(0)}</td><td class="mono">${r.history.toFixed(0)}</td><td class="mono">${r.today.toFixed(0)}</td><td class="mono">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono ${cellClass}">${diffStr}</td></tr>`;
+                });
+                tableBody.innerHTML = html || '<tr class="empty-state"><td colspan="6">无数据</td></tr>';
+                updateStatsCards();
+                requestAnimationFrame(syncColumnWidths);
+            }
+
+            function updateStatsCards() {
+                if (!state.tableData.length) { statsStrip.style.display = 'none'; return; }
+                let tn = 0,
+                    to = 0,
+                    nr = 0,
+                    oR = 0,
+                    so = 0,
+                    sh = 0,
+                    st = 0;
+                state.tableData.forEach(r => {
+                    so += r.orders;
+                    sh += r.history;
+                    st += r.today;
+                    if (r.diff > 0) { tn += r.diff;
+                        nr++; } else if (r.diff < 0) { to += Math.abs(r.diff);
+                        oR++; }
+                });
+                valTotalNeed.textContent = Math.floor(tn);
+                valTotalOver.textContent = Math.floor(to);
+                valNeedRiders.textContent = nr;
+                valOverRiders.textContent = oR;
+                valHistRatio.textContent = (so ? sh / so : 0).toFixed(2);
+                valCurrRatio.textContent = (so ? (sh + st) / so : 0).toFixed(2);
+                statsStrip.style.display = 'flex';
+            }
+
+            function generateShareReport() {
+                if (!state.tableData.length) { alert('请先生成报表'); return; }
+                const now = new Date().toLocaleString('zh-CN', { hour12: false }),
+                    peakVal = (parseFloat(inputPeak.value) || 1.2).toFixed(2);
+                const sorted = [...state.tableData].sort((a, b) => b.diff - a.diff);
+                let rowsHtml = '';
+                sorted.forEach(r => {
+                    const d = r.diff,
+                        intDiff = d > 0 ? Math.floor(d) : Math.ceil(d),
+                        diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` : '0');
+                    rowsHtml +=
+                        `<tr class="${r.history===0?'row-zero-history':''}"><td>${escapeHtml(r.name)}</td><td class="mono">${r.orders.toFixed(0)}</td><td class="mono">${r.history.toFixed(0)}</td><td class="mono">${r.today.toFixed(0)}</td><td class="mono">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono ${d<0?'cell-over-limit':(intDiff>50?'cell-warn-highlight':'')}">${diffStr}</td></tr>`;
+                });
+                const currentTheme = document.body.getAttribute('data-theme') || '1';
+                const reportHtml =
+                    `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>单袋比领用报告</title><link rel="stylesheet" href="data:text/css;base64, placeholder"><style>:root{--bg:#f9fafb;--surface:#fff;--text:#1e293b;--text-secondary:#64748b;--accent:#0d9488;--border:#e2e8f0;--warning-bg:#fef9c3;--danger-text:#dc2626;--danger-bg:#fef2f2;--shadow-md:0 4px 16px rgba(0,0,0,0.06);--radius-lg:20px;--radius-md:14px;}*{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;height:100vh;padding:20px 16px;overflow:hidden;color:var(--text);-webkit-font-smoothing:antialiased;user-select:none!important;}.report-wrapper{max-width:1100px;width:100%;height:100%;display:flex;flex-direction:column;gap:14px;}.report-wrapper h2{font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:6px;}.meta-line{font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;}.stats-strip{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;flex-shrink:0;}.stat-tile{flex:0 0 calc(16.666% - 10px);min-width:70px;background:var(--surface);border-radius:var(--radius-md);padding:8px 4px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.04);border:1px solid var(--border);}.stat-tile .tile-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);}.stat-tile .tile-value{font-size:2rem;font-weight:700;font-family:'JetBrains Mono',monospace;}.tile-value.green{color:#059669;}.tile-value.red{color:#dc2626;}.tile-value.teal{color:#0d9488;}.table-container{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}.table-header-fixed{width:100%;table-layout:fixed;border-collapse:collapse;background:#f8fafc;border-bottom:2px solid var(--border);flex-shrink:0;}.table-header-fixed th{font-weight:700;text-align:center;padding:11px 6px;font-size:0.75rem;white-space:nowrap;border-right:1px solid var(--border);color:#475569;}.table-header-fixed th:last-child{border-right:none;}.table-header-fixed th:first-child{text-align:right;padding-right:14px;}.table-header-fixed th:last-child{text-align:left;padding-left:14px;}.table-scroll-body{overflow-x:auto;overflow-y:auto;flex:1 1 auto;min-height:0;scrollbar-width:thin;}.data-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.8rem;min-width:700px;}.data-table td{padding:9px 6px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;vertical-align:middle;}.data-table td:last-child{border-right:none;}.data-table td:first-child{text-align:right;padding-right:14px;font-weight:600;white-space:normal;overflow-wrap:break-word;}.data-table td:last-child{text-align:left;padding-left:14px;white-space:nowrap;}.data-table td:nth-child(2),.data-table td:nth-child(3),.data-table td:nth-child(4),.data-table td:nth-child(5){text-align:center;white-space:nowrap;}tbody tr:nth-child(odd){background:#fafcfd;}tbody tr:nth-child(even){background:#fff;}.mono{font-family:'JetBrains Mono',monospace;font-weight:500;}.cell-warn-highlight{background-color:#fef9c3!important;font-weight:700;}.cell-over-limit{color:#dc2626!important;font-weight:700;}.row-zero-history{background-color:#fef2f2!important;}.legend-strip{display:flex;align-items:center;justify-content:center;gap:16px;font-size:0.68rem;color:#64748b;padding:6px 0;flex-shrink:0;}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;}.legend-dot.yellow{background:#fef9c3;border:1px solid #fde047;}.legend-dot.red{background:#fef2f2;border:1px solid #fecaca;}@media(max-width:768px){.stat-tile{flex:0 0 calc(25% - 10px);}.stat-tile .tile-value{font-size:1.4rem;}.stat-tile .tile-label{font-size:0.65rem;}.table-header-fixed th,.data-table td{font-size:0.62rem;padding:5px 2px;}.data-table{min-width:100%!important;}}@media(max-width:480px){.stat-tile{flex:0 0 calc(50% - 8px);}.stat-tile .tile-value{font-size:1.2rem;}}</style></head><body><div class="report-wrapper"><h2>🛵 骑手单袋比领用报告</h2><div class="meta-line"><span>生成时间：<strong>${now}</strong></span><span>单袋比系数：<strong>${peakVal}</strong></span><span>主题：<strong>${currentTheme}</strong></span></div><div class="stats-strip"><div class="stat-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green">${valTotalNeed.textContent}</div></div><div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red">${valTotalOver.textContent}</div></div><div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal">${valNeedRiders.textContent}</div></div><div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red">${valOverRiders.textContent}</div></div><div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal">${valHistRatio.textContent}</div></div><div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal">${valCurrRatio.textContent}</div></div></div><div class="table-container"><table class="table-header-fixed"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><thead><tr><th>骑手</th><th>总单量</th><th>当月申请</th><th>今日申请</th><th>单袋比</th><th>差异</th></tr></thead></table><div class="table-scroll-body"><table class="data-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><tbody>${rowsHtml}</tbody></table></div></div><div class="legend-strip"><span><span class="legend-dot yellow"></span>需补&gt;50高亮</span><span style="color:#dc2626;">●差异&lt;0超标</span><span><span class="legend-dot red"></span>当月申请=0标红</span></div></div><script>document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('copy',e=>e.preventDefault());<\/script></body></html>`;
+                const blob = new Blob([reportHtml], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `单袋比报告-${new Date().toISOString().slice(0,10)}.html`;
+                a.click();
+            }
+
+            window.setTheme = function(t) {
+                document.body.setAttribute('data-theme', String(t));
+                document.querySelectorAll('.theme-switcher .theme-dot').forEach(d => d.classList.remove(
+                    'active'));
+                const dot = document.querySelector(`.theme-switcher .theme-dot[data-t="${t}"]`);
+                if (dot) dot.classList.add('active');
+                try { localStorage.setItem('bag-ratio-theme', String(t)); } catch (e) {}
+                requestAnimationFrame(syncColumnWidths);
+            };
+
+            const savedTheme = (() => { try { return localStorage.getItem('bag-ratio-theme'); } catch (e) { return null; } })();
+            if (savedTheme && ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(savedTheme)) {
+                setTheme(parseInt(savedTheme));
+            } else { setTheme(1); }
+
+            inputOrders.addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { state
+                        .ordersMap = await parseOrdersFile(f);
+                    refreshAllChips(); if (state.tableData.length) renderTable(); } catch (er) { alert(er
+                    .message); }
+                inputOrders.value = ''; });
+            inputApply.addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { const res =
+                        await parseApplyFile(f);
+                    state.rawApplyData = res.rawData;
+                    state.applyRanges = res.ranges;
+                    state.applyDates = res.dates;
+                    updateRangeSelect();
+                    refreshAllChips(); if (state.tableData.length) renderTable(); } catch (er) { alert(er
+                    .message); }
+                inputApply.value = ''; });
+            zoneOrders.addEventListener('click', () => inputOrders.click());
+            zoneApply.addEventListener('click', () => inputApply.click());
+            selectRange.addEventListener('change', () => { const sel = selectRange.value,
+                    exp = expectedRange(getLatestDate(state.applyDates));
+                state.selectedRange = sel;
+                state.isRangeValid = sel === exp; if (state.isRangeValid) { warnRange.classList.remove('visible');
+                    infoRange.classList.add('visible');
+                    infoRange.innerHTML =
+                        `✅ 有效统计范围: ${escapeHtml(exp)}<br>最新日期: ${escapeHtml(formatDate(getLatestDate(state.applyDates)))}`;
+                    filterHistoryByRange(sel); } else { warnRange.classList.add('visible');
+                    infoRange.classList.remove('visible');
+                    state.historyApplyMap.clear(); }
+                refreshAllChips(); if (state.tableData.length && state.isRangeValid) renderTable(); else if (!state
+                    .isRangeValid) { tableBody.innerHTML =
+                    '<tr class="empty-state"><td colspan="6">⚠️ 请选择正确的统计范围</td></tr>';
+                    statsStrip.style.display = 'none';
+                    state.tableData = []; } });
+            btnPaste.addEventListener('click', openPasteModal);
+            btnRun.addEventListener('click', renderTable);
+            btnClear.addEventListener('click', () => { state.ordersMap.clear();
+                state.rawApplyData = [];
+                state.applyRanges.clear();
+                state.applyDates.clear();
+                state.historyApplyMap.clear();
+                state.todayApplyMap.clear();
+                state.tableData = [];
+                state.isRangeValid = false;
+                selectRange.disabled = true;
+                selectRange.innerHTML = '<option>请先上传申请表格</option>';
+                tableBody.innerHTML =
+                    '<tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr>';
+                statsStrip.style.display = 'none';
+                refreshAllChips();
+                inputPeak.value = '1.2';
+                chkExcludeRejected.checked = true;
+                chipOrders.className = 'status-chip idle';
+                chipOrders.textContent = '⏳ 等待上传';
+                chipApply.className = 'status-chip idle';
+                chipApply.textContent = '⏳ 等待上传';
+                chipToday.className = 'status-chip idle';
+                chipToday.textContent = '⚪ 尚未粘贴';
+                metaOrders.textContent = '单量: —';
+                metaApply.textContent = '申请: —';
+                hintStatus.textContent = '请先完成数据上传'; });
+            document.querySelectorAll('.table-header-fixed th[data-sort-col]').forEach(th => { th.addEventListener('click',
+                    () => { const col = th.dataset.sortCol; if (!col) return; if (state.sortColumn === col) state
+                            .sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc'; else { state
+                            .sortColumn = col;
+                        state.sortDirection = 'desc'; } if (state.tableData.length) renderTable(); }); });
+            btnShare.addEventListener('click', generateShareReport);
+            window.addEventListener('resize', () => { if (state.tableData.length) requestAnimationFrame(
+                    syncColumnWidths); });
+            inputPeak.value = '1.2';
+            chkExcludeRejected.checked = true;
+            selectRange.disabled = true;
+            refreshAllChips();
+            hintStatus.textContent = '请先完成数据上传';
+        })();
+    </script>
+</body>
+</html>
