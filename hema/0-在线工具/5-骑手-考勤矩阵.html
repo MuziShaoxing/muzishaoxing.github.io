@@ -511,7 +511,7 @@
                 if (!name) continue;
                 let riderId = riderIdCol ? String(row[riderIdCol]||'').trim() : '';
                 let isCancelled = false;
-                if (statusCol) { const str = String(row[statusCol]||'').trim().toLowerCase(); if (str === '1' || str === '取消' || str === '已取消') isCancelled = true; }
+                if (statusCol) { const str = String(row[statusCol]||'').trim().toLowerCase(); if (str === '1' || str === '1.00' || str === '已取消') isCancelled = true; }
                 if (isCancelled) { cancelled++; records.push({ displayName: name, riderId, start:null, end:null, status:1, date:null, shiftType:null }); continue; }
                 const s = parseTime(row[startCol]), e = parseTime(row[endCol]);
                 if (s==null || e==null) continue;

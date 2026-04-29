@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>骑手考勤与订单管理｜明细表格优化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <style>
+        :root {
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --primary: #4361ee;
+            --primary-light: #eef2ff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.04);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg); color: var(--text); line-height:1.5; min-height:100vh;
+            -webkit-text-size-adjust: 100%;
+            overflow-x: hidden;
+        }
+        .container { max-width:1440px; margin:0 auto; padding:10px 6px 48px; }
+
+        /* 手机端 */
+        .header { text-align:center; padding:18px 6px 10px; }
+        .header .icon-circle {
+            display:inline-flex; align-items:center; justify-content:center;
+            width:40px; height:40px; border-radius:50%;
+            background: linear-gradient(135deg, #4361ee, #5e7ce2);
+            margin-bottom:8px; box-shadow:0 4px 12px rgba(67,97,238,0.2);
+        }
+        .header .icon-circle svg { width:20px; height:20px; fill:#fff; }
+        .header h1 { font-size:1.2rem; font-weight:700; color:#0f172a; }
+        .header .subtitle { font-size:0.7rem; color:var(--text-secondary); margin-top:2px; }
+
+        .upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+
+        .upload-card {
+            background: var(--card-bg); border-radius:var(--radius); padding:10px 8px;
+            box-shadow: var(--shadow); border:1px solid #e2e8f0; transition:all 0.2s;
+            cursor:pointer; position:relative; text-align:center; min-height:90px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+        }
+        .upload-card:hover { border-color: #cbd5e1; background:#fafbfe; }
+        .upload-card.loaded { border-color:var(--success); background:#f6fdf9; }
+        .upload-card .upload-icon {
+            width:26px; height:26px; border-radius:50%; background:#eef2ff;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .upload-card.loaded .upload-icon { background:#e6f7ed; }
+        .upload-card .upload-icon svg { width:14px; height:14px; fill:var(--primary); }
+        .upload-card.loaded .upload-icon svg { fill:var(--success); }
+        .upload-card h3 { font-size:0.72rem; font-weight:600; color:var(--text); }
+        .upload-card p { font-size:0.6rem; color:var(--text-secondary); margin:0; max-width:180px; line-height:1.3; }
+        .upload-card .badge {
+            display:inline-block; padding:1px 8px; border-radius:12px; font-size:0.55rem;
+            font-weight:500; background:#eef2ff; color:var(--primary); margin-top:1px;
+        }
+        .upload-card.loaded .badge { background:#e6f7ed; color:var(--success); }
+        .upload-card .file-info { font-size:0.55rem; color:var(--success); font-weight:500; display:none; margin-top:1px; }
+        .upload-card.loaded .file-info { display:block; }
+        .upload-card input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; z-index:2; }
+        .upload-card .remove-btn {
+            display:none; position:absolute; top:4px; right:6px; z-index:3;
+            background:#fff; border:1px solid #ddd; border-radius:50%; width:18px; height:18px;
+            cursor:pointer; font-size:10px; line-height:16px; text-align:center; color:#999;
+        }
+        .upload-card.loaded .remove-btn { display:block; }
+
+        .mapping-bar {
+            background:#fff; border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:14px;
+            box-shadow:var(--shadow); font-size:0.6rem; display:flex; flex-wrap:wrap; gap:6px;
+            align-items:center; color:var(--text-secondary);
+        }
+        .mapping-tag {
+            display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px;
+            background:#f1f5f9; font-size:0.6rem; font-weight:500;
+        }
+        .mapping-tag.matched { background:#e6f7ed; color:#15803d; }
+        .mapping-tag.unmatched { background:#fef2f2; color:#b91c1c; }
+        .mapping-dot { width:5px; height:5px; border-radius:50%; display:inline-block; background:#94a3b8; }
+        .mapping-tag.matched .mapping-dot { background:#10b981; }
+        .mapping-tag.unmatched .mapping-dot { background:#ef4444; }
+
+        .btn-group { display:flex; gap:4px; justify-content:flex-end; margin-bottom:12px; }
+        .btn {
+            display:inline-flex; align-items:center; gap:3px; padding:5px 10px; border-radius:14px;
+            border:1.5px solid #d1d5db; cursor:pointer; font-size:0.65rem; font-weight:500;
+            background:#fff; color:var(--text); transition:all 0.2s;
+        }
+        .btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+        .table-card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+        .table-header { padding:8px 10px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }
+        .table-header h2 { font-size:0.8rem; font-weight:600; }
+        .count-badge { background:#eef2ff; color:var(--primary); padding:2px 8px; border-radius:20px; font-size:0.62rem; font-weight:500; }
+
+        .table-scroll { overflow-x: visible; -webkit-overflow-scrolling: touch; }
+        table { width:100%; border-collapse:collapse; font-size:0.58rem; table-layout:auto; }
+        thead th {
+            background:#f9fafb; padding:6px 4px; text-align:left; font-weight:600; color:#475569;
+            border-bottom:1px solid #e2e8f0; white-space:nowrap; font-size:0.58rem;
+        }
+        tbody td { padding:6px 4px; border-bottom:1px solid #f1f5f9; vertical-align:middle; font-size:0.58rem; word-break:break-all; }
+        tbody tr { transition:background 0.2s; cursor:pointer; }
+        tbody tr:hover { background:#fafcfd; }
+        tbody tr.expanded { background:#f5f7ff; box-shadow:inset 3px 0 0 var(--primary); }
+        tbody tr.detail-row { background:#fbfcfd; cursor:default; }
+        tbody tr.detail-row td { padding:0; border-bottom:1px solid #e9eef2; }
+
+        .detail-inner { padding:8px 6px 10px; background:#fff; border-top:1px solid #eef2f6; }
+        .detail-inner h4 { font-weight:600; color:var(--primary); margin-bottom:8px; font-size:0.64rem; display:flex; align-items:center; gap:4px; }
+        .detail-inner h4::before { content:''; width:3px; height:12px; background:var(--primary); border-radius:2px; display:inline-block; }
+
+        /* 明细表格优化：增加边框、隔行变色、对齐 */
+        .detail-table {
+            width:100%; border-collapse:collapse; font-size:0.56rem;
+            border: 1px solid #e2e8f0; /* 外边框 */
+        }
+        .detail-table thead th {
+            background:#f1f5f9; padding:6px 6px; font-size:0.58rem;
+            border-bottom:2px solid #cbd5e1; color:#334155; font-weight:600;
+            text-align:center; /* 时间/间隔等列居中 */
+        }
+        .detail-table thead th:first-child { text-align:left; } /* 地址列左对齐 */
+        .detail-table tbody td {
+            padding:6px 6px; border-bottom:1px solid #e9eef2; font-size:0.56rem;
+            text-align:center;
+        }
+        .detail-table tbody td:first-child { text-align:left; }
+        .detail-table tbody tr:nth-child(even) {
+            background: #f8fafc; /* 隔行浅灰 */
+        }
+        .detail-table tbody tr:last-child td { border-bottom:none; }
+
+        .col-expand { width:22px !important; }
+        .col-time { width:58px !important; }
+        .col-duration { width:88px !important; }
+        .col-name { width:6em; word-break:break-all; }
+        .col-addr { width:6em; word-break:break-all; }
+
+        .interval-cell { font-weight:500; color:#475569; }
+        .interval-cell.first { color:#c0c8d4; font-style:italic; }
+
+        .early-leave-positive { color:#d97706; font-weight:600; background:#fff7ed; padding:1px 6px; border-radius:10px; display:inline-block; font-size:0.58rem; }
+        .early-leave-negative { color:#2563eb; font-weight:600; background:#eff6ff; padding:1px 6px; border-radius:10px; display:inline-block; font-size:0.58rem; }
+        .early-leave-zero { color:#16a34a; font-weight:600; background:#f0fdf4; padding:1px 6px; border-radius:10px; display:inline-block; font-size:0.58rem; }
+        .delivering { color:#d97706; font-weight:700; background:#fff3cd; padding:1px 6px; border-radius:10px; display:inline-block; font-size:0.58rem; }
+        .na-text { color:#cbd5e1; font-style:italic; font-size:0.58rem; }
+        .collect-latest { color:#15803d; font-weight:700; background:#dcfce7; padding:1px 6px; border-radius:12px; display:inline-block; font-size:0.58rem; }
+
+        .expand-icon { display:inline-block; transition:transform 0.2s; font-size:0.55rem; color:#94a3b8; margin-right:1px; }
+        tr.expanded .expand-icon { transform:rotate(90deg); color:var(--primary); }
+
+        .empty-box { text-align:center; padding:30px 12px; color:#b0bec5; font-size:0.7rem; }
+
+        .toast {
+            position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:9999;
+            padding:8px 16px; border-radius:16px; font-size:0.7rem; font-weight:500;
+            box-shadow:0 6px 20px rgba(0,0,0,0.15); animation:slideDown 0.3s ease; pointer-events:none;
+        }
+        .toast.success { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+        .toast.error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+        .toast.warning { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+
+        /* PC端优化 */
+        @media(min-width: 768px) {
+            .container { padding:16px 24px 48px; }
+
+            .upload-grid { gap:10px; margin-bottom:14px; }
+            .upload-card {
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 0 20px;
+                height: 54px;
+                border-radius: 10px;
+                border: 2px dashed #cbd5e1;
+                background: #f8fafc;
+                box-shadow: none;
+                gap: 14px;
+                text-align: left;
+            }
+            .upload-card:hover { border-color: #4361ee; background: #eef2ff; }
+            .upload-card.loaded { border-style: solid; border-color: #10b981; background: #f0fdf4; }
+            .upload-card .upload-icon {
+                width: 30px; height: 30px;
+                flex-shrink: 0;
+                background: #fff;
+                border-radius: 8px;
+            }
+            .upload-card .upload-icon svg { width: 18px; height: 18px; }
+            .upload-card h3 { font-size: 1rem; font-weight: 600; white-space: nowrap; margin-right: 8px; color: #1e293b; }
+            .upload-card p { font-size: 0.8rem; color: #64748b; max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .upload-card .badge { font-size: 0.7rem; padding: 3px 12px; margin-left: auto; background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+            .upload-card .file-info { font-size: 0.8rem; margin-left: auto; font-weight: 500; }
+            .upload-card .remove-btn { position: static; margin-left: 8px; width: 22px; height: 22px; font-size: 14px; line-height: 20px; border-color: #cbd5e1; }
+            .upload-card.loaded p { display: none; }
+            .upload-card.loaded .badge { display: none; }
+
+            .table-header { padding:14px 18px; }
+            .table-header h2 { font-size:2rem; }
+            .count-badge { font-size:1.5rem; padding:4px 14px; }
+
+            table { font-size:2.4rem; }
+            thead th { font-size:2rem; padding:12px 8px; }
+            tbody td { font-size:2rem; padding:12px 8px; }
+
+            .detail-inner h4 { font-size:2rem; }
+            .detail-table {
+                font-size:1.6rem;
+                border: 2px solid #cbd5e1; /* PC端外边框加粗 */
+            }
+            .detail-table thead th {
+                font-size:1.6rem; padding:12px 10px;
+                background:#e2e8f0; /* 表头颜色加深 */
+            }
+            .detail-table tbody td {
+                font-size:1.6rem; padding:12px 10px;
+            }
+
+            .col-expand { width:40px !important; }
+            .col-time { width:180px !important; }
+            .col-duration { width:300px !important; }
+            .col-name { width:10em; }
+            .col-addr { width:10em; }
+
+            .early-leave-positive, .early-leave-negative, .early-leave-zero,
+            .delivering, .na-text, .collect-latest, .interval-cell {
+                font-size:1.8rem; padding:4px 14px; border-radius:16px;
+            }
+            .expand-icon { font-size:1.4rem; }
+
+            .btn-group { gap:8px; }
+            .btn { font-size:1.2rem; padding:8px 18px; }
+
+            .mapping-bar { font-size:1.2rem; padding:12px 20px; }
+            .mapping-tag { font-size:1rem; }
+
+            .header { padding:24px 20px 14px; }
+            .header .icon-circle { width:48px; height:48px; }
+            .header .icon-circle svg { width:24px; height:24px; }
+            .header h1 { font-size:2rem; }
+            .header .subtitle { font-size:1rem; }
+
+            .toast { font-size:1.2rem; padding:12px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon-circle">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+            </div>
+            <h1>骑手考勤与订单管理</h1>
+            <p class="subtitle">明细表格 · 清新易读</p>
+        </div>
+
+        <div class="upload-grid">
+            <div class="upload-card" id="orderCard">
+                <input type="file" id="orderFile" accept=".xlsx,.xls,.csv" />
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 2l5 5h-5V4zM8 13h8v2H8v-2zm0 4h8v2H8v-2zm0-8h5v2H8V9z"/></svg>
+                </div>
+                <h3>📦 订单表格</h3>
+                <p>配送员姓名 · 完成时间 · 状态 · 揽收 · POI</p>
+                <span class="badge">.xlsx/.xls/.csv</span>
+                <span class="file-info" id="orderFileInfo"></span>
+                <button class="remove-btn" id="orderRemoveBtn">×</button>
+            </div>
+            <div class="upload-card" id="attCard">
+                <input type="file" id="attFile" accept=".xlsx,.xls,.csv" />
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+                </div>
+                <h3>🕒 考勤表格</h3>
+                <p>骑手姓名 · 班次结束 · 班次开始</p>
+                <span class="badge">.xlsx/.xls/.csv</span>
+                <span class="file-info" id="attFileInfo"></span>
+                <button class="remove-btn" id="attRemoveBtn">×</button>
+            </div>
+        </div>
+
+        <div class="mapping-bar" id="mappingBar" style="display:none;">
+            <span style="font-weight:600;color:#475569;">匹配</span>
+            <span id="orderMappingTags" style="display:flex;gap:4px;flex-wrap:wrap;"></span>
+            <span style="color:#cbd5e1;margin:0 2px;">|</span>
+            <span id="attMappingTags" style="display:flex;gap:4px;flex-wrap:wrap;"></span>
+        </div>
+
+        <div class="btn-group" id="actionBtns" style="display:none;">
+            <button class="btn" id="clearAllBtn">清除</button>
+            <button class="btn btn-primary" id="exportBtn">导出</button>
+        </div>
+
+        <div class="table-card" id="summaryCard" style="display:none;">
+            <div class="table-header">
+                <h2>骑手早退分析</h2>
+                <span class="count-badge" id="riderCount">0</span>
+            </div>
+            <div class="table-scroll">
+                <table id="summaryTable" class="summary-table">
+                    <thead>
+                        <tr>
+                            <th class="col-expand"></th>
+                            <th class="col-name">姓名</th>
+                            <th class="col-time">下班时间</th>
+                            <th class="col-time">最晚送达</th>
+                            <th class="col-duration">早退 ▼</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryBody"></tbody>
+                </table>
+            </div>
+            <div class="empty-box" id="emptyState">请上传订单与考勤表格</div>
+        </div>
+        <div id="toastContainer"></div>
+    </div>
+
+    <script>
+        (function() {
+            let orderData = [];
+            let attendanceData = [];
+            let orderCols = { riderName:-1, completeTime:-1, orderStatus:-1, batchCollectTime:-1, poiName:-1 };
+            let attCols = { riderName:-1, shiftEndTime:-1, shiftStartTime:-1 };
+            let summaryList = [];
+            let expandedRider = null;
+
+            const orderFile = document.getElementById('orderFile');
+            const attFile = document.getElementById('attFile');
+            const orderCard = document.getElementById('orderCard');
+            const attCard = document.getElementById('attCard');
+            const orderFileInfo = document.getElementById('orderFileInfo');
+            const attFileInfo = document.getElementById('attFileInfo');
+            const orderRemoveBtn = document.getElementById('orderRemoveBtn');
+            const attRemoveBtn = document.getElementById('attRemoveBtn');
+            const mappingBar = document.getElementById('mappingBar');
+            const orderMappingTags = document.getElementById('orderMappingTags');
+            const attMappingTags = document.getElementById('attMappingTags');
+            const summaryCard = document.getElementById('summaryCard');
+            const summaryBody = document.getElementById('summaryBody');
+            const emptyState = document.getElementById('emptyState');
+            const riderCount = document.getElementById('riderCount');
+            const actionBtns = document.getElementById('actionBtns');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const toastContainer = document.getElementById('toastContainer');
+
+            function showToast(msg, type='success') {
+                const t = document.createElement('div');
+                t.className = `toast ${type}`;
+                t.textContent = msg;
+                toastContainer.appendChild(t);
+                setTimeout(() => t.remove(), 2500);
+            }
+
+            function formatTime(date) {
+                if (!date || isNaN(date.getTime())) return '';
+                return [date.getHours(), date.getMinutes(), date.getSeconds()]
+                    .map(v => String(v).padStart(2,'0')).join(':');
+            }
+
+            function formatDateTime(date) {
+                if (!date || isNaN(date.getTime())) return '';
+                return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${formatTime(date)}`;
+            }
+
+            function formatDuration(ms) {
+                if (ms === null || ms === undefined || isNaN(ms)) return '-';
+                const abs = Math.abs(ms);
+                const totalMinutes = Math.floor(abs / 60000);
+                const seconds = Math.floor((abs % 60000) / 1000);
+                const sign = ms > 0 ? '+' : ms < 0 ? '-' : '';
+                return `${sign}${totalMinutes}分钟${seconds}秒`;
+            }
+
+            function parseDateValue(val) {
+                if (val === null || val === undefined || val === '') return null;
+                if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+                if (typeof val === 'number') {
+                    const jsDate = new Date((val - 25569) * 86400 * 1000);
+                    if (!isNaN(jsDate.getTime()) && jsDate.getFullYear() >= 2000 && jsDate.getFullYear() <= 2100) return jsDate;
+                    if (val > 1e12 && val < 2e13) { const d = new Date(val); if (!isNaN(d.getTime())) return d; }
+                    return null;
+                }
+                if (typeof val === 'string') {
+                    let s = val.trim();
+                    if (!s) return null;
+                    let m = s.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})[\sT]+(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?/);
+                    if (m) {
+                        const [, year, month, day, hour, minute, second] = m;
+                        const date = new Date(+year, +month-1, +day, +hour, +minute, +(second||0));
+                        if (!isNaN(date.getTime())) return date;
+                    }
+                    m = s.match(/(\d{4})年(\d{1,2})月(\d{1,2})日\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+                    if (m) {
+                        const [, year, month, day, hour, minute, second] = m;
+                        const date = new Date(+year, +month-1, +day, +hour, +minute, +(second||0));
+                        if (!isNaN(date.getTime())) return date;
+                    }
+                    m = s.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+                    if (m) {
+                        const [, year, month, day] = m;
+                        const date = new Date(+year, +month-1, +day, 0,0,0);
+                        if (!isNaN(date.getTime())) return date;
+                    }
+                    m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                    if (m) {
+                        const [, hour, minute, second] = m;
+                        const today = new Date();
+                        today.setHours(+hour, +minute, +(second||0), 0);
+                        return today;
+                    }
+                    const d = new Date(s);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                return null;
+            }
+
+            function getTimeSeconds(date) {
+                if (!date) return null;
+                return date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+            }
+
+            function matchOrderHeaders(headers) {
+                const map = { riderName:-1, completeTime:-1, orderStatus:-1, batchCollectTime:-1, poiName:-1 };
+                const exact = ['配送员姓名', '订单配送完成时间', '订单状态', '批次揽收时间', 'POI名称'];
+                for (let i=0; i<headers.length; i++) {
+                    const h = String(headers[i]||'').trim();
+                    if (h === exact[0] && map.riderName === -1) map.riderName = i;
+                    else if (h === exact[1] && map.completeTime === -1) map.completeTime = i;
+                    else if (h === exact[2] && map.orderStatus === -1) map.orderStatus = i;
+                    else if (h === exact[3] && map.batchCollectTime === -1) map.batchCollectTime = i;
+                    else if (h === exact[4] && map.poiName === -1) map.poiName = i;
+                }
+                return map;
+            }
+
+            function matchAttendanceHeaders(headers) {
+                const map = { riderName:-1, shiftEndTime:-1, shiftStartTime:-1 };
+                const exact = ['考勤骑手.配送员姓名', '配送班次.班次结束时间', '配送班次.班次开始时间'];
+                for (let i=0; i<headers.length; i++) {
+                    const h = String(headers[i]||'').trim();
+                    if (h === exact[0] && map.riderName === -1) map.riderName = i;
+                    else if (h === exact[1] && map.shiftEndTime === -1) map.shiftEndTime = i;
+                    else if (h === exact[2] && map.shiftStartTime === -1) map.shiftStartTime = i;
+                }
+                return map;
+            }
+
+            function parseExcelFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true });
+                            const sheet = wb.Sheets[wb.SheetNames[0]];
+                            const json = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'', raw:false });
+                            if (!json.length) return reject(new Error('文件为空'));
+                            const headers = json[0].map(v => String(v));
+                            const rows = json.slice(1).filter(r => r.some(c => c!=='' && c!==null && c!==undefined));
+                            resolve({ headers, rows, fileName: file.name });
+                        } catch (err) { reject(new Error('解析失败: '+err.message)); }
+                    };
+                    reader.onerror = () => reject(new Error('文件读取失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function processOrders(headers, rows) {
+                const cols = matchOrderHeaders(headers);
+                orderCols = cols;
+                const data = [];
+                for (const row of rows) {
+                    const name = cols.riderName>=0 ? String(row[cols.riderName]||'').trim() : '';
+                    if (!name) continue;
+                    const completeTime = cols.completeTime>=0 ? parseDateValue(row[cols.completeTime]) : null;
+                    const batchCollectTime = cols.batchCollectTime>=0 ? parseDateValue(row[cols.batchCollectTime]) : null;
+                    const orderStatus = cols.orderStatus>=0 ? String(row[cols.orderStatus]||'').trim() : '';
+                    const poiName = cols.poiName>=0 ? String(row[cols.poiName]||'').trim() : '';
+                    data.push({ riderName: name, completeTime, batchCollectTime, orderStatus, poiName });
+                }
+                return data;
+            }
+
+            function processAttendance(headers, rows) {
+                const cols = matchAttendanceHeaders(headers);
+                attCols = cols;
+                const data = [];
+                for (const row of rows) {
+                    const name = cols.riderName>=0 ? String(row[cols.riderName]||'').trim() : '';
+                    if (!name) continue;
+                    const shiftEnd = cols.shiftEndTime>=0 ? parseDateValue(row[cols.shiftEndTime]) : null;
+                    const shiftStart = cols.shiftStartTime>=0 ? parseDateValue(row[cols.shiftStartTime]) : null;
+                    data.push({ riderName: name, shiftEndTime: shiftEnd, shiftStartTime: shiftStart });
+                }
+                return data;
+            }
+
+            function buildSummary() {
+                const map = {};
+                for (const o of orderData) {
+                    const n = o.riderName;
+                    if (!map[n]) map[n] = { name:n, orders:[], shiftEnd:null, latestComplete:null, latestCollect:null };
+                    map[n].orders.push(o);
+                    if (o.completeTime && (!map[n].latestComplete || getTimeSeconds(o.completeTime) > getTimeSeconds(map[n].latestComplete))) {
+                        map[n].latestComplete = o.completeTime;
+                    }
+                    if (o.orderStatus === '已揽收' && o.batchCollectTime) {
+                        if (!map[n].latestCollect || getTimeSeconds(o.batchCollectTime) > getTimeSeconds(map[n].latestCollect)) {
+                            map[n].latestCollect = o.batchCollectTime;
+                        }
+                    }
+                }
+                for (const a of attendanceData) {
+                    const n = a.riderName;
+                    if (!map[n]) map[n] = { name:n, orders:[], shiftEnd:null, latestComplete:null, latestCollect:null };
+                    if (a.shiftEndTime && (!map[n].shiftEnd || getTimeSeconds(a.shiftEndTime) > getTimeSeconds(map[n].shiftEnd))) {
+                        map[n].shiftEnd = a.shiftEndTime;
+                    }
+                }
+
+                const list = [];
+                for (const [name, d] of Object.entries(map)) {
+                    let actualLatest = null, isCollect = false, isDelivering = false;
+                    const latestCompleteSec = getTimeSeconds(d.latestComplete);
+                    const latestCollectSec = getTimeSeconds(d.latestCollect);
+
+                    if (latestCompleteSec !== null && latestCollectSec !== null) {
+                        if (latestCollectSec > latestCompleteSec) {
+                            actualLatest = d.latestCollect; isCollect = true; isDelivering = true;
+                        } else {
+                            actualLatest = d.latestComplete;
+                        }
+                    } else if (latestCompleteSec !== null) actualLatest = d.latestComplete;
+                    else if (latestCollectSec !== null) { actualLatest = d.latestCollect; isCollect = true; }
+
+                    let earlyLeaveMs = null;
+                    const shiftEndSec = getTimeSeconds(d.shiftEnd);
+                    const actualLatestSec = getTimeSeconds(actualLatest);
+                    if (!isDelivering && shiftEndSec !== null && actualLatestSec !== null) {
+                        earlyLeaveMs = (shiftEndSec - actualLatestSec) * 1000;
+                    }
+
+                    const sortedOrders = [...d.orders].sort((a,b) => (getTimeSeconds(b.completeTime)||0) - (getTimeSeconds(a.completeTime)||0));
+                    list.push({ riderName:name, shiftEndTime:d.shiftEnd, actualLatestTime:actualLatest, isCollectLatest:isCollect, isDelivering, earlyLeaveMs, orders:sortedOrders, orderCount:d.orders.length });
+                }
+                list.sort((a,b)=>{
+                    if(a.isDelivering && !b.isDelivering) return -1;
+                    if(!a.isDelivering && b.isDelivering) return 1;
+                    const av=a.earlyLeaveMs, bv=b.earlyLeaveMs;
+                    if(av===null && bv===null) return 0;
+                    if(av===null) return 1;
+                    if(bv===null) return -1;
+                    return bv - av;
+                });
+                return list;
+            }
+
+            function updateMappingDisplay() {
+                const hasO = orderData.length>0, hasA = attendanceData.length>0;
+                if(!hasO && !hasA){ mappingBar.style.display='none'; return; }
+                mappingBar.style.display='flex';
+                let oHtml='';
+                if(hasO){
+                    const names=['配送员姓名','配送完成','状态','批次揽收','POI'];
+                    const cols=[orderCols.riderName,orderCols.completeTime,orderCols.orderStatus,orderCols.batchCollectTime,orderCols.poiName];
+                    for(let i=0;i<names.length;i++) oHtml+=`<span class="mapping-tag ${cols[i]>=0?'matched':'unmatched'}"><span class="mapping-dot"></span>${names[i]}</span>`;
+                }else oHtml='<span class="mapping-tag unmatched">未传订单</span>';
+                orderMappingTags.innerHTML=oHtml;
+                let aHtml='';
+                if(hasA){
+                    const names=['骑手姓名','班次结束','班次开始'];
+                    const cols=[attCols.riderName,attCols.shiftEndTime,attCols.shiftStartTime];
+                    for(let i=0;i<names.length;i++) aHtml+=`<span class="mapping-tag ${cols[i]>=0?'matched':'unmatched'}"><span class="mapping-dot"></span>${names[i]}</span>`;
+                }else aHtml='<span class="mapping-tag unmatched">未传考勤</span>';
+                attMappingTags.innerHTML=aHtml;
+            }
+
+            function renderSummary() {
+                summaryList = buildSummary();
+                summaryBody.innerHTML='';
+                expandedRider=null;
+                if(summaryList.length===0){
+                    summaryCard.style.display='block';
+                    emptyState.style.display='block';
+                    summaryCard.querySelector('.table-scroll').style.display='none';
+                    riderCount.textContent='0';
+                    actionBtns.style.display='none';
+                    return;
+                }
+                summaryCard.style.display='block';
+                emptyState.style.display='none';
+                summaryCard.querySelector('.table-scroll').style.display='block';
+                riderCount.textContent=`${summaryList.length} 位`;
+                actionBtns.style.display='flex';
+
+                for(const rider of summaryList){
+                    const tr=document.createElement('tr');
+                    tr.dataset.rider=rider.riderName;
+                    tr.className='summary-row';
+                    tr.innerHTML=`
+                        <td class="col-expand" style="text-align:center"><span class="expand-icon">▶</span></td>
+                        <td class="col-name"><strong style="color:#4361ee;">${escapeHtml(rider.riderName)}</strong> <span style="font-size:0.6rem;color:#94a3b8;">(${rider.orderCount}单)</span></td>
+                        <td class="col-time">${rider.shiftEndTime ? formatTime(rider.shiftEndTime) : '<span class="na-text">-</span>'}</td>
+                        <td class="col-time">${rider.actualLatestTime ? (rider.isCollectLatest ? `<span class="collect-latest">${formatTime(rider.actualLatestTime)}</span>` : formatTime(rider.actualLatestTime)) : '<span class="na-text">-</span>'}</td>
+                        <td class="col-duration">${rider.isDelivering ? '<span class="delivering">🚀 派送中</span>' : (rider.earlyLeaveMs!==null ? `<span class="${rider.earlyLeaveMs>60000?'early-leave-positive':rider.earlyLeaveMs<-60000?'early-leave-negative':'early-leave-zero'}">${formatDuration(rider.earlyLeaveMs)}</span>` : '<span class="na-text">-</span>')}</td>
+                    `;
+                    tr.addEventListener('click',(e)=>{
+                        if(e.target.closest('.remove-btn')) return;
+                        toggleDetail(rider.riderName, tr);
+                    });
+                    summaryBody.appendChild(tr);
+                }
+            }
+
+            function toggleDetail(name, tr){
+                if(expandedRider===name){ collapseDetail(tr); expandedRider=null; return; }
+                if(expandedRider){ const prev=document.querySelector(`tr.summary-row[data-rider="${CSSescape(expandedRider)}"]`); if(prev) collapseDetail(prev); }
+                expandDetail(name, tr); expandedRider=name;
+            }
+            function collapseDetail(tr){ tr.classList.remove('expanded'); const n=tr.nextElementSibling; if(n&&n.classList.contains('detail-row')) n.remove(); }
+            function expandDetail(name, tr){
+                tr.classList.add('expanded');
+                const rider=summaryList.find(r=>r.riderName===name);
+                if(!rider) return;
+                const n=tr.nextElementSibling;
+                if(n&&n.classList.contains('detail-row')) n.remove();
+                const detailTr=document.createElement('tr');
+                detailTr.classList.add('detail-row');
+                const td=document.createElement('td');
+                td.colSpan=5;
+                td.innerHTML=buildDetailHtml(rider);
+                detailTr.appendChild(td);
+                tr.parentNode.insertBefore(detailTr, tr.nextElementSibling);
+            }
+
+            function buildDetailHtml(rider){
+                const sortedAsc=[...rider.orders].sort((a,b)=>(getTimeSeconds(a.completeTime)||Number.MAX_SAFE_INTEGER)-(getTimeSeconds(b.completeTime)||Number.MAX_SAFE_INTEGER));
+                const intervalMap=new Map();
+                for(let i=0;i<sortedAsc.length;i++){
+                    if(i===0) intervalMap.set(sortedAsc[i],null);
+                    else{
+                        const secCurr = getTimeSeconds(sortedAsc[i].completeTime);
+                        const secPrev = getTimeSeconds(sortedAsc[i-1].completeTime);
+                        intervalMap.set(sortedAsc[i], (secCurr !== null && secPrev !== null) ? (secCurr - secPrev) * 1000 : null);
+                    }
+                }
+                const displayOrders=[...rider.orders].sort((a,b)=>(getTimeSeconds(b.completeTime)||0)-(getTimeSeconds(a.completeTime)||0));
+                let html=`<div class="detail-inner"><h4>📌 ${escapeHtml(rider.riderName)} 全部订单明细（${rider.orderCount}单）</h4>
+                    <div class="table-scroll"><table class="detail-table"><thead><tr>
+                        <th class="col-addr">地址</th>
+                        <th class="col-time">揽收时间</th>
+                        <th class="col-time">配送完成</th>
+                        <th class="col-duration">间隔</th>
+                    </tr></thead><tbody>`;
+                if(!displayOrders.length) html+='<tr><td colspan="4" style="text-align:center;color:#c0c8d4;">暂无订单</td></tr>';
+                else{
+                    for(let i=0;i<displayOrders.length;i++){
+                        const o=displayOrders[i], interval=intervalMap.get(o);
+                        const isDeliveringOrder = o.orderStatus === '已揽收';
+                        const deliveryDisplay = isDeliveringOrder ? '<span class="delivering">派送中</span>' :
+                            (o.completeTime ? formatTime(o.completeTime) : '<span class="na-text">-</span>');
+                        html+=`<tr>
+                            <td class="col-addr">${escapeHtml(o.poiName) || '<span class="na-text">-</span>'}</td>
+                            <td class="col-time">${o.batchCollectTime ? formatTime(o.batchCollectTime) : '<span class="na-text">-</span>'}</td>
+                            <td class="col-time">${deliveryDisplay}</td>
+                            <td class="col-duration">${interval===null ? '<span class="interval-cell first">首单</span>' : interval!==undefined ? `<span class="interval-cell">${formatDuration(interval)}</span>` : '<span class="na-text">-</span>'}</td>
+                        </tr>`;
+                    }
+                }
+                html+='</tbody></table></div></div>';
+                return html;
+            }
+
+            function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+            function CSSescape(s){ return s.replace(/([!"#$%&'()*+,\-./:;<=>?@[\]^`{|}~])/g,'\\$1'); }
+            function refreshAll(){ updateMappingDisplay(); renderSummary(); }
+
+            orderFile.addEventListener('change', async function(){
+                const f=this.files[0]; if(!f) return;
+                try{
+                    const {headers,rows,fileName}=await parseExcelFile(f);
+                    orderData=processOrders(headers,rows);
+                    orderFileInfo.textContent=`✅ ${fileName} (${orderData.length}条)`;
+                    orderCard.classList.add('loaded');
+                    showToast(`订单表已加载`);
+                    refreshAll();
+                }catch(e){ showToast(e.message,'error'); clearOrderData(); }
+            });
+            attFile.addEventListener('change', async function(){
+                const f=this.files[0]; if(!f) return;
+                try{
+                    const {headers,rows,fileName}=await parseExcelFile(f);
+                    attendanceData=processAttendance(headers,rows);
+                    attFileInfo.textContent=`✅ ${fileName} (${attendanceData.length}条)`;
+                    attCard.classList.add('loaded');
+                    showToast(`考勤表已加载`);
+                    refreshAll();
+                }catch(e){ showToast(e.message,'error'); clearAttendanceData(); }
+            });
+
+            orderRemoveBtn.addEventListener('click',(e)=>{ e.stopPropagation(); clearOrderData(); refreshAll(); showToast('订单已移除','warning'); });
+            attRemoveBtn.addEventListener('click',(e)=>{ e.stopPropagation(); clearAttendanceData(); refreshAll(); showToast('考勤已移除','warning'); });
+
+            function clearOrderData(){ orderData=[]; orderCols={ riderName:-1,completeTime:-1,orderStatus:-1,batchCollectTime:-1,poiName:-1 }; orderFile.value=''; orderFileInfo.textContent=''; orderCard.classList.remove('loaded'); }
+            function clearAttendanceData(){ attendanceData=[]; attCols={ riderName:-1,shiftEndTime:-1,shiftStartTime:-1 }; attFile.value=''; attFileInfo.textContent=''; attCard.classList.remove('loaded'); }
+
+            clearAllBtn.addEventListener('click',()=>{
+                clearOrderData(); clearAttendanceData();
+                summaryList=[]; expandedRider=null; refreshAll();
+                summaryCard.style.display='none'; actionBtns.style.display='none'; mappingBar.style.display='none';
+                showToast('已清除全部数据','warning');
+            });
+
+            exportBtn.addEventListener('click',()=>{
+                if(!summaryList.length) return showToast('无数据可导出','warning');
+                const rows=[['姓名','下班时间','最晚送达','早退状态','订单数量']];
+                for(const r of summaryList){
+                    rows.push([
+                        r.riderName,
+                        r.shiftEndTime?formatDateTime(r.shiftEndTime):'',
+                        r.actualLatestTime?formatDateTime(r.actualLatestTime):'',
+                        r.isDelivering?'派送中':(r.earlyLeaveMs!==null?formatDuration(r.earlyLeaveMs):'-'),
+                        r.orderCount
+                    ]);
+                }
+                const ws=XLSX.utils.aoa_to_sheet(rows);
+                ws['!cols']=[{wch:16},{wch:18},{wch:18},{wch:18},{wch:8}];
+                const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'汇总');
+                XLSX.writeFile(wb,`骑手早退_${new Date().toISOString().slice(0,10)}.xlsx`);
+                showToast('导出成功');
+            });
+
+            [orderCard,attCard].forEach(card=>{
+                card.addEventListener('dragover',e=>{ e.preventDefault(); card.style.borderColor='#4361ee'; });
+                card.addEventListener('dragleave',e=>{ e.preventDefault(); if(!card.classList.contains('loaded')) card.style.borderColor=''; });
+                card.addEventListener('drop',e=>{
+                    e.preventDefault();
+                    if(!card.classList.contains('loaded')) card.style.borderColor='';
+                    const file=e.dataTransfer.files[0]; if(!file) return;
+                    const input=card.querySelector('input[type="file"]');
+                    const dt=new DataTransfer(); dt.items.add(file); input.files=dt.files;
+                    input.dispatchEvent(new Event('change'));
+                });
+            });
+
+            summaryCard.style.display='none'; actionBtns.style.display='none'; mappingBar.style.display='none';
+        })();
+    </script>
+</body>
+</html>
