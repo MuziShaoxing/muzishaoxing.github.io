@@ -160,6 +160,19 @@
         .bubble-pink .bubble-time { color: #c62828; }
         .bubble-pink .bubble-count { background: #c62828; }
 
+        /* 预排班蓝色圆点 */
+        .pre-schedule-dot {
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3b82f6;
+            z-index: 5;
+            box-shadow: 0 0 2px rgba(0,0,0,0.2);
+        }
+
         @media (max-width: 768px) {
             .bubble-container { gap: 8px; }
             .shift-bubble {
@@ -298,6 +311,7 @@
     • <strong>班次类型颜色</strong>：全职排班→绿色，核心/盒心排班→蓝色，灵活排班→粉色。<br>
     • <strong>出勤天数标签</strong>：紫色数字=该骑手在该时段出勤的不同日期数。<br>
     • <strong>上六休一</strong>：最早上班~最晚下班，汇总行基于班次类型，前三名红/黄/绿圆环。<br>
+    • <strong>预排班</strong>：周视图中统计日期超过今天的班次，单元格右下角显示蓝色圆点。<br>
     • <strong>排班时长</strong>：HH:MM格式，支持超24h累计。
 </div>
 <div id="toastContainer"></div>
@@ -767,6 +781,11 @@
             let sortBy = 'weekDays', sortDir = 'desc';
             const sortRiders = () => { riders.sort((a,b) => { if (sortBy==='name') return sortDir==='asc' ? a.displayName.localeCompare(b.displayName,'zh-CN') : b.displayName.localeCompare(a.displayName,'zh-CN'); if (sortBy==='weekDays') return sortDir==='asc' ? a.weekDays-b.weekDays : b.weekDays-a.weekDays; const idx = parseInt(sortBy); if (!isNaN(idx)) { const aA = a.days[idx]?1:0, bA = b.days[idx]?1:0; return sortDir==='asc' ? aA-bA : bA-aA; } return 0; }); };
             sortRiders();
+
+            // 今天的日期（不含时间），用于预排班判断
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
             const render = () => {
                 let head = '<tr><th class="sortable" data-sort="name">骑手</th>';
                 days.forEach((d,i) => { const wd = ['周一','周二','周三','周四','周五','周六','周日'][d.getDay()===0?6:d.getDay()-1]; head += `<th class="sortable" data-sort="${i}">${wd}<br><small>${formatDate(d).slice(5)}</small></th>`; });
@@ -783,7 +802,7 @@
                 body += sRow('🟢 全职','全职',fullC,fullR,wf);
                 body += sRow('🔵 盒心','盒心',coreC,coreR,wc);
                 body += sRow('🔴 灵活','灵活',flexC,flexR,wfl);
-                riders.forEach(r => { body += `<tr><td style="font-weight:600;">${r.displayName}${r.riderId?`<div class="rider-id">${r.riderId}</div>`:''}</td>`; for (let i=0; i<7; i++) { const info = r.days[i]; const color = r.types[i]; if (!info || info.earliest===24*60) { body += '<td class="cell-inactive">休</td>'; continue; } let cls = 'cell-active '; if (color==='full') cls+='cell-full'; else if (color==='core') cls+='cell-core'; else if (color==='flex') cls+='cell-flex'; else cls+='cell-full'; body += `<td class="${cls}"><div class="shift-time-stack"><span>${fmtTime(info.earliest)}</span><span>${fmtTime(info.latest)}</span></div></td>`; } body += `<td class="week-total-col" style="font-weight:600;">${r.weekDays}天</td></tr>`; });
+                riders.forEach(r => { body += `<tr><td style="font-weight:600;">${r.displayName}${r.riderId?`<div class="rider-id">${r.riderId}</div>`:''}</td>`; for (let i=0; i<7; i++) { const info = r.days[i]; const color = r.types[i]; if (!info || info.earliest===24*60) { body += '<td class="cell-inactive">休</td>'; continue; } let cls = 'cell-active '; if (color==='full') cls+='cell-full'; else if (color==='core') cls+='cell-core'; else if (color==='flex') cls+='cell-flex'; else cls+='cell-full'; body += `<td class="${cls}" style="position:relative;"><div class="shift-time-stack"><span>${fmtTime(info.earliest)}</span><span>${fmtTime(info.latest)}</span></div>${days[i] > today ? '<span class="pre-schedule-dot"></span>' : ''}</td>`; } body += `<td class="week-total-col" style="font-weight:600;">${r.weekDays}天</td></tr>`; });
                 weekBody.innerHTML = body;
             };
             render();
@@ -803,7 +822,7 @@
         riderSearchInput.addEventListener('focus', () => {
             riderDropdown.classList.add('show');
             renderRiderDropdown();
-            isSelectionDirty = false; // 重新打开时重置脏标志
+            isSelectionDirty = false;
         });
         riderSearchInput.addEventListener('input', () => {
             renderRiderDropdown();
@@ -818,7 +837,7 @@
             } else {
                 selectedRiders.add(key);
             }
-            isSelectionDirty = true; // 标记有变化，但不立即刷新
+            isSelectionDirty = true;
             renderRiderDropdown();
         });
         riderClearBtn.addEventListener('click', e => {
@@ -918,7 +937,10 @@
             emptyState.style.display = 'none';
             footerNote.style.display = 'block';
             uploadSection.classList.add('has-data');
-            if (dateCol) { const dates = records.filter(r=>r.status===0&&r.date).map(r=>r.date); if (dates.length) currentWeekMonday = getMonday(dates.reduce((a,b)=>a<b?a:b)); }
+            // 默认周视图定位到今天所在周（不再使用数据中的最小日期）
+            if (dateCol) {
+                currentWeekMonday = getMonday(new Date());
+            }
             resetScrollPositions();
             updateGlobalSummary();
             if (currentView==='shiftList') { tableContainer.style.display='none'; shiftListContainer.style.display='block'; weekContainer.style.display='none'; renderShiftBubbles(); }
@@ -1000,7 +1022,8 @@
             emptyState.style.display = 'none';
             footerNote.style.display = 'block';
             uploadSection.classList.add('has-data');
-            currentWeekMonday = getMonday(new Date(2026,3,20));
+            // 示例也默认今天所在周
+            currentWeekMonday = getMonday(new Date());
             resetScrollPositions();
             updateGlobalSummary();
             if (currentView==='shiftList') { tableContainer.style.display='none'; shiftListContainer.style.display='block'; weekContainer.style.display='none'; renderShiftBubbles(); }
