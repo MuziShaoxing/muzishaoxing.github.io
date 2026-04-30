@@ -162,12 +162,8 @@
 </div>
 
 <script>
-    // ============================================
-    // 0-HeMa 专属图标 (base64 webp) – 永久保留
-    // ============================================
     const HEMA_ICON_BASE64 = "data:image/webp;base64,UklGRmoDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSCABAAARkHNb27HH4u/YTlp1ts1anZ3OqpwxO9s2Ktu2bdvzvvc1eJ/ne56ImAAiIvetP3ZGko25p77PtiPhWBj4VEDkGVNcVlIY7kpU9xsGqkWPGb/xedUdhqVxZbVhmsAegQcYYABf3n349OnDu++wfiKw/wLF5wU0SVWDyGGJmkGSHK+mVua0mpUSgSar4Fd2okooThItU9Uves6KDgpqvkHx11iLip+Q/Hjv3jewFeNtJhFl/2QZm1+HkeMNaN1BVWAdJqK2QHP3A10LfhiatjxlTUt2Q/NgK1iHiXSvF9B62o4qYKrjH6lENAOsrpb+X6nMHCLr0vdg2xhPEknsNe4LWI7xqsOJpP36zkmZh1pcyfbgqulbjl26cGT9xPIgkgRWUDggJAIAADAMAJ0BKiAAIAA+tUSTQyOiDAYDAB8FonoAJ05QVQdwX27eAjALrB6AP2AySX0AOlE8nK7pPs1dTWAywNIFNB8df0X/xvYe/pP+b3gAMv4JbyZcQExzHsaXqYWMM0g3r3QV2H4yaDOuwAAA/ujkaOEdH9IaOkiSRHagNd1MyYcEoLzT70dA4zK/xCBezOPgmBiEzU635GUxFjInhBVMMMkQsotXt3aTs0IVSc0PFRSxqh9lz8JizKXeJoZV4blX0b/ygXL2fFxaJ6viTOXV3rZakhLjCnnGr1Pj4goSwVloI141eaS/+tiUZJALg2clpT36DHYqPQC3V/dS6CCwV6enbR7d83fLQAGmyIZETozk3r/h3H707B/w501/zVlQ9uoBQZ7Mrhcpve1c5aSP+lP/v/m0sE4Lp4GYBJf/xHd2PfeMHq5F1f//EChvvbeF/D8A7ZH4ybRec6JpCNfvHXp2t//Su2i/rHrKLU99jifVeaHJaO+OE3rT1Lulo3sqt3/Yfv/fplLyfnLmP2s9IgCDLs7C3xNRQd96/+r5DBLri22L0Ef88McoCBCOTNgiLWfv9kyXKlDaysoQsv94dwi6WBJFHf8npWGjqSV+XAmlb6w4j/0et6fsihbjSNBA5UiDnaWsasVoDQNFl/EEYj3LKWIdYFLB07cYBHPlAlp93QBOuhh1nm2hlcmHvk9voG09cLDZqy5RBztP9+Zi55ZgAAAA";
 
-    // 文件夹图标映射表（作为精确匹配的补充）
     const FOLDER_ICON_MAP = {
         '1-在线工具': { type: 'icon', value: 'fa-solid fa-globe' },
         '2-Chrome扩展': { type: 'icon', value: 'fa-brands fa-chrome' },
@@ -178,20 +174,11 @@
         'default': { type: 'icon', value: 'fa-solid fa-folder-open' }
     };
 
-    // ----- 动态图标解析：优先关键字，再前缀匹配 -----
     function resolveFolderIcon(folderId) {
-        // 1. 精确匹配（向后兼容）
-        if (FOLDER_ICON_MAP[folderId]) {
-            return FOLDER_ICON_MAP[folderId];
-        }
-        // 2. 关键字 “HeMa” → 专属图片
-        if (/HeMa/i.test(folderId)) {
-            return { type: 'image', value: HEMA_ICON_BASE64 };
-        }
-        // 3. 数字前缀匹配（1~6）
+        if (FOLDER_ICON_MAP[folderId]) return FOLDER_ICON_MAP[folderId];
+        if (/HeMa/i.test(folderId)) return { type: 'image', value: HEMA_ICON_BASE64 };
         const match = folderId.match(/^(\d+)-/);
         if (match) {
-            const num = match[1];
             const prefixMap = {
                 '1': 'fa-solid fa-globe',
                 '2': 'fa-brands fa-chrome',
@@ -200,48 +187,156 @@
                 '5': 'fa-brands fa-windows',
                 '6': 'fa-brands fa-android',
             };
-            if (prefixMap[num]) {
-                return { type: 'icon', value: prefixMap[num] };
-            }
+            if (prefixMap[match[1]]) return { type: 'icon', value: prefixMap[match[1]] };
         }
-        // 4. 默认
         return FOLDER_ICON_MAP['default'];
     }
 
     // ===== FILE_DATA_START =====
     const fileData = {
-        '1-HeMa': {
+        '0-在线工具': {
             files: [
-                { name: '1-日报.xlsx', icon: 'fa-file-excel', path: 'hema/1-HeMa/1-日报.xlsx' },
-                { name: '2-问单.xlsx', icon: 'fa-file-excel', path: 'hema/1-HeMa/2-问单.xlsx' },
+                { name: '4-单袋比-重名.html', icon: 'fa-file-code', path: 'hema/0-在线工具/4-单袋比-重名.html' },
+                { name: '6-文件目录树.html', icon: 'fa-file-code', path: 'hema/0-在线工具/6-文件目录树.html' },
+                { name: '早退筛查.html', icon: 'fa-file-code', path: 'hema/0-在线工具/早退筛查.html' },
+                { name: '3-骑手-热力日报.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-骑手-热力日报.html' },
+                { name: '2-骑手-轨迹分析.html', icon: 'fa-file-code', path: 'hema/0-在线工具/2-骑手-轨迹分析.html' },
+                { name: '5-骑手-考勤矩阵.html', icon: 'fa-file-code', path: 'hema/0-在线工具/5-骑手-考勤矩阵.html' },
+                { name: '1-Excel转vCard.html', icon: 'fa-file-code', path: 'hema/0-在线工具/1-Excel转vCard.html' },
+                { name: '骑手-单袋比.html', icon: 'fa-file-code', path: 'hema/0-在线工具/骑手-单袋比.html' },
+                { name: 'TXT转通讯录.html', icon: 'fa-file-code', path: 'hema/0-在线工具/TXT转通讯录.html' },
+                { name: '0-文字转语音.html', icon: 'fa-file-code', path: 'hema/0-在线工具/0-文字转语音.html' },
             ],
             folders: {
-                'sub-example': {
-                    name: '子目录示例',
-                    files: [
-                        { name: '子文件.txt', icon: 'fa-file-alt', path: 'hema/1-HeMa/子目录示例/子文件.txt' }
-                    ]
-                }
             }
         },
-        '1-在线工具': {
+        '1-HeMa': {
             files: [
-                { name: 'Excel 秒变 vCard.html', icon: 'fa-file-code', path: 'hema/1-在线工具/Excel 秒变 vCard.html' },
+                { name: '4-扣款记录.xlsx', icon: 'fa-file-excel', path: 'hema/1-HeMa/4-扣款记录.xlsx' },
+                { name: '7-定制版二维码生成器.zip', icon: 'fa-file-archive', path: 'hema/1-HeMa/7-定制版二维码生成器.zip' },
+                { name: '6-快捷指令-盒马.zip', icon: 'fa-file-archive', path: 'hema/1-HeMa/6-快捷指令-盒马.zip' },
+                { name: '3-单袋比.xlsx', icon: 'fa-file-excel', path: 'hema/1-HeMa/3-单袋比.xlsx' },
+                { name: '2-问单.xlsx', icon: 'fa-file-excel', path: 'hema/1-HeMa/2-问单.xlsx' },
+                { name: '1-日报.xlsx', icon: 'fa-file-excel', path: 'hema/1-HeMa/1-日报.xlsx' },
             ],
-            folders: {}
+            folders: {
+            }
+        },
+        '2-Chrome扩展': {
+            files: [
+                { name: '3-高级自定义标签页.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/3-高级自定义标签页.zip' },
+                { name: '1-二维码生成-弹窗版.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/1-二维码生成-弹窗版.zip' },
+                { name: '视频变速器.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/视频变速器.zip' },
+                { name: '2-二维码生成-悬浮窗.zip', icon: 'fa-file-archive', path: 'hema/2-Chrome扩展/2-二维码生成-悬浮窗.zip' },
+            ],
+            folders: {
+            }
         },
         '3-Python脚本': {
             files: [
-                { name: 'MP3格式转换.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/MP3格式转换.py' },
+                { name: '4-一键分类存放.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/4-一键分类存放.py' },
+                { name: '1-骑手指标分析.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/1-骑手指标分析.py' },
+                { name: '删除修改30天文件.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/删除修改30天文件.py' },
+                { name: '自动归档.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/自动归档.py' },
+                { name: '3-MP3格式转换.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/3-MP3格式转换.py' },
+                { name: '将TXT文件转VCF格式-带界面.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/将TXT文件转VCF格式-带界面.py' },
+                { name: '删除创建30天文件.py', icon: 'fa-file-code', path: 'hema/3-Python脚本/删除创建30天文件.py' },
+                { name: '0-拖入py并运行.command', icon: 'fa-file', path: 'hema/3-Python脚本/0-拖入py并运行.command' },
+                { name: '2-Excel转vCard助手.zip', icon: 'fa-file-archive', path: 'hema/3-Python脚本/2-Excel转vCard助手.zip' },
             ],
-            folders: {}
+            folders: {
+            }
         },
-        // 其他文件夹可由脚本自动生成
+        '4-Mac': {
+            files: [
+                { name: '显示隐藏文件.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/显示隐藏文件.zip' },
+                { name: '13-一键文件夹目录树py.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/13-一键文件夹目录树py.zip' },
+                { name: '1-MacOS屏蔽更新补丁.dmg', icon: 'fa-file', path: 'hema/4-Mac/1-MacOS屏蔽更新补丁.dmg' },
+                { name: 'Python脚本运行器.command', icon: 'fa-file', path: 'hema/4-Mac/Python脚本运行器.command' },
+                { name: '12-挂载nfts分区读写.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/12-挂载nfts分区读写.zip' },
+                { name: '单硬盘挂载EFI分区2.0.command', icon: 'fa-file', path: 'hema/4-Mac/单硬盘挂载EFI分区2.0.command' },
+                { name: '11-磁盘没有正常推出.zip', icon: 'fa-file-archive', path: 'hema/4-Mac/11-磁盘没有正常推出.zip' },
+            ],
+            folders: {
+            }
+        },
+        '5-Windows': {
+            files: [
+                { name: 'MAS激活.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/MAS激活.zip' },
+                { name: 'BCM94360Z4.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/BCM94360Z4.zip' },
+                { name: '一键开关Defender.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/一键开关Defender.zip' },
+                { name: 'office365.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/office365.zip' },
+                { name: 'NFC门禁卡软件.exe', icon: 'fa-file', path: 'hema/5-Windows/NFC门禁卡软件.exe' },
+                { name: 'KMS激活.zip', icon: 'fa-file-archive', path: 'hema/5-Windows/KMS激活.zip' },
+            ],
+            folders: {
+            }
+        },
+        '6-Android': {
+            files: [
+                { name: '时间窗_v1.5.4.apk', icon: 'fa-file', path: 'hema/6-Android/时间窗_v1.5.4.apk' },
+                { name: 'via浏览器.apk', icon: 'fa-file', path: 'hema/6-Android/via浏览器.apk' },
+                { name: '搜狗输入法.apk', icon: 'fa-file', path: 'hema/6-Android/搜狗输入法.apk' },
+                { name: '百度输入法.apk.zip', icon: 'fa-file-archive', path: 'hema/6-Android/百度输入法.apk.zip' },
+                { name: '应用提取.apk', icon: 'fa-file', path: 'hema/6-Android/应用提取.apk' },
+                { name: 'T9_v1.3.apk', icon: 'fa-file', path: 'hema/6-Android/T9_v1.3.apk' },
+                { name: '通讯录助手_v1.7.2.apk', icon: 'fa-file', path: 'hema/6-Android/通讯录助手_v1.7.2.apk' },
+                { name: '条码扫描器_v1.24.2.apk', icon: 'fa-file', path: 'hema/6-Android/条码扫描器_v1.24.2.apk' },
+            ],
+            folders: {
+            }
+        },
+        '7-测试': {
+            files: [
+            ],
+            folders: {
+                '1-日报': {
+                    name: '1-日报',
+                    files: [
+                        { name: '2-日报-ProMax2.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/2-日报-ProMax2.html' },
+                        { name: '1-日报-Pro2.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/1-日报-Pro2.html' },
+                        { name: '2-日报-ProMax3.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/2-日报-ProMax3.html' },
+                        { name: '2-日报-ProMax4.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/2-日报-ProMax4.html' },
+                        { name: '1-骑手热力-日报.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/1-骑手热力-日报.html' },
+                        { name: '1-日报-Pro2调整.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/1-日报-Pro2调整.html' },
+                        { name: '2-日报-ProMax5.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/2-日报-ProMax5.html' },
+                        { name: '2-日报-ProMax6.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/2-日报-ProMax6.html' },
+                        { name: '2-日报-ProMax6微调.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/2-日报-ProMax6微调.html' },
+                        { name: '1-日报-Pro1.html', icon: 'fa-file-code', path: 'hema/7-测试/1-日报/1-日报-Pro1.html' },
+                    ]
+                },
+                '2-单袋比': {
+                    name: '2-单袋比',
+                    files: [
+                        { name: '单袋比-第一版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-第一版.html' },
+                        { name: '4-骑手-单袋比-重铸版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/4-骑手-单袋比-重铸版.html' },
+                        { name: '单袋比十主题版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比十主题版.html' },
+                        { name: '单袋比-重铸版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-重铸版.html' },
+                        { name: '4-骑手-单袋比-重名检测独立.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/4-骑手-单袋比-重名检测独立.html' },
+                        { name: '单袋比-第二版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-第二版.html' },
+                        { name: '单袋比-第三版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-第三版.html' },
+                        { name: '单袋比-第三版-优化.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-第三版-优化.html' },
+                        { name: '4-骑手-单袋比-重名检测屏蔽.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/4-骑手-单袋比-重名检测屏蔽.html' },
+                        { name: '单袋比-重铸版2.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-重铸版2.html' },
+                        { name: '单袋比-重铸版-优化2-第一版.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-重铸版-优化2-第一版.html' },
+                        { name: '单袋比-重名-重构.html', icon: 'fa-file-code', path: 'hema/7-测试/2-单袋比/单袋比-重名-重构.html' },
+                    ]
+                },
+                '3-其他': {
+                    name: '3-其他',
+                    files: [
+                    ]
+                },
+            }
+        },
     };
     // ===== FILE_DATA_END =====
 
     (function() {
-        function extractSortNumber(name) { const m = name.match(/^(\d+)-/); return m ? parseInt(m[1],10) : 9999; }
+        function extractSortNumber(name) {
+            const m = name.match(/^(\d+)-/);
+            return m ? parseInt(m[1], 10) : 9999;
+        }
         function getDisplayName(name) { return name.replace(/^\d+-/, ''); }
         function getFileDisplayName(name) { return name.replace(/^\d+-/, ''); }
 
@@ -250,9 +345,6 @@
             if (config.type === 'image') return `<img src="${config.value}" style="width:1.2rem;height:1.2rem;object-fit:contain;">`;
             return `<i class="${config.value}"></i>`;
         }
-
-        const folderIds = Object.keys(fileData).filter(id => id !== 'root');
-        folderIds.sort((a,b) => extractSortNumber(a) - extractSortNumber(b));
 
         const wrapper = document.getElementById('folderDropdown');
         const trigger = document.getElementById('dropdownTrigger');
@@ -268,7 +360,9 @@
 
         function buildUIContainers() {
             dropdownMenuUl.innerHTML = '';
-            folderIds.forEach(fid => {
+            const ids = Object.keys(fileData).filter(id => id !== 'root');
+            ids.sort((a, b) => extractSortNumber(a) - extractSortNumber(b));
+            ids.forEach(fid => {
                 const li = document.createElement('li');
                 li.dataset.folder = fid;
                 li.innerHTML = `${getFolderIconHtml(fid)} ${getDisplayName(fid)}`;
@@ -278,7 +372,7 @@
 
         function renderCurrentLevel() {
             if (currentPath.length === 0) {
-                contentDiv.innerHTML = '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 请选择一个文件夹</div>';
+                contentDiv.innerHTML = '<div class="empty-folder">请选择一个文件夹</div>';
                 updateBackButton();
                 return;
             }
@@ -296,7 +390,11 @@
             const subFolderIds = Object.keys(folders);
             let html = '';
 
-            subFolderIds.forEach(sid => {
+            subFolderIds.sort((a, b) => {
+                const nameA = folders[a].name || a;
+                const nameB = folders[b].name || b;
+                return extractSortNumber(nameA) - extractSortNumber(nameB);
+            }).forEach(sid => {
                 const folder = folders[sid];
                 const displayName = getFileDisplayName(folder.name || sid);
                 html += `<div class="file-item folder-entry" data-subfolder="${sid}">
@@ -305,10 +403,11 @@
                 </div>`;
             });
 
-            if (files.length === 0 && subFolderIds.length === 0) {
-                html += '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 暂无文件</div>';
+            const sortedFiles = [...files].sort((a, b) => extractSortNumber(a.name) - extractSortNumber(b.name));
+            if (sortedFiles.length === 0 && subFolderIds.length === 0) {
+                html += '<div class="empty-folder">暂无文件</div>';
             } else {
-                files.forEach(file => {
+                sortedFiles.forEach(file => {
                     const displayName = getFileDisplayName(file.name);
                     const isHtml = file.name.toLowerCase().endsWith('.html');
                     const targetAttr = isHtml ? ' target="_blank" rel="noopener noreferrer"' : '';
@@ -334,8 +433,7 @@
                 if (link.href.toLowerCase().endsWith('.html')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
                 if (!link.dataset.originalName) {
                     const href = link.getAttribute('href') || '';
-                    const name = href.substring(href.lastIndexOf('/') + 1);
-                    link.dataset.originalName = name;
+                    link.dataset.originalName = href.substring(href.lastIndexOf('/') + 1);
                 }
             });
         }
@@ -403,8 +501,12 @@
         backBar.addEventListener('click', () => { if (currentPath.length > 1) { currentPath.pop(); renderCurrentLevel(); } });
 
         buildUIContainers();
-        if (folderIds.length > 0) { switchTopFolder(folderIds[0]); }
-        else { contentDiv.innerHTML = '<div class="empty-folder">暂无可用文件夹</div>'; }
+        if (Object.keys(fileData).length > 0) {
+            const ids = Object.keys(fileData).filter(id => id !== 'root').sort((a,b) => extractSortNumber(a)-extractSortNumber(b));
+            if (ids.length) switchTopFolder(ids[0]);
+        } else {
+            contentDiv.innerHTML = '<div class="empty-folder">暂无可用文件夹</div>';
+        }
 
         trigger.addEventListener('click', e => { e.stopPropagation(); wrapper.classList.toggle('open'); });
         dropdownMenuUl.addEventListener('click', e => {

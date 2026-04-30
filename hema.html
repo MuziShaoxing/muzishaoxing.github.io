@@ -162,12 +162,8 @@
 </div>
 
 <script>
-    // ============================================
-    // 0-HeMa 专属图标 (base64 webp) – 永久保留
-    // ============================================
     const HEMA_ICON_BASE64 = "data:image/webp;base64,UklGRmoDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSCABAAARkHNb27HH4u/YTlp1ts1anZ3OqpwxO9s2Ktu2bdvzvvc1eJ/ne56ImAAiIvetP3ZGko25p77PtiPhWBj4VEDkGVNcVlIY7kpU9xsGqkWPGb/xedUdhqVxZbVhmsAegQcYYABf3n349OnDu++wfiKw/wLF5wU0SVWDyGGJmkGSHK+mVua0mpUSgSar4Fd2okooThItU9Uves6KDgpqvkHx11iLip+Q/Hjv3jewFeNtJhFl/2QZm1+HkeMNaN1BVWAdJqK2QHP3A10LfhiatjxlTUt2Q/NgK1iHiXSvF9B62o4qYKrjH6lENAOsrpb+X6nMHCLr0vdg2xhPEknsNe4LWI7xqsOJpP36zkmZh1pcyfbgqulbjl26cGT9xPIgkgRWUDggJAIAADAMAJ0BKiAAIAA+tUSTQyOiDAYDAB8FonoAJ05QVQdwX27eAjALrB6AP2AySX0AOlE8nK7pPs1dTWAywNIFNB8df0X/xvYe/pP+b3gAMv4JbyZcQExzHsaXqYWMM0g3r3QV2H4yaDOuwAAA/ujkaOEdH9IaOkiSRHagNd1MyYcEoLzT70dA4zK/xCBezOPgmBiEzU635GUxFjInhBVMMMkQsotXt3aTs0IVSc0PFRSxqh9lz8JizKXeJoZV4blX0b/ygXL2fFxaJ6viTOXV3rZakhLjCnnGr1Pj4goSwVloI141eaS/+tiUZJALg2clpT36DHYqPQC3V/dS6CCwV6enbR7d83fLQAGmyIZETozk3r/h3H707B/w501/zVlQ9uoBQZ7Mrhcpve1c5aSP+lP/v/m0sE4Lp4GYBJf/xHd2PfeMHq5F1f//EChvvbeF/D8A7ZH4ybRec6JpCNfvHXp2t//Su2i/rHrKLU99jifVeaHJaO+OE3rT1Lulo3sqt3/Yfv/fplLyfnLmP2s9IgCDLs7C3xNRQd96/+r5DBLri22L0Ef88McoCBCOTNgiLWfv9kyXKlDaysoQsv94dwi6WBJFHf8npWGjqSV+XAmlb6w4j/0et6fsihbjSNBA5UiDnaWsasVoDQNFl/EEYj3LKWIdYFLB07cYBHPlAlp93QBOuhh1nm2hlcmHvk9voG09cLDZqy5RBztP9+Zi55ZgAAAA";
 
-    // 文件夹图标映射表（作为精确匹配的补充）
     const FOLDER_ICON_MAP = {
         '1-在线工具': { type: 'icon', value: 'fa-solid fa-globe' },
         '2-Chrome扩展': { type: 'icon', value: 'fa-brands fa-chrome' },
@@ -178,20 +174,11 @@
         'default': { type: 'icon', value: 'fa-solid fa-folder-open' }
     };
 
-    // ----- 动态图标解析：优先关键字，再前缀匹配 -----
     function resolveFolderIcon(folderId) {
-        // 1. 精确匹配（向后兼容）
-        if (FOLDER_ICON_MAP[folderId]) {
-            return FOLDER_ICON_MAP[folderId];
-        }
-        // 2. 关键字 “HeMa” → 专属图片
-        if (/HeMa/i.test(folderId)) {
-            return { type: 'image', value: HEMA_ICON_BASE64 };
-        }
-        // 3. 数字前缀匹配（1~6）
+        if (FOLDER_ICON_MAP[folderId]) return FOLDER_ICON_MAP[folderId];
+        if (/HeMa/i.test(folderId)) return { type: 'image', value: HEMA_ICON_BASE64 };
         const match = folderId.match(/^(\d+)-/);
         if (match) {
-            const num = match[1];
             const prefixMap = {
                 '1': 'fa-solid fa-globe',
                 '2': 'fa-brands fa-chrome',
@@ -200,11 +187,8 @@
                 '5': 'fa-brands fa-windows',
                 '6': 'fa-brands fa-android',
             };
-            if (prefixMap[num]) {
-                return { type: 'icon', value: prefixMap[num] };
-            }
+            if (prefixMap[match[1]]) return { type: 'icon', value: prefixMap[match[1]] };
         }
-        // 4. 默认
         return FOLDER_ICON_MAP['default'];
     }
 
@@ -349,7 +333,10 @@
     // ===== FILE_DATA_END =====
 
     (function() {
-        function extractSortNumber(name) { const m = name.match(/^(\d+)-/); return m ? parseInt(m[1],10) : 9999; }
+        function extractSortNumber(name) {
+            const m = name.match(/^(\d+)-/);
+            return m ? parseInt(m[1], 10) : 9999;
+        }
         function getDisplayName(name) { return name.replace(/^\d+-/, ''); }
         function getFileDisplayName(name) { return name.replace(/^\d+-/, ''); }
 
@@ -358,9 +345,6 @@
             if (config.type === 'image') return `<img src="${config.value}" style="width:1.2rem;height:1.2rem;object-fit:contain;">`;
             return `<i class="${config.value}"></i>`;
         }
-
-        const folderIds = Object.keys(fileData).filter(id => id !== 'root');
-        folderIds.sort((a,b) => extractSortNumber(a) - extractSortNumber(b));
 
         const wrapper = document.getElementById('folderDropdown');
         const trigger = document.getElementById('dropdownTrigger');
@@ -376,7 +360,9 @@
 
         function buildUIContainers() {
             dropdownMenuUl.innerHTML = '';
-            folderIds.forEach(fid => {
+            const ids = Object.keys(fileData).filter(id => id !== 'root');
+            ids.sort((a, b) => extractSortNumber(a) - extractSortNumber(b));
+            ids.forEach(fid => {
                 const li = document.createElement('li');
                 li.dataset.folder = fid;
                 li.innerHTML = `${getFolderIconHtml(fid)} ${getDisplayName(fid)}`;
@@ -386,7 +372,7 @@
 
         function renderCurrentLevel() {
             if (currentPath.length === 0) {
-                contentDiv.innerHTML = '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 请选择一个文件夹</div>';
+                contentDiv.innerHTML = '<div class="empty-folder">请选择一个文件夹</div>';
                 updateBackButton();
                 return;
             }
@@ -404,7 +390,11 @@
             const subFolderIds = Object.keys(folders);
             let html = '';
 
-            subFolderIds.forEach(sid => {
+            subFolderIds.sort((a, b) => {
+                const nameA = folders[a].name || a;
+                const nameB = folders[b].name || b;
+                return extractSortNumber(nameA) - extractSortNumber(nameB);
+            }).forEach(sid => {
                 const folder = folders[sid];
                 const displayName = getFileDisplayName(folder.name || sid);
                 html += `<div class="file-item folder-entry" data-subfolder="${sid}">
@@ -413,10 +403,11 @@
                 </div>`;
             });
 
-            if (files.length === 0 && subFolderIds.length === 0) {
-                html += '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 暂无文件</div>';
+            const sortedFiles = [...files].sort((a, b) => extractSortNumber(a.name) - extractSortNumber(b.name));
+            if (sortedFiles.length === 0 && subFolderIds.length === 0) {
+                html += '<div class="empty-folder">暂无文件</div>';
             } else {
-                files.forEach(file => {
+                sortedFiles.forEach(file => {
                     const displayName = getFileDisplayName(file.name);
                     const isHtml = file.name.toLowerCase().endsWith('.html');
                     const targetAttr = isHtml ? ' target="_blank" rel="noopener noreferrer"' : '';
@@ -442,8 +433,7 @@
                 if (link.href.toLowerCase().endsWith('.html')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
                 if (!link.dataset.originalName) {
                     const href = link.getAttribute('href') || '';
-                    const name = href.substring(href.lastIndexOf('/') + 1);
-                    link.dataset.originalName = name;
+                    link.dataset.originalName = href.substring(href.lastIndexOf('/') + 1);
                 }
             });
         }
@@ -511,8 +501,12 @@
         backBar.addEventListener('click', () => { if (currentPath.length > 1) { currentPath.pop(); renderCurrentLevel(); } });
 
         buildUIContainers();
-        if (folderIds.length > 0) { switchTopFolder(folderIds[0]); }
-        else { contentDiv.innerHTML = '<div class="empty-folder">暂无可用文件夹</div>'; }
+        if (Object.keys(fileData).length > 0) {
+            const ids = Object.keys(fileData).filter(id => id !== 'root').sort((a,b) => extractSortNumber(a)-extractSortNumber(b));
+            if (ids.length) switchTopFolder(ids[0]);
+        } else {
+            contentDiv.innerHTML = '<div class="empty-folder">暂无可用文件夹</div>';
+        }
 
         trigger.addEventListener('click', e => { e.stopPropagation(); wrapper.classList.toggle('open'); });
         dropdownMenuUl.addEventListener('click', e => {
