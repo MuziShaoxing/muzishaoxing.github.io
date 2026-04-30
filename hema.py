@@ -23,15 +23,18 @@ def get_file_icon(filename):
     }
     return icons.get(ext, 'fa-file')
 
-def find_favicon(dir_path, rel_prefix):
-    """在目录中寻找 .favicon 开头的文件，返回相对路径或 None"""
-    for f in os.listdir(dir_path):
-        if f.startswith('.favicon'):
-            return f"{rel_prefix}/{f}"
+def has_favicon(dir_path):
+    """检查目录中是否含有 .favicon.png 文件"""
+    fav = os.path.join(dir_path, '.favicon.png')
+    return os.path.isfile(fav)
+
+def get_folder_icon(entry_name, base_dir):
+    """返回文件夹图标数据：None 或 {'type':'image','value':'hema/.../.favicon.png'}"""
+    if has_favicon(base_dir):
+        return {'type': 'image', 'value': f'hema/{entry_name}/.favicon.png'}
     return None
 
 def scan_directory_structure(base_path):
-    """返回 {folder_name: {icon?, files:[], folders:{sub_name:{icon?, name, files:[]}} }}"""
     result = {}
     if not os.path.exists(base_path):
         return result
@@ -39,72 +42,82 @@ def scan_directory_structure(base_path):
     for entry in sorted(os.listdir(base_path)):
         entry_path = os.path.join(base_path, entry)
         if os.path.isdir(entry_path) and not entry.startswith('.'):
-            folder_obj = {'files': [], 'folders': {}}
-            # 查找一级文件夹图标
-            icon = find_favicon(entry_path, f'hema/{entry}')
-            if icon:
-                folder_obj['icon'] = icon
-
-            for item in sorted(os.listdir(entry_path)):
+            folder_content = {
+                'files': [],
+                'folders': {},
+                'icon': get_folder_icon(entry, entry_path)
+            }
+            # 扫描一级目录内的文件和子目录
+            for item in os.listdir(entry_path):
                 item_path = os.path.join(entry_path, item)
-                if os.path.isfile(item_path) and not item.startswith('.'):
-                    folder_obj['files'].append({
+                if os.path.isfile(item_path):
+                    # 忽略普通的隐藏文件，但保留 .favicon.png 已处理，不再重复添加
+                    if item.startswith('.') and item != '.favicon.png':
+                        continue
+                    if item == '.favicon.png':
+                        continue  # 图标文件不放入文件列表
+                    folder_content['files'].append({
                         'name': item,
                         'icon': get_file_icon(item),
                         'path': f'hema/{entry}/{item}'
                     })
                 elif os.path.isdir(item_path) and not item.startswith('.'):
-                    sub_folder = {'name': item, 'files': []}
-                    # 子文件夹图标
-                    sub_icon = find_favicon(item_path, f'hema/{entry}/{item}')
-                    if sub_icon:
-                        sub_folder['icon'] = sub_icon
-                    for sub_file in sorted(os.listdir(item_path)):
+                    sub_folder = {
+                        'name': item,
+                        'files': [],
+                        'icon': get_folder_icon(f'{entry}/{item}', item_path)
+                    }
+                    for sub_file in os.listdir(item_path):
                         sub_file_path = os.path.join(item_path, sub_file)
-                        if os.path.isfile(sub_file_path) and not sub_file.startswith('.'):
+                        if os.path.isfile(sub_file_path):
+                            if sub_file.startswith('.') and sub_file != '.favicon.png':
+                                continue
+                            if sub_file == '.favicon.png':
+                                continue
                             sub_folder['files'].append({
                                 'name': sub_file,
                                 'icon': get_file_icon(sub_file),
                                 'path': f'hema/{entry}/{item}/{sub_file}'
                             })
-                    folder_obj['folders'][item] = sub_folder
-            result[entry] = folder_obj
+                    folder_content['folders'][item] = sub_folder
+            result[entry] = folder_content
     return result
 
 def generate_data_js(folders):
-    """生成 fileData 对象字符串"""
-    def format_file(f, indent=16):
+    def format_file(f, indent=12):
         return f"{' '*indent}{{ name: '{f['name']}', icon: '{f['icon']}', path: '{f['path']}' }}"
+    def format_icon(icon):
+        if icon is None:
+            return 'null'
+        return f"{{ type: 'image', value: '{icon['value']}' }}"
 
     lines = ["const fileData = {"]
     sorted_names = sorted(folders.keys(), key=extract_sort_key)
     for name in sorted_names:
         folder = folders[name]
         lines.append(f"        '{name}': {{")
-        if folder.get('icon'):
-            lines.append(f"            icon: '{folder['icon']}',")
         # files
-        lines.append("            files: [")
+        lines.append(f"            files: [")
         for f in folder['files']:
             lines.append(format_file(f, 16) + ',')
-        lines.append("            ],")
+        lines.append(f"            ],")
         # folders
-        lines.append("            folders: {")
+        lines.append(f"            folders: {{")
         sub_names = sorted(folder['folders'].keys())
         if sub_names:
             for sub_name in sub_names:
                 sub = folder['folders'][sub_name]
                 lines.append(f"                '{sub_name}': {{")
-                if sub.get('icon'):
-                    lines.append(f"                    icon: '{sub['icon']}',")
                 lines.append(f"                    name: '{sub['name']}',")
-                lines.append("                    files: [")
+                lines.append(f"                    files: [")
                 for f in sub['files']:
                     lines.append(format_file(f, 24) + ',')
-                lines.append("                    ]")
-                lines.append("                },")
-        lines.append("            }")
-        lines.append("        },")
+                lines.append(f"                    ],")
+                lines.append(f"                    icon: {format_icon(sub.get('icon'))}")
+                lines.append(f"                }},")
+        lines.append(f"            }},")
+        lines.append(f"            icon: {format_icon(folder.get('icon'))}")
+        lines.append(f"        }},")
     lines.append("    };")
     return '\n'.join(lines)
 
@@ -133,7 +146,7 @@ def update_html(html_path, folders):
 
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(content)
-    print("✅ fileData 已更新（含自定义图标）")
+    print("✅ fileData 已更新（含自定义图标信息）")
     return True
 
 def main():
@@ -142,7 +155,7 @@ def main():
     html_file = os.path.join(script_dir, 'hema.html')
 
     print("=" * 50)
-    print("📁 时间轴更新工具 · 支持 .favicon 自定义图标")
+    print("📁 时间轴更新工具 · 图标自动检测")
     print("=" * 50)
 
     if not os.path.exists(html_file):
@@ -153,20 +166,19 @@ def main():
         print(f"⚠️ 创建 hema 目录: {hema_dir}")
 
     folders = scan_directory_structure(hema_dir)
-
-    print("\n📊 扫描结果:")
+    print(f"\n📊 扫描结果:")
     for name in sorted(folders.keys(), key=extract_sort_key):
         f = folders[name]
-        icon_mark = " 🎨(自定义图标)" if f.get('icon') else ""
+        icon_status = "自定义图标" if f.get('icon') else "默认图标"
         sub_count = len(f['folders'])
-        print(f"  📁 {name}{icon_mark}: {len(f['files'])} 个文件, {sub_count} 个子文件夹")
+        print(f"  📁 {name} [{icon_status}]: {len(f['files'])} 个文件, {sub_count} 个子文件夹")
         for sub_name in sorted(f['folders'].keys()):
             sub = f['folders'][sub_name]
-            sub_icon = " 🎨" if sub.get('icon') else ""
-            print(f"       └─ {sub_name}{sub_icon}: {len(sub['files'])} 个文件")
+            sub_icon = "自定义" if sub.get('icon') else "默认"
+            print(f"       └─ {sub_name} [{sub_icon}]: {len(sub['files'])} 个文件")
 
     if update_html(html_file, folders):
-        print(f"\n✅ 更新成功！")
+        print(f"\n✅ 更新成功！现在可以在文件夹内放置 .favicon.png 自定义图标。")
     else:
         print("\n❌ 更新失败")
 
