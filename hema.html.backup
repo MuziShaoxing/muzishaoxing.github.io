@@ -199,7 +199,6 @@
                 { name: '4-单袋比-重名.html', icon: 'fa-file-code', path: 'hema/0-在线工具/4-单袋比-重名.html' },
                 { name: '6-文件目录树.html', icon: 'fa-file-code', path: 'hema/0-在线工具/6-文件目录树.html' },
                 { name: '早退筛查.html', icon: 'fa-file-code', path: 'hema/0-在线工具/早退筛查.html' },
-                { name: '3-骑手-热力日报.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-骑手-热力日报.html' },
                 { name: '2-骑手-轨迹分析.html', icon: 'fa-file-code', path: 'hema/0-在线工具/2-骑手-轨迹分析.html' },
                 { name: '5-骑手-考勤矩阵.html', icon: 'fa-file-code', path: 'hema/0-在线工具/5-骑手-考勤矩阵.html' },
                 { name: '1-Excel转vCard.html', icon: 'fa-file-code', path: 'hema/0-在线工具/1-Excel转vCard.html' },
@@ -208,6 +207,14 @@
                 { name: '0-文字转语音.html', icon: 'fa-file-code', path: 'hema/0-在线工具/0-文字转语音.html' },
             ],
             folders: {
+                '3-日报': {
+                    name: '3-日报',
+                    files: [
+                        { name: '2-日报-Pro.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-日报/2-日报-Pro.html' },
+                        { name: '3-日报-ProMax.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-日报/3-日报-ProMax.html' },
+                        { name: '1-日报.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-日报/1-日报.html' },
+                    ]
+                },
             }
         },
         '1-HeMa': {
