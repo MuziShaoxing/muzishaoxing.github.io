@@ -490,7 +490,6 @@
             { name: '单袋比-第三版-优化.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比-第三版-优化.html' },
             { name: '单袋比-第三版.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比-第三版.html' },
             { name: '单袋比-第二版.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比-第二版.html' },
-            { name: '单袋比-重名-重构.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比-重名-重构.html' },
             { name: '单袋比-重铸版.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比-重铸版.html' },
             { name: '单袋比-重铸版2.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比-重铸版2.html' },
             { name: '单袋比十主题版.html', icon: 'fa-file-code', path: 'hema/7-测试/单袋比十主题版.html' },
