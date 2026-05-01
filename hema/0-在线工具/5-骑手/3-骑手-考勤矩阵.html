@@ -361,7 +361,7 @@
         let shiftTypeCol = null;
         let riderIdCol = null;
         let selectedRiders = new Set();
-        let isSelectionDirty = false; // 追踪下拉列表选择是否发生变化
+        let isSelectionDirty = false;
 
         const dragStateMap = new WeakMap();
 
@@ -477,11 +477,13 @@
             return null;
         }
 
+        // 修改为更包容的关键词匹配
         function getShiftTypeColor(type) {
             if (!type) return '';
-            if (type.includes('全职排班')) return 'full';
-            if (type.includes('盒心排班') || type.includes('核心排班')) return 'core';
-            if (type.includes('灵活排班')) return 'flex';
+            const t = type.trim();
+            if (t.includes('全职')) return 'full';
+            if (t.includes('盒心') || t.includes('核心')) return 'core';
+            if (t.includes('灵活')) return 'flex';
             return '';
         }
 
@@ -782,7 +784,6 @@
             const sortRiders = () => { riders.sort((a,b) => { if (sortBy==='name') return sortDir==='asc' ? a.displayName.localeCompare(b.displayName,'zh-CN') : b.displayName.localeCompare(a.displayName,'zh-CN'); if (sortBy==='weekDays') return sortDir==='asc' ? a.weekDays-b.weekDays : b.weekDays-a.weekDays; const idx = parseInt(sortBy); if (!isNaN(idx)) { const aA = a.days[idx]?1:0, bA = b.days[idx]?1:0; return sortDir==='asc' ? aA-bA : bA-aA; } return 0; }); };
             sortRiders();
 
-            // 今天的日期（不含时间），用于预排班判断
             const today = new Date();
             today.setHours(0,0,0,0);
 
@@ -867,52 +868,113 @@
             else refreshTable();
         }
 
+        // ========== 修改后的核心：班次气泡渲染 ==========
         function renderShiftBubbles() {
             const valid = allRecords.filter(r => r.status===0 && (selectedRiders.size===0 || selectedRiders.has(getRiderKey(r))));
-            if (!valid.length) { fullBubbles.innerHTML = coreBubbles.innerHTML = flexBubbles.innerHTML = '<p style="font-size:0.8rem;">-</p>'; return; }
-            const shiftMap = new Map();
+            if (!valid.length) {
+                fullBubbles.innerHTML = coreBubbles.innerHTML = flexBubbles.innerHTML = '<p style="font-size:0.8rem;">-</p>';
+                return;
+            }
+            // 使用 Map 记录每个时段下各类型的骑手集合
+            const shiftMap = new Map(); // key: "HH:MM-HH:MM" -> { ridersByType: { full: Set, core: Set, flex: Set } }
             valid.forEach(rec => {
                 const key = fmtTime(rec.start) + '-' + fmtTime(rec.end);
-                if (!shiftMap.has(key)) shiftMap.set(key, { riders: new Map(), typeCounts: { full:0, core:0, flex:0 } });
+                if (!shiftMap.has(key)) {
+                    shiftMap.set(key, {
+                        ridersByType: { full: new Set(), core: new Set(), flex: new Set() }
+                    });
+                }
                 const data = shiftMap.get(key);
-                data.riders.set(rec.displayName, (data.riders.get(rec.displayName)||0)+1);
-                const ct = getShiftTypeColor(rec.shiftType); if (ct) data.typeCounts[ct]++;
+                const ct = getShiftTypeColor(rec.shiftType);
+                if (ct) {
+                    data.ridersByType[ct].add(rec.displayName);
+                }
             });
+
             const fullS = [], coreS = [], flexS = [];
             for (const [key, data] of shiftMap) {
-                const maxType = Object.entries(data.typeCounts).reduce((a,b)=>(b[1]>a[1]?b:a), [null,0])[0];
-                const item = { key, size: data.riders.size };
-                if (maxType==='full') fullS.push(item); else if (maxType==='core') coreS.push(item); else if (maxType==='flex') flexS.push(item);
+                if (data.ridersByType.full.size > 0) {
+                    fullS.push({ key, size: data.ridersByType.full.size, type: 'full' });
+                }
+                if (data.ridersByType.core.size > 0) {
+                    coreS.push({ key, size: data.ridersByType.core.size, type: 'core' });
+                }
+                if (data.ridersByType.flex.size > 0) {
+                    flexS.push({ key, size: data.ridersByType.flex.size, type: 'flex' });
+                }
             }
-            [fullS, coreS, flexS].forEach(arr => arr.sort((a,b)=>b.size-a.size));
-            const renderCol = (container, list, cls) => { container.innerHTML = list.length ? list.map(item => `<div class="shift-bubble ${cls}" data-shiftkey="${item.key}"><span class="bubble-time">${item.key}</span><span class="bubble-count">${item.size}人</span></div>`).join('') : '<p style="font-size:0.8rem;">-</p>'; };
+
+            // 每类内部按人数降序
+            [fullS, coreS, flexS].forEach(arr => arr.sort((a,b) => b.size - a.size));
+
+            const renderCol = (container, list, cls) => {
+                container.innerHTML = list.length
+                    ? list.map(item => `
+                        <div class="shift-bubble ${cls}" 
+                             data-shiftkey="${item.key}" 
+                             data-type="${item.type}">
+                            <span class="bubble-time">${item.key}</span>
+                            <span class="bubble-count">${item.size}人</span>
+                        </div>`).join('')
+                    : '<p style="font-size:0.8rem;">-</p>';
+            };
+
             renderCol(fullBubbles, fullS, 'bubble-green');
             renderCol(coreBubbles, coreS, 'bubble-blue');
             renderCol(flexBubbles, flexS, 'bubble-pink');
         }
 
         document.getElementById('bubbleColumns').addEventListener('click', e => {
-            const bubble = e.target.closest('.shift-bubble'); if (!bubble) return; showShiftDetail(bubble.dataset.shiftkey);
+            const bubble = e.target.closest('.shift-bubble');
+            if (!bubble) return;
+            showShiftDetail(bubble.dataset.shiftkey, bubble.dataset.type);
         });
 
-        function showShiftDetail(shiftKey) {
-            const valid = allRecords.filter(r => r.status===0);
-            const shiftMap = new Map();
+        function showShiftDetail(shiftKey, type) {
+            const valid = allRecords.filter(r => r.status === 0);
+            const riderMap = new Map(); // 骑手姓名 → 次数
+
             valid.forEach(rec => {
                 const key = fmtTime(rec.start) + '-' + fmtTime(rec.end);
-                if (!shiftMap.has(key)) shiftMap.set(key, { riders: new Map() });
-                shiftMap.get(key).riders.set(rec.displayName, (shiftMap.get(key).riders.get(rec.displayName)||0)+1);
+                if (key !== shiftKey) return;
+                const ct = getShiftTypeColor(rec.shiftType);
+                if (ct !== type) return;
+                const name = rec.displayName;
+                riderMap.set(name, (riderMap.get(name) || 0) + 1);
             });
-            const data = shiftMap.get(shiftKey); if (!data) return;
-            const riderList = Array.from(data.riders).map(([name,count])=>({name,count}));
-            riderList.sort((a,b)=>b.count-a.count);
+
+            if (riderMap.size === 0) {
+                showToast('无该类型骑手记录', 'info');
+                return;
+            }
+
+            const riderList = Array.from(riderMap.entries())
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => b.count - a.count);
+
+            const typeNames = { full: '全职排班', core: '盒心排班', flex: '灵活排班' };
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
-            modal.innerHTML = `<div class="modal-card"><button class="modal-close">✖️</button><h3>🕒 ${shiftKey} 骑手明细</h3>${riderList.map(r=>`<div class="modal-rider-row"><span class="rider-link" data-rider="${r.name}">${r.name}</span><span>${r.count}次</span></div>`).join('')}</div>`;
+            modal.innerHTML = `
+                <div class="modal-card">
+                    <button class="modal-close">✖️</button>
+                    <h3>🕒 ${shiftKey} (${typeNames[type] || type}) 骑手明细</h3>
+                    ${riderList.map(r => `
+                        <div class="modal-rider-row">
+                            <span class="rider-link" data-rider="${r.name}">${r.name}</span>
+                            <span>${r.count}次</span>
+                        </div>`).join('')}
+                </div>`;
             document.body.appendChild(modal);
+
             modal.querySelector('.modal-close').onclick = () => modal.remove();
-            modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
-            modal.querySelectorAll('.rider-link').forEach(el => { el.addEventListener('click', (e) => { e.stopPropagation(); showRiderHistory(el.dataset.rider); }); });
+            modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+            modal.querySelectorAll('.rider-link').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showRiderHistory(el.dataset.rider);
+                });
+            });
         }
 
         function showRiderHistory(riderName) {
@@ -937,7 +999,6 @@
             emptyState.style.display = 'none';
             footerNote.style.display = 'block';
             uploadSection.classList.add('has-data');
-            // 默认周视图定位到今天所在周（不再使用数据中的最小日期）
             if (dateCol) {
                 currentWeekMonday = getMonday(new Date());
             }
@@ -1022,7 +1083,6 @@
             emptyState.style.display = 'none';
             footerNote.style.display = 'block';
             uploadSection.classList.add('has-data');
-            // 示例也默认今天所在周
             currentWeekMonday = getMonday(new Date());
             resetScrollPositions();
             updateGlobalSummary();
