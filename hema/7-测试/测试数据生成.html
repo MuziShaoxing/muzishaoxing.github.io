@@ -2,89 +2,149 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>即时配送数据生成器 · 极简虚拟版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>配送数据生成器</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:linear-gradient(135deg,#3b82f6,#8b5cf6);min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',system-ui,sans-serif;padding:20px}
-        .container{background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-radius:32px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);max-width:760px;width:100%;padding:48px 40px;text-align:center}
-        h2{font-size:28px;font-weight:700;color:#1e293b;margin-bottom:8px}
-        .subtitle{color:#64748b;margin-bottom:36px;font-size:15px}
-        .btn-grid{display:flex;flex-direction:column;gap:14px;align-items:center;margin-bottom:32px}
-        .btn{border:none;border-radius:16px;padding:16px 28px;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.2s;width:100%;max-width:400px;color:white;background:#3b82f6;box-shadow:0 8px 16px -4px rgba(59,130,246,0.4);display:flex;align-items:center;justify-content:center;gap:8px}
-        .btn:hover{transform:translateY(-2px);box-shadow:0 14px 24px -6px rgba(59,130,246,0.5)}
-        .btn:active{transform:translateY(0)}
-        .btn.accent{background:#8b5cf6}
-        .btn.success{background:#10b981}
-        .btn.copy{background:#0ea5e9}
-        .status-box{background:#f8fafc;border-radius:12px;padding:14px 18px;color:#334155;font-size:14px;min-height:48px;margin-top:20px;border:1px solid #e2e8f0}
-        .note{background:#f1f5f9;border-radius:12px;padding:18px 20px;margin-top:24px;text-align:left;font-size:13px;color:#475569;line-height:1.6}
-        .footer{margin-top:24px;color:#94a3b8;font-size:12px}
-        hr{margin:28px 0;border:1px solid #e2e8f0}
+        body{
+            background:#0b0f1c;
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-family:'Segoe UI',Roboto,system-ui,sans-serif;
+            padding:16px;
+        }
+        .card{
+            background:rgba(255,255,255,0.06);
+            backdrop-filter:blur(30px);
+            -webkit-backdrop-filter:blur(30px);
+            border-radius:32px;
+            border:1px solid rgba(255,255,255,0.1);
+            width:100%;
+            max-width:400px;
+            padding:32px 20px 28px;
+            text-align:center;
+            box-shadow:0 20px 50px rgba(0,0,0,0.6);
+        }
+        h2{
+            font-size:20px;
+            font-weight:700;
+            color:#fff;
+            letter-spacing:1px;
+            margin-bottom:4px;
+        }
+        .sub{
+            color:rgba(255,255,255,0.5);
+            font-size:12px;
+            margin-bottom:30px;
+        }
+        .btns{
+            display:flex;
+            flex-direction:column;
+            gap:9px;
+            align-items:center;
+            margin-bottom:24px;
+        }
+        .btn{
+            border:none;
+            border-radius:20px;
+            padding:14px 18px;
+            font-size:15px;
+            font-weight:600;
+            cursor:pointer;
+            width:100%;
+            max-width:320px;
+            color:#fff;
+            background:rgba(255,255,255,0.08);
+            backdrop-filter:blur(10px);
+            -webkit-backdrop-filter:blur(10px);
+            border:1px solid rgba(255,255,255,0.15);
+            transition:all 0.15s;
+            letter-spacing:0.4px;
+        }
+        .btn:active{
+            transform:scale(0.96);
+            opacity:0.85;
+        }
+        .btn.primary{
+            background:rgba(99,102,241,0.7);
+            border-color:rgba(99,102,241,0.9);
+            font-size:17px;
+            padding:17px 18px;
+        }
+        .btn.ghost{
+            background:rgba(255,255,255,0.05);
+            border-color:rgba(255,255,255,0.1);
+        }
+        .status{
+            background:rgba(0,0,0,0.4);
+            border-radius:16px;
+            padding:12px 14px;
+            color:rgba(255,255,255,0.8);
+            font-size:13px;
+            min-height:44px;
+            margin:16px 0 8px;
+            border:1px solid rgba(255,255,255,0.1);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            word-break:break-word;
+        }
+        .footer-text{
+            color:rgba(255,255,255,0.3);
+            font-size:11px;
+            margin-top:14px;
+        }
+        .divider{
+            width:50%;
+            height:1px;
+            background:rgba(255,255,255,0.15);
+            margin:22px auto 18px;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>📊 即时配送数据生成器</h2>
-    <p class="subtitle">考勤 · 订单 · 履约 · 单袋比 · 月度考勤 · 申领复制</p>
-    <div class="btn-grid">
-        <button class="btn" onclick="generateAttendance()">📋 生成日度考勤 (30条)</button>
-        <button class="btn" onclick="generateOrders()">📦 生成订单数据 (8000条)</button>
-        <button class="btn accent" onclick="generateFulfillmentSummary()">📅 生成履约数据 (月度明细)</button>
-        <button class="btn accent" onclick="generateBagRatio()">📐 生成单袋比 (248条)</button>
-        <button class="btn accent" onclick="generateMonthly()">🗓️ 生成月度考勤 (排休)</button>
-        <button class="btn success" onclick="generateAll()">🚀 一键生成全部文档 (含排休限制)</button>
+<div class="card">
+    <h2>🌌 深空配送模拟器</h2>
+    <p class="sub">一键打包 · 完全虚拟数据</p>
+
+    <div class="btns">
+        <button class="btn ghost" onclick="generateAttendance()">📋 日度考勤</button>
+        <button class="btn ghost" onclick="generateOrders()">📦 订单数据</button>
+        <button class="btn ghost" onclick="generateFulfillmentSummary()">📅 履约明细</button>
+        <button class="btn ghost" onclick="generateBagRatio()">📐 单袋比</button>
+        <button class="btn ghost" onclick="generateMonthly()">🗓️ 月度考勤</button>
+        <button class="btn primary" onclick="generateAll()">🚀 一键打包下载</button>
     </div>
-    <hr>
-    <p style="font-weight:600; color:#334155; margin-bottom:12px;">📋 单独功能</p>
-    <div class="btn-grid">
-        <button class="btn copy" onclick="copyApplySheet()">📋 复制申领单据 (连续11行)</button>
-    </div>
-    <div class="status-box" id="status">🟢 就绪</div>
-    <div class="note">
-        <strong>📌 数据已完全虚拟化 & 精简化</strong><br>
-        • 骑手：游戏角色名<br>
-        • 站点/子公司/门店/区块/POI/服务商：<strong>全部固定为1个虚拟值</strong><br>
-        • 配送班次时间：<strong>仅保留 HH:MM:SS</strong><br>
-        • 排休、履约限制等规则不变
-    </div>
-    <div class="footer">纯浏览器运行 · 无后端</div>
+
+    <div class="divider"></div>
+    <button class="btn ghost" onclick="copyApplySheet()">📋 复制申领单据</button>
+    <div class="status" id="status">🟢 就绪</div>
+    <div class="footer-text">纯前端 · 无网络请求 · 游戏角色名</div>
 </div>
 
 <script>
-    // ======================= 骑手数据（游戏角色名） =======================
+    // ========== 骑手数据 ==========
     const riders = [
-        { id: "R01", name: "亚索", type: "全职" },
-        { id: "R02", name: "劫", type: "全职" },
-        { id: "R03", name: "薇恩", type: "全职" },
-        { id: "R04", name: "锐雯", type: "全职" },
-        { id: "R05", name: "盖伦", type: "全职" },
-        { id: "R06", name: "德莱文", type: "盒心" },
-        { id: "R07", name: "阿木木", type: "盒心" },
-        { id: "R08", name: "机器人", type: "盒心" },
-        { id: "R09", name: "卡牌大师", type: "盒心" },
-        { id: "R10", name: "小鱼人", type: "盒心" },
-        { id: "R11", name: "炸弹人", type: "盒心" },
-        { id: "R12", name: "牛头酋长", type: "盒心" },
-        { id: "R13", name: "皮城女警", type: "盒心" },
-        { id: "R14", name: "影流之主", type: "盒心" },
-        { id: "R15", name: "齐天大圣", type: "灵活" },
-        { id: "R16", name: "诺克萨斯", type: "灵活" },
-        { id: "R17", name: "麦林炮手", type: "灵活" },
-        { id: "R18", name: "虚空之眼", type: "灵活" },
-        { id: "R19", name: "深海泰坦", type: "灵活" },
-        { id: "R20", name: "暗夜猎手", type: "灵活" },
-        { id: "R21", name: "暴走萝莉", type: "灵活" },
-        { id: "R22", name: "德玛西亚皇子", type: "灵活" },
-        { id: "R23", name: "圣枪游侠", type: "灵活" },
-        { id: "R24", name: "刀锋意志", type: "灵活" },
-        { id: "R25", name: "放逐之刃", type: "灵活" },
-        { id: "R26", name: "皎月女神", type: "灵活" },
-        { id: "R27", name: "曙光女神", type: "灵活" },
-        { id: "R28", name: "暮光之眼", type: "灵活" },
-        { id: "R29", name: "狂暴之心", type: "灵活" },
-        { id: "R30", name: "正义巨像", type: "灵活" }
+        { id: "R01", name: "亚索", type: "全职" },{ id: "R02", name: "劫", type: "全职" },
+        { id: "R03", name: "薇恩", type: "全职" },{ id: "R04", name: "锐雯", type: "全职" },
+        { id: "R05", name: "盖伦", type: "全职" },{ id: "R06", name: "德莱文", type: "盒心" },
+        { id: "R07", name: "阿木木", type: "盒心" },{ id: "R08", name: "机器人", type: "盒心" },
+        { id: "R09", name: "卡牌大师", type: "盒心" },{ id: "R10", name: "小鱼人", type: "盒心" },
+        { id: "R11", name: "炸弹人", type: "盒心" },{ id: "R12", name: "牛头酋长", type: "盒心" },
+        { id: "R13", name: "皮城女警", type: "盒心" },{ id: "R14", name: "影流之主", type: "盒心" },
+        { id: "R15", name: "齐天大圣", type: "灵活" },{ id: "R16", name: "诺克萨斯", type: "灵活" },
+        { id: "R17", name: "麦林炮手", type: "灵活" },{ id: "R18", name: "虚空之眼", type: "灵活" },
+        { id: "R19", name: "深海泰坦", type: "灵活" },{ id: "R20", name: "暗夜猎手", type: "灵活" },
+        { id: "R21", name: "暴走萝莉", type: "灵活" },{ id: "R22", name: "德玛西亚皇子", type: "灵活" },
+        { id: "R23", name: "圣枪游侠", type: "灵活" },{ id: "R24", name: "刀锋意志", type: "灵活" },
+        { id: "R25", name: "放逐之刃", type: "灵活" },{ id: "R26", name: "皎月女神", type: "灵活" },
+        { id: "R27", name: "曙光女神", type: "灵活" },{ id: "R28", name: "暮光之眼", type: "灵活" },
+        { id: "R29", name: "狂暴之心", type: "灵活" },{ id: "R30", name: "正义巨像", type: "灵活" }
     ];
     const riderIds = riders.map(r => r.id);
     const riderMapName = Object.fromEntries(riders.map(r => [r.id, r.name]));
@@ -97,487 +157,335 @@
     });
 
     const fixedShifts = [
-        { startH: 7, startM: 0, endH: 20, endM: 0 },
-        { startH: 8, startM: 0, endH: 21, endM: 0 },
-        { startH: 10, startM: 0, endH: 22, endM: 0 }
+        { startH:7, startM:0, endH:20, endM:0 },
+        { startH:8, startM:0, endH:21, endM:0 },
+        { startH:10, startM:0, endH:22, endM:0 }
     ];
     const flexShiftTemplates = [];
     for (let i = 0; i < 17; i++) {
-        const startH = randInt(7, 15);
-        const duration = randInt(5, 10);
-        const endH = startH + duration > 23 ? 23 : startH + duration;
-        flexShiftTemplates.push({ startH, startM: 0, endH, endM: 0 });
+        const startH = randInt(7,15);
+        const duration = randInt(5,10);
+        const endH = startH+duration > 23 ? 23 : startH+duration;
+        flexShiftTemplates.push({ startH, startM:0, endH, endM:0 });
     }
     const allShiftTemplates = [...fixedShifts, ...flexShiftTemplates];
 
-    // ======================= 全能通用虚拟地点（每个只保留一条） =======================
     const SINGLE_SITE = "比邻星b基地台";
-    const SINGLE_SUB_COMPANY = "仙女座星际集团";
+    const SINGLE_SUB = "仙女座星际集团";
     const SINGLE_BLOCK = "α象限";
     const SINGLE_STORE = "半人马座α中心";
     const SINGLE_POI = "人马座A*黑洞咖啡";
     const SINGLE_CARRIER = "曲速引擎快递";
-
     const statuses = ["在线","忙碌","小休"];
 
     const NOW = new Date();
     const TODAY = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());
-    const YESTERDAY = new Date(TODAY.getTime() - 86400000);
-    const TODAY_END = new Date(TODAY.getTime() + 86399000);
+    const YESTERDAY = new Date(TODAY.getTime()-86400000);
+    const TODAY_END = new Date(TODAY.getTime()+86399000);
 
-    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-    function formatDateTime(date) {
-        const y = date.getFullYear();
-        const mo = String(date.getMonth()+1).padStart(2,'0');
-        const d = String(date.getDate()).padStart(2,'0');
-        const hh = String(date.getHours()).padStart(2,'0');
-        const mm = String(date.getMinutes()).padStart(2,'0');
-        const ss = String(date.getSeconds()).padStart(2,'0');
-        return `${y}-${mo}-${d} ${hh}:${mm}:${ss}`;
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function fmtDateTime(d){
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
     }
-    // 仅时间格式（无年月日）
-    function formatTimeOnly(date) {
-        const hh = String(date.getHours()).padStart(2,'0');
-        const mm = String(date.getMinutes()).padStart(2,'0');
-        const ss = String(date.getSeconds()).padStart(2,'0');
-        return `${hh}:${mm}:${ss}`;
-    }
-    function yyyymmdd(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth()+1).padStart(2,'0');
-        const d = String(date.getDate()).padStart(2,'0');
-        return `${y}${m}${d}`;
-    }
+    function fmtTime(d){ return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`; }
+    function yyyymmdd(d){ return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; }
 
-    // 分配全职/盒心班次
-    function assignFixedShifts() {
-        const fullHexin = riders.filter(r => r.type === '全职' || r.type === '盒心');
-        const pool = [{ idx: 0, riders: [] }, { idx: 1, riders: [] }, { idx: 2, riders: [] }];
-        const shuffled = [...fullHexin];
-        for (let s = 0; s < 3; s++) for (let i = 0; i < 3; i++) {
-            if (shuffled.length === 0) break;
-            pool[s].riders.push(shuffled.pop());
-        }
-        while (shuffled.length > 0) {
-            const s = randInt(0, 2);
-            pool[s].riders.push(shuffled.pop());
-        }
-        const map = {};
-        pool.forEach(s => s.riders.forEach(r => map[r.id] = s.idx));
+    function assignFixedShifts(){
+        const fullHexin = riders.filter(r=>r.type==='全职'||r.type==='盒心');
+        const pool = [{idx:0,riders:[]},{idx:1,riders:[]},{idx:2,riders:[]}];
+        const sh = [...fullHexin];
+        for(let s=0;s<3;s++) for(let i=0;i<3;i++){ if(sh.length===0)break; pool[s].riders.push(sh.pop()); }
+        while(sh.length>0){ const s=randInt(0,2); pool[s].riders.push(sh.pop()); }
+        const map={};
+        pool.forEach(s=>s.riders.forEach(r=>map[r.id]=s.idx));
         return map;
     }
 
-    function makeAttendanceRow(rider, date, shiftTemplate, isCancel) {
-        const planStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), shiftTemplate.startH, shiftTemplate.startM);
-        const planEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), shiftTemplate.endH, shiftTemplate.endM);
-        let workStart = new Date(planStart.getTime() + randInt(-15, 15) * 60000);
-        if (workStart < date) workStart = date;
-        let workEnd = new Date(planEnd.getTime() + randInt(-15, 15) * 60000);
-        if (workEnd <= workStart) workEnd = new Date(workStart.getTime() + 8 * 3600000);
-        const dateEnd = new Date(date.getTime() + 86399000);
-        if (workEnd > dateEnd) workEnd = dateEnd;
+    function makeRow(rider,date,shift,isCancel){
+        const ps=new Date(date.getFullYear(),date.getMonth(),date.getDate(),shift.startH,shift.startM);
+        const pe=new Date(date.getFullYear(),date.getMonth(),date.getDate(),shift.endH,shift.endM);
+        let ws=new Date(ps.getTime()+randInt(-15,15)*60000); if(ws<date)ws=date;
+        let we=new Date(pe.getTime()+randInt(-15,15)*60000); if(we<=ws)we=new Date(ws.getTime()+8*3600000);
+        const de=new Date(date.getTime()+86399000); if(we>de)we=de;
         return {
-            "统计日期": yyyymmdd(date),
-            "考勤骑手": rider.id,
-            "配送班次": `BC${yyyymmdd(date)}${randInt(100, 999)}`,
-            "骑手类型": rider.type,
-            "骑手考勤状态（实时）": statuses[randInt(0, 2)],
-            "考勤骑手.行政站点名称": SINGLE_SITE,
-            "考勤骑手.工作配送站名称": SINGLE_SITE,
-            "考勤骑手.行政站点子公司": SINGLE_SUB_COMPANY,
-            "考勤骑手.工作站点子公司": SINGLE_SUB_COMPANY,
-            "考勤骑手.下班时间": formatDateTime(workEnd),         // 上下班仍保留完整日期
-            "考勤骑手.上班时间": formatDateTime(workStart),
-            "考勤骑手.配送员姓名": rider.name,
-            "配送班次.班次结束时间": formatTimeOnly(planEnd),     // 仅时间
-            "配送班次.班次开始时间": formatTimeOnly(planStart),
-            "班次状态（1：取消；0：正常）": isCancel ? 1 : 0,
-            "配送班次.班次类型": shiftTypeMap[rider.id]
+            "统计日期":yyyymmdd(date),"考勤骑手":rider.id,"配送班次":`BC${yyyymmdd(date)}${randInt(100,999)}`,
+            "骑手类型":rider.type,"骑手考勤状态（实时）":statuses[randInt(0,2)],
+            "考勤骑手.行政站点名称":SINGLE_SITE,"考勤骑手.工作配送站名称":SINGLE_SITE,
+            "考勤骑手.行政站点子公司":SINGLE_SUB,"考勤骑手.工作站点子公司":SINGLE_SUB,
+            "考勤骑手.下班时间":fmtDateTime(we),"考勤骑手.上班时间":fmtDateTime(ws),
+            "考勤骑手.配送员姓名":rider.name,
+            "配送班次.班次结束时间":fmtTime(pe),"配送班次.班次开始时间":fmtTime(ps),
+            "班次状态（1：取消；0：正常）":isCancel?1:0,"配送班次.班次类型":shiftTypeMap[rider.id]
         };
     }
-
-    function makeAttendanceRowFull(rider, date, shiftTemplate, isCancel) {
-        const row = makeAttendanceRow(rider, date, shiftTemplate, isCancel);
-        const planStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), shiftTemplate.startH, shiftTemplate.startM);
-        const planEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), shiftTemplate.endH, shiftTemplate.endM);
-        let ws = new Date(planStart.getTime() + randInt(-15, 15) * 60000);
-        if (ws < date) ws = date;
-        let we = new Date(planEnd.getTime() + randInt(-15, 15) * 60000);
-        if (we <= ws) we = new Date(ws.getTime() + 8 * 3600000);
-        const dateEnd = new Date(date.getTime() + 86399000);
-        if (we > dateEnd) we = dateEnd;
-        row._workStart = ws;
-        row._workEnd = we;
-        row._phone = `1380000${String(riders.indexOf(rider) + 1).padStart(4, '0')}`;
+    function makeRowFull(rider,date,shift,isCancel){
+        const row=makeRow(rider,date,shift,isCancel);
+        const ps=new Date(date.getFullYear(),date.getMonth(),date.getDate(),shift.startH,shift.startM);
+        const pe=new Date(date.getFullYear(),date.getMonth(),date.getDate(),shift.endH,shift.endM);
+        let ws=new Date(ps.getTime()+randInt(-15,15)*60000); if(ws<date)ws=date;
+        let we=new Date(pe.getTime()+randInt(-15,15)*60000); if(we<=ws)we=new Date(ws.getTime()+8*3600000);
+        const de=new Date(date.getTime()+86399000); if(we>de)we=de;
+        row._ws=ws; row._we=we; row._phone=`1380000${String(riders.indexOf(rider)+1).padStart(4,'0')}`;
         return row;
     }
 
-    function generateAttendanceFull(date, cancelSet) {
-        const shiftIdxMap = assignFixedShifts();
-        const records = [];
-        riders.forEach(r => {
-            let tmpl;
-            if (r.type === '全职' || r.type === '盒心') tmpl = fixedShifts[shiftIdxMap[r.id]];
-            else tmpl = allShiftTemplates[randInt(3, allShiftTemplates.length - 1)];
-            records.push(makeAttendanceRowFull(r, date, tmpl, cancelSet.has(r.id)));
+    function genFull(date,cancelSet){
+        const shiftIdx=assignFixedShifts();
+        const recs=[];
+        riders.forEach(r=>{
+            let tpl;
+            if(r.type==='全职'||r.type==='盒心') tpl=fixedShifts[shiftIdx[r.id]];
+            else tpl=allShiftTemplates[randInt(3,allShiftTemplates.length-1)];
+            recs.push(makeRowFull(r,date,tpl,cancelSet.has(r.id)));
         });
-        for (let i = records.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [records[i], records[j]] = [records[j], records[i]];
-        }
-        return records;
-    }
-
-    let currentDayCancelSet = new Set(riders.sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.id));
-    function generateAttendanceData() {
-        const recs = generateAttendanceFull(TODAY, currentDayCancelSet);
-        window.attendanceCache = recs;
+        for(let i=recs.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [recs[i],recs[j]]=[recs[j],recs[i]]; }
         return recs;
     }
 
-    // ======================= 订单数据 =======================
-    function generateOrderData(attendanceRecords) {
-        const schedule = {};
-        attendanceRecords.forEach(r => schedule[r["考勤骑手"]] = { start: r._workStart, end: r._workEnd });
-        const normalRiders = riderIds.filter(id => !currentDayCancelSet.has(id));
-        const batchTypes = ["即时配","预约配","半日达"];
-        const orderStatuses = ["已妥投","取消配送"];
-        const remarks = ["","超空间波动","离子风暴","陨石阻隔"];
-        const records = [];
-        for (let i = 1; i <= 8000; i++) {
-            const riderId = normalRiders[randInt(0, normalRiders.length - 1)];
-            const riderName = riderMapName[riderId];
-            const phone = attendanceRecords.find(r => r["考勤骑手"] === riderId)._phone;
-            const { start: ws, end: we } = schedule[riderId];
-            const earliestDel = new Date(Math.max(TODAY.getTime(), ws.getTime() - 3600000));
-            const latestDel = new Date(Math.min(TODAY_END.getTime(), we.getTime() + 3600000));
-            const deliveryTime = new Date(randInt(earliestDel.getTime(), latestDel.getTime()));
-            let pickupTime = new Date(deliveryTime.getTime() - randInt(10, 50) * 60000);
-            if (pickupTime < TODAY) pickupTime = TODAY;
-            let lastScan = new Date(pickupTime.getTime() - randInt(1, 15) * 60000);
-            if (lastScan < TODAY) lastScan = TODAY;
-            const payTime = new Date(randInt(YESTERDAY.getTime(), TODAY_END.getTime()));
-            const batchCreate = new Date(randInt(Math.max(payTime.getTime() + 1000, lastScan.getTime() - 900000, YESTERDAY.getTime()), lastScan.getTime() - 1000));
-            const totalSec = (lastScan - batchCreate) / 1000;
-            let pickingTime, packTime, firstScan, finalLastScan;
-            if (totalSec < 4) {
-                const step = Math.max(1, Math.floor(totalSec / 4));
-                pickingTime = new Date(batchCreate.getTime() + step * 1000);
-                packTime = new Date(pickingTime.getTime() + step * 1000);
-                firstScan = new Date(packTime.getTime() + step * 1000);
-                finalLastScan = new Date(firstScan.getTime() + step * 1000);
-            } else {
-                const pts = [randInt(1, totalSec - 1), randInt(1, totalSec - 1), randInt(1, totalSec - 1)].sort((a,b)=>a-b);
-                pickingTime = new Date(batchCreate.getTime() + pts[0] * 1000);
-                packTime = new Date(pickingTime.getTime() + (pts[1]-pts[0]) * 1000);
-                firstScan = new Date(packTime.getTime() + (pts[2]-pts[1]) * 1000);
-                finalLastScan = new Date(firstScan.getTime() + (totalSec-pts[2]) * 1000);
-            }
-            let deadline = new Date(deliveryTime.getTime() + randInt(-20, 40) * 60000);
-            if (deadline < YESTERDAY) deadline = YESTERDAY;
-            if (deadline > TODAY_END) deadline = TODAY_END;
-            records.push({
-                "批次号": `BN${yyyymmdd(TODAY)}${String(i).padStart(6, '0')}`,
-                "履约单号": `FY${randInt(100000000, 999999999)}`,
-                "业务订单号": `BO${randInt(100000000, 999999999)}`,
-                "淘系订单号": `TO${randInt(100000000, 999999999)}`,
-                "批次包裹数": randInt(1, 5),
-                "批次类型": batchTypes[randInt(0, 2)],
-                "门店": SINGLE_STORE,
-                "区块": SINGLE_BLOCK,
-                "POI名称": SINGLE_POI,
-                "经度": (Math.random() * 360 - 180).toFixed(6),
-                "纬度": (Math.random() * 180 - 90).toFixed(6),
-                "商品种类数": randInt(1, 10),
-                "批次送达时间": formatDateTime(deliveryTime),
-                "批次创建时间": formatDateTime(batchCreate),
-                "批次生成到拣货完成": `${Math.round((pickingTime - batchCreate) / 60000)}分钟`,
-                "订单拣货时间": formatDateTime(pickingTime),
-                "拣货到打包完成": `${Math.round((packTime - pickingTime) / 60000)}分钟`,
-                "批次打包时间": formatDateTime(packTime),
-                "过机时间(首容器)": formatDateTime(firstScan),
-                "过机时间(末容器)": formatDateTime(finalLastScan),
-                "打包到揽收完成": `${Math.round((pickupTime - packTime) / 60000)}分钟`,
-                "批次揽收时间": formatDateTime(pickupTime),
-                "订单揽收到配送完成": `${Math.round((deliveryTime - pickupTime) / 60000)}分钟`,
-                "订单配送完成时间": formatDateTime(deliveryTime),
-                "订单最晚送达时间": formatDateTime(deadline),
-                "支付时间": formatDateTime(payTime),
-                "是否超时": deliveryTime > deadline ? 1 : 0,
-                "订单状态": orderStatuses[randInt(0, 1)],
-                "备注原因": remarks[randInt(0, 3)],
-                "配送员姓名": riderName,
-                "配送员电话": phone,
-                "配送员所属配送商": SINGLE_CARRIER,
-                "是否大件": Math.random() < 0.1 ? 1 : 0,
-                "是否首选时间片": Math.random() < 0.3 ? 1 : 0
-            });
-        }
-        return records;
+    let curCancelSet=new Set(riders.sort(()=>Math.random()-0.5).slice(0,3).map(r=>r.id));
+    function genAttendance(){
+        const recs=genFull(TODAY,curCancelSet);
+        window._att=recs; return recs;
     }
 
-    // ======================= 履约明细（排休过滤） =======================
-    function generateFulfillmentSummaryData(restDaysMap) {
-        const year = TODAY.getFullYear();
-        const month = TODAY.getMonth();
-        const days = new Date(year, month + 1, 0).getDate();
-        const rows = [];
-        for (let d = 1; d <= days; d++) {
-            const ds = yyyymmdd(new Date(year, month, d));
-            const restSet = restDaysMap ? (restDaysMap.get(ds) || new Set()) : new Set();
-            riderIds.forEach(id => {
-                if (!restSet.has(id)) {
-                    rows.push({ "统计日期": ds, "配送员名字": riderMapName[id], "总签收单量": randInt(0, 45) });
-                }
+    // 订单
+    function genOrder(att){
+        const schedule={};
+        att.forEach(r=>schedule[r["考勤骑手"]]={start:r._ws,end:r._we});
+        const norm=riderIds.filter(id=>!curCancelSet.has(id));
+        const bt=["即时配","预约配","半日达"];
+        const os=["已妥投","取消配送"];
+        const rm=["","超空间波动","离子风暴","陨石阻隔"];
+        const recs=[];
+        for(let i=1;i<=8000;i++){
+            const rid=norm[randInt(0,norm.length-1)];
+            const nm=riderMapName[rid];
+            const ph=att.find(r=>r["考勤骑手"]===rid)._phone;
+            const {start:ws,end:we}=schedule[rid];
+            const ed=new Date(Math.max(TODAY.getTime(),ws.getTime()-3600000));
+            const ld=new Date(Math.min(TODAY_END.getTime(),we.getTime()+3600000));
+            const dt=new Date(randInt(ed.getTime(),ld.getTime()));
+            let pu=new Date(dt.getTime()-randInt(10,50)*60000); if(pu<TODAY)pu=TODAY;
+            let ls=new Date(pu.getTime()-randInt(1,15)*60000); if(ls<TODAY)ls=TODAY;
+            const pt=new Date(randInt(YESTERDAY.getTime(),TODAY_END.getTime()));
+            const bc=new Date(randInt(Math.max(pt.getTime()+1000,ls.getTime()-900000,YESTERDAY.getTime()),ls.getTime()-1000));
+            const ts=(ls-bc)/1000;
+            let pi,pa,fi,fl;
+            if(ts<4){
+                const st=Math.max(1,Math.floor(ts/4));
+                pi=new Date(bc.getTime()+st*1000); pa=new Date(pi.getTime()+st*1000);
+                fi=new Date(pa.getTime()+st*1000); fl=new Date(fi.getTime()+st*1000);
+            }else{
+                const pts=[randInt(1,ts-1),randInt(1,ts-1),randInt(1,ts-1)].sort((a,b)=>a-b);
+                pi=new Date(bc.getTime()+pts[0]*1000); pa=new Date(pi.getTime()+(pts[1]-pts[0])*1000);
+                fi=new Date(pa.getTime()+(pts[2]-pts[1])*1000); fl=new Date(fi.getTime()+(ts-pts[2])*1000);
+            }
+            let dl=new Date(dt.getTime()+randInt(-20,40)*60000); if(dl<YESTERDAY)dl=YESTERDAY; if(dl>TODAY_END)dl=TODAY_END;
+            recs.push({
+                "批次号":`BN${yyyymmdd(TODAY)}${String(i).padStart(6,'0')}`,"履约单号":`FY${randInt(100000000,999999999)}`,
+                "业务订单号":`BO${randInt(100000000,999999999)}`,"淘系订单号":`TO${randInt(100000000,999999999)}`,
+                "批次包裹数":randInt(1,5),"批次类型":bt[randInt(0,2)],"门店":SINGLE_STORE,"区块":SINGLE_BLOCK,
+                "POI名称":SINGLE_POI,"经度":(Math.random()*360-180).toFixed(6),"纬度":(Math.random()*180-90).toFixed(6),
+                "商品种类数":randInt(1,10),"批次送达时间":fmtDateTime(dt),"批次创建时间":fmtDateTime(bc),
+                "批次生成到拣货完成":`${Math.round((pi-bc)/60000)}分钟`,"订单拣货时间":fmtDateTime(pi),
+                "拣货到打包完成":`${Math.round((pa-pi)/60000)}分钟`,"批次打包时间":fmtDateTime(pa),
+                "过机时间(首容器)":fmtDateTime(fi),"过机时间(末容器)":fmtDateTime(fl),
+                "打包到揽收完成":`${Math.round((pu-pa)/60000)}分钟`,"批次揽收时间":fmtDateTime(pu),
+                "订单揽收到配送完成":`${Math.round((dt-pu)/60000)}分钟`,"订单配送完成时间":fmtDateTime(dt),
+                "订单最晚送达时间":fmtDateTime(dl),"支付时间":fmtDateTime(pt),"是否超时":dt>dl?1:0,
+                "订单状态":os[randInt(0,1)],"备注原因":rm[randInt(0,3)],"配送员姓名":nm,"配送员电话":ph,
+                "配送员所属配送商":SINGLE_CARRIER,"是否大件":Math.random()<0.1?1:0,"是否首选时间片":Math.random()<0.3?1:0
             });
+        }
+        return recs;
+    }
+
+    // 履约
+    function genFul(restMap){
+        const y=TODAY.getFullYear(),m=TODAY.getMonth();
+        const days=new Date(y,m+1,0).getDate();
+        const rows=[];
+        for(let d=1;d<=days;d++){
+            const ds=yyyymmdd(new Date(y,m,d));
+            const rest=restMap?restMap.get(ds)||new Set():new Set();
+            riderIds.forEach(id=>{ if(!rest.has(id)) rows.push({"统计日期":ds,"配送员名字":riderMapName[id],"总签收单量":randInt(0,45)}); });
         }
         return rows;
     }
 
-    // ======================= 单袋比 =======================
-    function generateBagRatioData() {
-        const year = TODAY.getFullYear();
-        const month = TODAY.getMonth();
-        const days = new Date(year, month + 1, 0).getDate();
-        const mStart = new Date(year, month, 1);
-        const mEnd = new Date(year, month, days);
-        const weeks = [];
-        const used = new Set();
-        while (weeks.length < 7) {
-            const startDay = randInt(1, days - 6);
-            if (used.has(startDay)) continue;
-            used.add(startDay);
-            const ws = new Date(year, month, startDay);
-            const we = new Date(year, month, startDay + 6);
-            weeks.push({ start: ws, end: we });
+    // 单袋比
+    function genBag(){
+        const y=TODAY.getFullYear(),m=TODAY.getMonth();
+        const days=new Date(y,m+1,0).getDate();
+        const ms=new Date(y,m,1),me=new Date(y,m,days);
+        const weeks=[]; const used=new Set();
+        while(weeks.length<7){
+            const sd=randInt(1,days-6); if(used.has(sd))continue; used.add(sd);
+            weeks.push({start:new Date(y,m,sd),end:new Date(y,m,sd+6)});
         }
-        const range = `${yyyymmdd(mStart)}~${yyyymmdd(mEnd)}`;
-        const rows = [];
-        riders.forEach(r => {
-            const o2oM = randInt(1, 3000);
-            rows.push({ "骑手id": r.id, "骑手姓名": r.name, "确认申领商品数量": randInt(1, Math.min(3000, o2oM * 2)), "统计范围": range, "统计日期": yyyymmdd(mEnd), "o2o签收单量": o2oM });
-            weeks.forEach(w => {
-                const o2oW = randInt(1, 3000);
-                rows.push({ "骑手id": r.id, "骑手姓名": r.name, "确认申领商品数量": randInt(1, Math.min(3000, o2oW * 2)), "统计范围": `${yyyymmdd(w.start)}~${yyyymmdd(w.end)}`, "统计日期": yyyymmdd(w.end), "o2o签收单量": o2oW });
+        const range=`${yyyymmdd(ms)}~${yyyymmdd(me)}`;
+        const rows=[];
+        riders.forEach(r=>{
+            const oM=randInt(1,3000); rows.push({"骑手id":r.id,"骑手姓名":r.name,"确认申领商品数量":randInt(1,Math.min(3000,oM*2)),"统计范围":range,"统计日期":yyyymmdd(me),"o2o签收单量":oM});
+            weeks.forEach(w=>{
+                const oW=randInt(1,3000); rows.push({"骑手id":r.id,"骑手姓名":r.name,"确认申领商品数量":randInt(1,Math.min(3000,oW*2)),"统计范围":`${yyyymmdd(w.start)}~${yyyymmdd(w.end)}`,"统计日期":yyyymmdd(w.end),"o2o签收单量":oW});
             });
         });
-        const rr = riders[randInt(0, riders.length - 1)];
-        const dupM = randInt(1, 3000);
-        rows.push({ "骑手id": "RX", "骑手姓名": rr.name, "确认申领商品数量": randInt(1, Math.min(3000, dupM * 2)), "统计范围": range, "统计日期": yyyymmdd(mEnd), "o2o签收单量": dupM });
-        weeks.forEach(w => {
-            const dupW = randInt(1, 3000);
-            rows.push({ "骑手id": "RX", "骑手姓名": rr.name, "确认申领商品数量": randInt(1, Math.min(3000, dupW * 2)), "统计范围": `${yyyymmdd(w.start)}~${yyyymmdd(w.end)}`, "统计日期": yyyymmdd(w.end), "o2o签收单量": dupW });
+        const rr=riders[randInt(0,riders.length-1)]; const dM=randInt(1,3000);
+        rows.push({"骑手id":"RX","骑手姓名":rr.name,"确认申领商品数量":randInt(1,Math.min(3000,dM*2)),"统计范围":range,"统计日期":yyyymmdd(me),"o2o签收单量":dM});
+        weeks.forEach(w=>{
+            const dW=randInt(1,3000); rows.push({"骑手id":"RX","骑手姓名":rr.name,"确认申领商品数量":randInt(1,Math.min(3000,dW*2)),"统计范围":`${yyyymmdd(w.start)}~${yyyymmdd(w.end)}`,"统计日期":yyyymmdd(w.end),"o2o签收单量":dW});
         });
         return rows;
     }
 
-    // ======================= 申领单据 =======================
-    function generateApplySheetData() {
-        const statusOpts = ["确认", "拒绝", "待审批"];
-        const count = randInt(60, 200);
-        const records = [];
-        while (records.length < count) {
-            const rider = riders[randInt(0, riders.length - 1)];
-            const applyDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), randInt(1, 28));
-            const status = statusOpts[randInt(0, 2)];
-            const isPending = status === "待审批";
-            records.push({
-                "申领单据": `SQ${yyyymmdd(applyDate)}${String(records.length + 1).padStart(3, '0')}`,
-                "申领日期": yyyymmdd(applyDate),
-                "申请人工号": rider.id,
-                "申请人姓名": rider.name,
-                "耗材商品编码": "HC005",
-                "耗材商品名称": "购物袋",
-                "申领数量": randInt(1, 10),
-                "状态": status,
-                "操作": isPending ? "审批" : "查看",
-                "审批时间": isPending ? "-" : formatDateTime(new Date()),
-                "审批人": isPending ? "-" : "管理员" + randInt(1, 3)
+    // 申领
+    function genApply(){
+        const so=["确认","拒绝","待审批"];
+        const cnt=randInt(60,200);
+        const recs=[];
+        while(recs.length<cnt){
+            const r=riders[randInt(0,riders.length-1)];
+            const ad=new Date(TODAY.getFullYear(),TODAY.getMonth(),randInt(1,28));
+            const s=so[randInt(0,2)]; const isP=s==="待审批";
+            recs.push({
+                "申领单据":`SQ${yyyymmdd(ad)}${String(recs.length+1).padStart(3,'0')}`,"申领日期":yyyymmdd(ad),
+                "申请人工号":r.id,"申请人姓名":r.name,"耗材商品编码":"HC005","耗材商品名称":"购物袋",
+                "申领数量":randInt(1,10),"状态":s,"操作":isP?"审批":"查看",
+                "审批时间":isP?"-":fmtDateTime(new Date()),"审批人":isP?"-":"管理员"+randInt(1,3)
             });
         }
-        return records;
+        return recs;
     }
 
-    function applyToVertical(records) {
-        const keys = Object.keys(records[0]);
-        let text = '';
-        records.forEach(r => keys.forEach(k => text += r[k] + '\n'));
-        return text;
+    function applyToVertical(recs){
+        const keys=Object.keys(recs[0]);
+        let t=''; recs.forEach(r=>keys.forEach(k=>t+=r[k]+'\n'));
+        return t;
     }
 
-    // ======================= 月度考勤（排休规则） =======================
-    function generateMonthlyAttendance() {
-        const year = TODAY.getFullYear();
-        const month = TODAY.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const dates = [];
-        for (let d = 1; d <= daysInMonth; d++) dates.push(new Date(year, month, d));
-        const dayCancelMap = new Map();
-        dates.forEach(date => dayCancelMap.set(yyyymmdd(date), new Set()));
-        const getMonday = (date) => {
-            const d = new Date(date);
-            const day = d.getDay();
-            const diff = day === 0 ? -6 : 1 - day;
-            d.setDate(d.getDate() + diff);
-            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        };
-        let currentMonday = getMonday(dates[0]);
-        while (currentMonday <= dates[dates.length - 1]) {
-            const weekDays = [];
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(currentMonday);
-                d.setDate(d.getDate() + i);
-                if (d.getMonth() === month && d.getFullYear() === year) weekDays.push(d);
-            }
-            if (weekDays.length === 7) {
-                riderIds.forEach(id => {
-                    const randomDay = weekDays[randInt(0, 6)];
-                    dayCancelMap.get(yyyymmdd(randomDay)).add(id);
-                });
-            }
-            currentMonday.setDate(currentMonday.getDate() + 7);
+    // 月度考勤
+    function genMonthly(){
+        const y=TODAY.getFullYear(),m=TODAY.getMonth();
+        const dim=new Date(y,m+1,0).getDate();
+        const dates=[]; for(let d=1;d<=dim;d++)dates.push(new Date(y,m,d));
+        const dcm=new Map(); dates.forEach(d=>dcm.set(yyyymmdd(d),new Set()));
+        const gm=(d)=>{ const nd=new Date(d); const day=nd.getDay(); nd.setDate(nd.getDate()+(day===0?-6:1-day)); return new Date(nd.getFullYear(),nd.getMonth(),nd.getDate()); };
+        let cm=gm(dates[0]);
+        while(cm<=dates[dates.length-1]){
+            const wd=[]; for(let i=0;i<7;i++){ const nd=new Date(cm); nd.setDate(nd.getDate()+i); if(nd.getMonth()===m&&nd.getFullYear()===y)wd.push(nd); }
+            if(wd.length===7) riderIds.forEach(id=>{ dcm.get(yyyymmdd(wd[randInt(0,6)])).add(id); });
+            cm.setDate(cm.getDate()+7);
         }
-        dates.forEach(date => {
-            const key = yyyymmdd(date);
-            const set = dayCancelMap.get(key);
-            if (set.size < 3) {
-                const av = riderIds.filter(id => !set.has(id));
-                const addCount = Math.min(3 - set.size, av.length);
-                const shuffled = [...av].sort(() => Math.random() - 0.5);
-                for (let i = 0; i < addCount; i++) set.add(shuffled[i]);
-            }
-        });
-        const allRecords = [];
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(year, month, day);
-            const cancelSet = dayCancelMap.get(yyyymmdd(date));
-            allRecords.push(...generateAttendanceFull(date, cancelSet));
-        }
-        return { records: allRecords, cancelMap: dayCancelMap, daysInMonth };
+        dates.forEach(d=>{ const k=yyyymmdd(d); const set=dcm.get(k); if(set.size<3){ const av=riderIds.filter(id=>!set.has(id)); const add=Math.min(3-set.size,av.length); [...av].sort(()=>Math.random()-0.5).slice(0,add).forEach(id=>set.add(id)); } });
+        const all=[]; for(let d=1;d<=dim;d++){ const date=new Date(y,m,d); all.push(...genFull(date,dcm.get(yyyymmdd(date)))); }
+        return {records:all,cancelMap:dcm};
     }
 
-    // ======================= 导出 =======================
-    function exportToXLSX(dataArr, filename, title) {
-        const exportData = dataArr.map(row => {
-            const clean = {};
-            for (let k in row) if (!k.startsWith('_')) clean[k] = row[k];
-            return clean;
-        });
-        const headers = Object.keys(exportData[0] || {});
+    // 导出 Excel 二进制
+    function toXlsxBin(dataArr,title){
+        const ed=dataArr.map(r=>{ const c={}; for(let k in r)if(!k.startsWith('_'))c[k]=r[k]; return c; });
+        const headers=Object.keys(ed[0]||{});
         let aoa;
-        if (title) {
-            aoa = [[title], headers];
-            exportData.forEach(r => aoa.push(headers.map(h => r[h] ?? '')));
-        } else {
-            aoa = [headers];
-            exportData.forEach(r => aoa.push(headers.map(h => r[h] ?? '')));
-        }
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = headers.map(() => ({ wch: 18 }));
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-        XLSX.writeFile(wb, filename);
+        if(title){ aoa=[[title],headers]; ed.forEach(r=>aoa.push(headers.map(h=>r[h]??''))); }
+        else{ aoa=[headers]; ed.forEach(r=>aoa.push(headers.map(h=>r[h]??''))); }
+        const ws=XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols']=headers.map(()=>({wch:18}));
+        const wb=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+        return XLSX.write(wb,{bookType:'xlsx',type:'array'});
     }
 
-    function setStatus(msg) { document.getElementById('status').textContent = msg; }
+    function setStatus(m){ document.getElementById('status').textContent=m; }
 
-    async function copyTextToClipboard(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-            setStatus('✅ 已复制申领单据');
-        } catch {
-            setStatus('❌ 复制失败，请查看控制台');
-            console.log(text);
-        }
+    // 单独下载
+    function exportSingle(dataArr,filename,title){
+        const wbout=toXlsxBin(dataArr,title);
+        const blob=new Blob([wbout],{type:'application/octet-stream'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download=filename; a.click();
+        setTimeout(()=>URL.revokeObjectURL(url),200);
     }
 
-    // ======================= 按钮事件 =======================
-    window.attendanceCache = null;
-    let monthlyCancelMap = null;
+    window._att=null; let monthlyCancelMap=null;
 
-    function generateAttendance() {
-        setStatus('⏳ 生成日度考勤...');
-        setTimeout(() => {
-            window.attendanceCache = generateAttendanceData();
-            exportToXLSX(window.attendanceCache, '考勤数据.xlsx');
-            setStatus('✅ 考勤数据已下载（30条）');
-        }, 30);
+    function generateAttendance(){
+        setStatus('⏳ 生成中...');
+        setTimeout(()=>{
+            window._att=genAttendance();
+            exportSingle(window._att,'考勤数据.xlsx');
+            setStatus('✅ 已下载考勤');
+        },20);
+    }
+    function generateOrders(){
+        if(!window._att){setStatus('⚠️ 先生成考勤');return;}
+        setStatus('⏳ 正在生成8000条...');
+        setTimeout(()=>{
+            exportSingle(genOrder(window._att),'订单数据.xlsx');
+            setStatus('✅ 已下载订单');
+        },20);
+    }
+    function generateFulfillmentSummary(){
+        setStatus('⏳ 生成中...');
+        setTimeout(()=>{
+            exportSingle(genFul(null),'履约数据.xlsx','履约明细表');
+            setStatus('✅ 已下载履约');
+        },20);
+    }
+    function generateBagRatio(){
+        setStatus('⏳ 生成中...');
+        setTimeout(()=>{
+            const data=genBag(); exportSingle(data,'单袋比数据.xlsx');
+            setStatus(`✅ 已下载 (${data.length}条)`);
+        },20);
+    }
+    function generateMonthly(){
+        setStatus('⏳ 生成月度考勤...');
+        setTimeout(()=>{
+            const {records,cancelMap}=genMonthly(); monthlyCancelMap=cancelMap;
+            const y=TODAY.getFullYear(),m=TODAY.getMonth()+1;
+            exportSingle(records,`考勤数据_月度_${y}年${m}月.xlsx`);
+            setStatus(`✅ 已下载 (${records.length}条)`);
+        },20);
+    }
+    async function copyApplySheet(){
+        setStatus('⏳ 复制中...');
+        setTimeout(()=>{
+            const recs=genApply(); const text=applyToVertical(recs);
+            navigator.clipboard.writeText(text).then(()=>setStatus('✅ 已复制')).catch(()=>setStatus('❌ 失败'));
+        },20);
     }
 
-    function generateOrders() {
-        if (!window.attendanceCache) { setStatus('⚠️ 请先生成考勤'); return; }
-        setStatus('⏳ 生成订单...');
-        setTimeout(() => {
-            exportToXLSX(generateOrderData(window.attendanceCache), '订单数据.xlsx');
-            setStatus('✅ 订单数据已下载（8000条）');
-        }, 30);
-    }
+    // 一键打包 zip
+    async function generateAll(){
+        setStatus('🚀 正在生成并打包...');
+        setTimeout(async ()=>{
+            try{
+                const att=genAttendance(); window._att=att;
+                const {records:monthlyRecs,cancelMap}=genMonthly(); monthlyCancelMap=cancelMap;
+                const todayKey=yyyymmdd(TODAY);
+                const todayCancelSet=cancelMap.get(todayKey)||new Set();
+                curCancelSet=todayCancelSet;
+                const orders=genOrder(att);
+                const ful=genFul(cancelMap);
+                const bag=genBag();
 
-    function generateFulfillmentSummary() {
-        setStatus('⏳ 生成履约（无排休限制）...');
-        setTimeout(() => {
-            exportToXLSX(generateFulfillmentSummaryData(null), '履约数据.xlsx', '履约明细表');
-            setStatus('✅ 履约数据已下载');
-        }, 30);
-    }
+                const zip=new JSZip();
+                zip.file('考勤数据.xlsx',toXlsxBin(att));
+                const y=TODAY.getFullYear(),m=TODAY.getMonth()+1;
+                zip.file(`考勤数据_月度_${y}年${m}月.xlsx`,toXlsxBin(monthlyRecs));
+                zip.file('订单数据.xlsx',toXlsxBin(orders));
+                zip.file('履约数据.xlsx',toXlsxBin(ful,'履约明细表'));
+                zip.file('单袋比数据.xlsx',toXlsxBin(bag));
 
-    function generateBagRatio() {
-        setStatus('⏳ 生成单袋比...');
-        setTimeout(() => {
-            const data = generateBagRatioData();
-            exportToXLSX(data, '单袋比数据.xlsx');
-            setStatus(`✅ 单袋比数据已下载（${data.length}条）`);
-        }, 30);
-    }
-
-    function generateMonthly() {
-        setStatus('⏳ 生成月度考勤（排休）...');
-        setTimeout(() => {
-            const { records, cancelMap } = generateMonthlyAttendance();
-            monthlyCancelMap = cancelMap;
-            const year = TODAY.getFullYear();
-            const month = TODAY.getMonth() + 1;
-            exportToXLSX(records, `考勤数据_月度_${year}年${month}月.xlsx`);
-            setStatus(`✅ 月度考勤已下载（${records.length}条）`);
-        }, 30);
-    }
-
-    function copyApplySheet() {
-        setStatus('⏳ 生成申领单并复制...');
-        setTimeout(() => {
-            const records = generateApplySheetData();
-            const text = applyToVertical(records);
-            copyTextToClipboard(text);
-        }, 30);
-    }
-
-    function generateAll() {
-        setStatus('🚀 一键生成全部文档...');
-        setTimeout(() => {
-            try {
-                window.attendanceCache = generateAttendanceData();
-                exportToXLSX(window.attendanceCache, '考勤数据.xlsx');
-
-                const { records: monthlyRecs, cancelMap } = generateMonthlyAttendance();
-                monthlyCancelMap = cancelMap;
-                const year = TODAY.getFullYear();
-                const month = TODAY.getMonth() + 1;
-                exportToXLSX(monthlyRecs, `考勤数据_月度_${year}年${month}月.xlsx`);
-
-                const todayKey = yyyymmdd(TODAY);
-                const todayCancelSet = cancelMap.get(todayKey) || new Set();
-                currentDayCancelSet = todayCancelSet;
-                exportToXLSX(generateOrderData(window.attendanceCache), '订单数据.xlsx');
-
-                exportToXLSX(generateFulfillmentSummaryData(cancelMap), '履约数据.xlsx', '履约明细表');
-                exportToXLSX(generateBagRatioData(), '单袋比数据.xlsx');
-
-                setStatus(`✅ 全部5个文件已下载！履约已排除休息骑手`);
-            } catch (e) {
-                setStatus('❌ 生成失败：' + e.message);
-                console.error(e);
+                const content=await zip.generateAsync({type:'blob'});
+                saveAs(content,'配送数据包.zip');
+                setStatus('✅ 打包下载完成 (5个文件)');
+            }catch(e){
+                setStatus('❌ 失败: '+e.message);
             }
-        }, 30);
+        },50);
     }
 </script>
 </body>
