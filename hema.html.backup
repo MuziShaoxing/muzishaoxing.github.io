@@ -78,9 +78,11 @@
         }
         .content::-webkit-scrollbar { display: none; }
 
+        /* 返回按钮 – 高度加高一倍 */
         .back-bar {
             display: flex; justify-content: center; align-items: center;
-            padding: 10px 20px; font-size: 0.95rem; color: #3c7aa6;
+            padding: 20px 20px;           /* 原 10px → 20px */
+            font-size: 0.95rem; color: #3c7aa6;
             cursor: pointer; user-select: none; flex-shrink: 0;
             border-top: 1px solid rgba(203,221,238,0.4);
             background: rgba(255,255,255,0.5);
@@ -88,7 +90,10 @@
             visibility: hidden; height: 0; overflow: hidden;
             transition: all 0.2s;
         }
-        .back-bar.visible { visibility: visible; height: auto; padding: 12px 20px; }
+        .back-bar.visible {
+            visibility: visible; height: auto;
+            padding: 24px 20px;          /* 原 12px → 24px */
+        }
         .back-bar i { margin-right: 8px; }
         .back-bar span { font-weight: 500; }
 
@@ -111,6 +116,7 @@
         .file-item a[href$=".html"]::after { content: " 🌐"; margin-left: 6px; font-size: 0.75rem; opacity: 0.6; flex-shrink: 0; }
         .empty-folder { padding: 2rem; text-align: center; color: #7a99b3; font-style: italic; }
 
+        /* 手机端完全悬浮 */
         @media (max-width: 768px) {
             body { padding: 1rem; }
             .container { height: calc(100vh - 2rem); max-height: none; border-radius: 2rem; }
@@ -118,7 +124,7 @@
             .header .ats { width: 80px; height: 80px; }
             .dropdown-section { padding: 12px 16px 0; }
             .dropdown-menu { max-height: 240px; }
-            .back-bar.visible { padding: 10px 16px; }
+            .back-bar.visible { padding: 20px 16px; }   /* 原 10px → 20px */
         }
         @media (max-width: 480px) {
             .header { padding: 12px 0 8px; }
@@ -128,7 +134,7 @@
             .content { padding: 0 14px 0; }
             .dropdown-menu { max-height: 200px; }
             .file-item { padding: 0.8rem; }
-            .back-bar.visible { padding: 8px 14px; font-size: 0.9rem; }
+            .back-bar.visible { padding: 16px 14px; font-size: 0.9rem; }  /* 原 8px → 16px */
         }
     </style>
 </head>
@@ -196,23 +202,38 @@
     const fileData = {
         '0-在线工具': {
             files: [
-                { name: '4-单袋比-重名.html', icon: 'fa-file-code', path: 'hema/0-在线工具/4-单袋比-重名.html' },
-                { name: '6-文件目录树.html', icon: 'fa-file-code', path: 'hema/0-在线工具/6-文件目录树.html' },
-                { name: '早退筛查.html', icon: 'fa-file-code', path: 'hema/0-在线工具/早退筛查.html' },
-                { name: '2-骑手-轨迹分析.html', icon: 'fa-file-code', path: 'hema/0-在线工具/2-骑手-轨迹分析.html' },
-                { name: '5-骑手-考勤矩阵.html', icon: 'fa-file-code', path: 'hema/0-在线工具/5-骑手-考勤矩阵.html' },
-                { name: '1-Excel转vCard.html', icon: 'fa-file-code', path: 'hema/0-在线工具/1-Excel转vCard.html' },
-                { name: '骑手-单袋比.html', icon: 'fa-file-code', path: 'hema/0-在线工具/骑手-单袋比.html' },
-                { name: 'TXT转通讯录.html', icon: 'fa-file-code', path: 'hema/0-在线工具/TXT转通讯录.html' },
                 { name: '0-文字转语音.html', icon: 'fa-file-code', path: 'hema/0-在线工具/0-文字转语音.html' },
             ],
             folders: {
+                '2-功能网页': {
+                    name: '2-功能网页',
+                    files: [
+                        { name: '6-文件目录树.html', icon: 'fa-file-code', path: 'hema/0-在线工具/2-功能网页/6-文件目录树.html' },
+                        { name: '1-Excel转vCard.html', icon: 'fa-file-code', path: 'hema/0-在线工具/2-功能网页/1-Excel转vCard.html' },
+                        { name: 'TXT转通讯录.html', icon: 'fa-file-code', path: 'hema/0-在线工具/2-功能网页/TXT转通讯录.html' },
+                    ]
+                },
                 '3-日报': {
                     name: '3-日报',
                     files: [
                         { name: '2-日报-Pro.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-日报/2-日报-Pro.html' },
                         { name: '3-日报-ProMax.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-日报/3-日报-ProMax.html' },
                         { name: '1-日报.html', icon: 'fa-file-code', path: 'hema/0-在线工具/3-日报/1-日报.html' },
+                    ]
+                },
+                '4-单袋比': {
+                    name: '4-单袋比',
+                    files: [
+                        { name: '1-单袋比-基础版.html', icon: 'fa-file-code', path: 'hema/0-在线工具/4-单袋比/1-单袋比-基础版.html' },
+                        { name: '2-单袋比-增强版.html', icon: 'fa-file-code', path: 'hema/0-在线工具/4-单袋比/2-单袋比-增强版.html' },
+                    ]
+                },
+                '5-骑手': {
+                    name: '5-骑手',
+                    files: [
+                        { name: '3-骑手-考勤矩阵.html', icon: 'fa-file-code', path: 'hema/0-在线工具/5-骑手/3-骑手-考勤矩阵.html' },
+                        { name: '1-骑手-早退速查.html', icon: 'fa-file-code', path: 'hema/0-在线工具/5-骑手/1-骑手-早退速查.html' },
+                        { name: '2-骑手-轨迹分析.html', icon: 'fa-file-code', path: 'hema/0-在线工具/5-骑手/2-骑手-轨迹分析.html' },
                     ]
                 },
             }
@@ -379,7 +400,7 @@
 
         function renderCurrentLevel() {
             if (currentPath.length === 0) {
-                contentDiv.innerHTML = '<div class="empty-folder">请选择一个文件夹</div>';
+                contentDiv.innerHTML = '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 请选择一个文件夹</div>';
                 updateBackButton();
                 return;
             }
@@ -412,7 +433,7 @@
 
             const sortedFiles = [...files].sort((a, b) => extractSortNumber(a.name) - extractSortNumber(b.name));
             if (sortedFiles.length === 0 && subFolderIds.length === 0) {
-                html += '<div class="empty-folder">暂无文件</div>';
+                html += '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 暂无文件</div>';
             } else {
                 sortedFiles.forEach(file => {
                     const displayName = getFileDisplayName(file.name);
