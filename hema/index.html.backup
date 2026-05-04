@@ -219,6 +219,7 @@
                 '4-单袋比': {
                     name: '4-单袋比',
                     files: [
+                        { name: '3-单袋比-基础版=重名.html', icon: 'fa-file-code', path: '0-在线工具/4-单袋比/3-单袋比-基础版=重名.html' },
                         { name: '1-单袋比-基础版.html', icon: 'fa-file-code', path: '0-在线工具/4-单袋比/1-单袋比-基础版.html' },
                         { name: '2-单袋比-增强版.html', icon: 'fa-file-code', path: '0-在线工具/4-单袋比/2-单袋比-增强版.html' },
                     ]
