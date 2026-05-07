@@ -3,445 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>单袋比 · 领用分析</title>
+    <title>骑手单袋比 · 领用分析工具</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
     </script>
-
     <style>
         :root {
-            --bg: #f9fafb;
-            --surface: #ffffff;
-            --text: #1e293b;
-            --text-secondary: #64748b;
-            --accent: #0d9488;
-            --accent-hover: #0f766e;
-            --accent-soft: #f0fdfa;
-            --border: #e2e8f0;
-            --border-light: #f1f5f9;
-            --warning-bg: #fff7ed;
-            --warning-border: #fdba74;
+            --bg: #f4f7fb;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #1e4bd2;
+            --warning-bg: #fef08a;
             --danger-text: #dc2626;
-            --danger-bg: #fef2f2;
-            --danger-border: #fecaca;
+            --danger-bg: #fee2e2;
             --duplicate-bg: #eff6ff;
             --duplicate-border: #3b82f6;
             --pill-bg: #dc2626;
             --pill-border: #b91c1c;
             --pill-text: #ffffff;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
-            --radius-sm: 8px;
-            --radius-md: 14px;
-            --radius-lg: 20px;
-            --radius-xl: 28px;
-            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --table-header-bg: #f1f5f9;
+            --table-border: #cbd5e1;
         }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             background: var(--bg);
-            font-family: 'Inter', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 25px 16px 25px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .main-title-wrapper {
+            text-align: center;
+            padding: 8px 20px 0;
+        }
+        .main-title {
+            font-weight: 700;
+            font-size: 1.7rem;
+            color: var(--text);
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+        .version-tag {
+            font-size: 0.8rem;
+            background: #e0e7ff;
+            color: #1e3a8a;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-weight: 500;
+            display: inline-block;
+            border: 1px solid #c7d2fe;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 14px 16px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e9eef3;
+        }
+        .card.optional {
+            background: #fafcff;
+            border-left: 4px solid #a5b4fc;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 1rem;
+        }
+        .required-star {
+            color: var(--danger-text);
+            margin-left: 4px;
+        }
+        .file-area {
+            background: #f8fafc;
+            border: 2px dashed var(--table-border);
+            border-radius: 12px;
+            padding: 14px 12px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px 16px 32px;
-            -webkit-font-smoothing: antialiased;
-            color: var(--text);
-            line-height: 1.5;
+            transition: all 0.2s;
         }
-
-        .global-header {
-            max-width: 1300px;
-            width: 100%;
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 16px 22px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
+        .file-area:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        .file-area input {
+            display: none;
+        }
+        .file-label {
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .preview-stats {
+            font-size: 0.75rem;
+            background: #f1f5f9;
+            padding: 5px 8px;
+            border-radius: 10px;
+            color: #0b3b5c;
+            text-align: center;
+        }
+        .paste-btn {
+            background: white;
+            border: 1.5px solid #94a3b8;
+            padding: 5px 12px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .checkbox-wrapper {
+            margin-top: 8px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 5px;
+            justify-content: center;
+        }
+        .peak-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 40px;
+            border: 1px solid #d1d9e6;
+            justify-content: center;
+        }
+        .peak-input-wrapper input {
+            width: 90px;
+            padding: 5px 8px;
+            border: 1px solid var(--table-border);
+            border-radius: 30px;
+            text-align: right;
+        }
+        .select-wrapper {
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: #f8fafc;
+            border-radius: 40px;
+            border: 1px solid #d1d9e6;
+            text-align: center;
+        }
+        .select-wrapper select {
+            width: 100%;
+            padding: 5px 8px;
+            border: 1px solid var(--table-border);
+            border-radius: 30px;
+            background: white;
+        }
+        .btn {
+            background: white;
+            border: 1px solid var(--table-border);
+            padding: 6px 16px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        .btn-primary:disabled {
+            background: #94a3b8;
+            border-color: #94a3b8;
+            cursor: not-allowed;
+        }
+        .action-button-group {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .stats-grid-row {
+            display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            margin-bottom: 16px;
-        }
-        .global-header .app-title {
-            font-weight: 800;
-            font-size: 1.4rem;
-            color: var(--text);
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .global-header .app-title .emoji { font-size: 1.5rem; }
-        .global-header .version-pill {
-            font-size: 0.65rem;
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            border: 1px solid #bae6fd;
-        }
-        .global-header .meta-info {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .global-header .meta-info .dot {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: #94a3b8;
-        }
-
-        .app-shell {
-            max-width: 1300px;
-            width: 100%;
-            display: flex;
-            gap: 16px;
-            align-items: flex-start;
-            flex-wrap: wrap;
-        }
-
-        .sidebar {
-            flex: 0 0 340px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            position: sticky;
-            top: 20px;
-            align-self: flex-start;
-        }
-
-        .sidebar-panel {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 18px 20px 20px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .panel-title {
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            letter-spacing: -0.2px;
-        }
-        .panel-title .icon-circle {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
+            padding: 4px 0;
             justify-content: center;
-            font-size: 0.8rem;
-            flex-shrink: 0;
+            align-items: stretch;
         }
-        .icon-circle.required { background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; }
-        .icon-circle.optional { background: #f0fdfa; color: #0d9488; border: 1.5px solid #99f6e4; }
-        .badge-required { font-size: 0.6rem; background: #fef2f2; color: #dc2626; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-        .badge-optional { font-size: 0.6rem; background: #f0fdfa; color: #0d9488; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
-
-        .upload-zone {
-            background: #fafbfc;
-            border: 2px dashed #d1d5db;
-            border-radius: var(--radius-md);
-            padding: 14px 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all var(--transition);
-            position: relative;
-        }
-        .upload-zone:hover { border-color: var(--accent); background: #f5fdfb; }
-        .upload-zone input { display: none; }
-        .upload-zone .upload-icon { font-size: 1.6rem; display: block; margin-bottom: 2px; }
-        .upload-zone .upload-label { font-weight: 600; font-size: 0.8rem; color: #374151; }
-        .upload-zone .upload-hint { font-size: 0.65rem; color: #9ca3af; margin-top: 1px; }
-
-        .status-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            width: 100%;
-            justify-content: center;
-        }
-        .status-chip.idle { background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; }
-        .status-chip.success { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
-        .status-chip.warning { background: #fefce8; color: #a16207; border: 1px solid #fde047; }
-        .status-chip.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-
-        .btn-paste {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
+        .stat-card {
+            flex: 1 1 0;
+            min-width: 80px;
             background: #ffffff;
-            border: 1.5px solid #cbd5e1;
-            padding: 7px 15px;
-            border-radius: 24px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.78rem;
-            color: #475569;
-            transition: all var(--transition);
-        }
-        .btn-paste:hover { border-color: var(--accent); color: var(--accent); background: #fafdfc; }
-
-        .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #475569; cursor: pointer; }
-        .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
-
-        .select-row {
-            background: #f8fafc;
-            border-radius: 24px;
+            border-radius: 16px;
+            padding: 10px 6px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             border: 1px solid #e2e8f0;
-            padding: 4px 8px;
-        }
-        .select-row select {
-            width: 100%;
-            padding: 7px 10px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            background: white;
-            cursor: pointer;
-        }
-        .select-row select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
-        .select-row select:disabled { opacity: 0.5; cursor: not-allowed; background: #f1f5f9; }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            padding: 10px 20px;
-            border-radius: 24px;
-            font-weight: 600;
-            font-size: 0.82rem;
-            cursor: pointer;
-            border: none;
-            transition: all var(--transition);
-            letter-spacing: 0.2px;
-            white-space: nowrap;
-        }
-        .btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 8px rgba(13,148,136,0.3); }
-        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: none; }
-        .btn-outline { background: white; border: 1.5px solid #d1d5db; color: #475569; }
-        .btn-outline:hover { border-color: #94a3b8; background: #f8fafc; }
-        .btn-ghost { background: transparent; border: 1.5px solid transparent; color: #64748b; padding: 6px 12px; font-size: 0.72rem; }
-        .btn-ghost:hover { background: #f1f5f9; color: #475569; }
-
-        .warn-text {
-            font-size: 0.68rem;
-            color: #dc2626;
-            background: #fef2f2;
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid #fecaca;
-            display: none;
-            text-align: center;
-        }
-        .warn-text.visible { display: block; }
-        .info-text {
-            font-size: 0.68rem;
-            color: #0f766e;
-            background: #f0fdfa;
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid #99f6e4;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            line-height: 1.5;
-        }
-        .info-text.visible { display: flex; }
-        .hint-text { font-size: 0.7rem; color: #64748b; text-align: center; font-style: italic; }
-
-        .main-area { flex: 1 1 500px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-
-        .action-bar {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 12px 20px;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .param-inline {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #f8fafc;
-            padding: 6px 12px;
-            border-radius: 24px;
-            border: 1px solid #e2e8f0;
-        }
-        .param-inline label { font-weight: 600; font-size: 0.8rem; color: #374151; }
-        .param-inline input {
-            width: 70px;
-            padding: 6px 10px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 20px;
-            text-align: center;
-            font-weight: 600;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .stats-strip { display: flex; flex-wrap: wrap; gap: 10px; }
-        .stat-tile {
-            flex: 1 1 80px;
-            min-width: 70px;
-            background: var(--surface);
-            border-radius: var(--radius-md);
-            padding: 8px 4px;
-            text-align: center;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
-            transition: all var(--transition);
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            cursor: default;
+            justify-content: center;
+            gap: 3px;
         }
-        .stat-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-        .stat-tile .tile-label {
-            font-size: 0.7rem;
+        .stat-label {
+            font-size: 0.66rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-secondary);
+            letter-spacing: 0.4px;
+            color: var(--muted);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .stat-tile .tile-value {
-            font-size: 2rem;
+        .stat-number {
+            font-size: 1.5rem;
             font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
+            color: var(--text);
             line-height: 1.2;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
         }
-        .tile-value.green { color: #059669; } .tile-value.red { color: #dc2626; } .tile-value.teal { color: #0d9488; }
-        .stat-tile.accent-tile { border-left: 3px solid var(--accent); }
-
-        .table-container {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
-            overflow: hidden;
+        .stat-number.positive {
+            color: #2b9348;
+        }
+        .stat-number.negative {
+            color: var(--danger-text);
+        }
+        .stat-number.accent {
+            color: var(--accent);
+        }
+        .table-section {
             display: flex;
             flex-direction: column;
-            max-height: 520px;
-            flex: 1 1 auto;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--table-border);
+            background: #ffffff;
+            flex: 0 0 auto;
+            max-height: 600px;
         }
-        .table-header-fixed {
+        .header-table {
             width: 100%;
             table-layout: fixed;
             border-collapse: collapse;
-            background: #f8fafc;
-            border-bottom: 2px solid #e2e8f0;
+            background: var(--table-header-bg);
+            border-bottom: 2px solid var(--table-border);
             flex-shrink: 0;
         }
-        .table-header-fixed th {
-            font-weight: 700;
+        .header-table th {
+            font-weight: 600;
             text-align: center;
-            padding: 11px 6px;
-            font-size: 0.75rem;
-            letter-spacing: 0.3px;
+            padding: 10px 6px;
+            font-size: 0.82rem;
+            line-height: 1.25;
             white-space: nowrap;
-            border-right: 1px solid #e2e8f0;
+            border: 1px solid var(--table-border);
+            background: var(--table-header-bg);
+            box-shadow: inset 0 -3px 0 #475569;
             cursor: pointer;
             user-select: none;
-            color: #475569;
         }
-        .table-header-fixed th:hover { background: #eef2f7; }
-        .table-header-fixed th:last-child { border-right: none; }
-        .table-header-fixed th:first-child { text-align: right; padding-right: 14px; }
-        .table-header-fixed th:last-child { text-align: left; padding-left: 14px; }
-
-        .table-scroll-body {
-            overflow-x: auto;
-            overflow-y: auto;
+        .header-table th:hover {
+            background: #eef2f7;
+        }
+        .header-table th:first-child {
+            text-align: right;
+            padding-right: 14px;
+        }
+        .header-table th:last-child {
+            text-align: left;
+            padding-left: 14px;
+        }
+        .table-body-wrapper {
+            overflow: hidden;
             flex: 1 1 auto;
             min-height: 0;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
+            cursor: grab;
+            user-select: none;
+            position: relative;
         }
-        .table-scroll-body::-webkit-scrollbar { width: 5px; height: 5px; }
-        .table-scroll-body::-webkit-scrollbar-track { background: transparent; }
-        .table-scroll-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
+        .table-body-wrapper:active {
+            cursor: grabbing;
+        }
+        .table-body-wrapper.dragging {
+            cursor: grabbing;
+        }
         .data-table {
             width: 100%;
             table-layout: fixed;
             border-collapse: collapse;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            min-width: 750px;
+            background: #ffffff;
         }
         .data-table td {
             padding: 9px 6px;
-            border-bottom: 1px solid #f1f5f9;
-            border-right: 1px solid #f1f5f9;
+            border: 1px solid var(--table-border);
             vertical-align: middle;
         }
-        .data-table td:last-child { border-right: none; }
         .data-table td:first-child {
             text-align: right;
             padding-right: 14px;
-            font-weight: 600;
-            color: #1e293b;
-            white-space: normal;
-            overflow-wrap: break-word;
+            white-space: nowrap;
+            font-weight: 500;
         }
-        .data-table td:last-child { text-align: left; padding-left: 14px; white-space: nowrap; }
+        .data-table td:last-child {
+            text-align: left;
+            padding-left: 14px;
+            white-space: nowrap;
+        }
         .data-table td:nth-child(2),
         .data-table td:nth-child(3),
         .data-table td:nth-child(4),
-        .data-table td:nth-child(5) { text-align: center; white-space: nowrap; }
-        tbody tr:nth-child(odd) { background-color: #fafcfd; }
-        tbody tr:nth-child(even) { background-color: #ffffff; }
-        tbody tr:hover { background-color: #f0fdfa !important; }
-
-        .mono { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
-        .cell-warn-highlight {
-            background-color: var(--warning-bg) !important;
-            border-left: 4px solid var(--warning-border) !important;
-            font-weight: 700;
+        .data-table td:nth-child(5) {
+            text-align: center;
+            white-space: nowrap;
         }
-        .cell-over-limit {
-            color: #dc2626 !important;
+        tbody tr:nth-child(odd) {
+            background-color: #fafbfc;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        .mono-number {
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-weight: 500;
+        }
+        .cell-highlight {
+            background-color: var(--warning-bg) !important;
+            border-radius: 2px;
+        }
+        .cell-negative {
+            color: var(--danger-text) !important;
             font-weight: 700;
         }
         .cell-duplicate {
             background-color: var(--duplicate-bg) !important;
             border-left: 4px solid var(--duplicate-border) !important;
         }
-        .duplicate-name { font-size: 0.7em; color: #1e40af; display: block; font-weight: 400; }
-        .duplicate-id { font-weight: 700; font-size: 1.1em; }
+        .duplicate-id {
+            font-weight: 700;
+            font-size: 1.1em;
+            display: block;
+        }
+        .duplicate-name {
+            font-size: 0.7em;
+            color: #1e40af;
+            display: block;
+            font-weight: 400;
+        }
         .delivery-pill {
             display: inline-block;
             border: 0.12em solid var(--pill-border);
@@ -454,168 +381,178 @@
             line-height: 1.3;
             vertical-align: middle;
         }
-        .empty-state td { text-align: center !important; color: #94a3b8; padding: 40px 10px !important; font-size: 0.85rem; }
-
-        .legend-strip {
+        .empty-row-msg td {
+            text-align: center !important;
+        }
+        .legend-bar {
             display: flex;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 24px;
+            gap: 14px;
+            font-size: 0.72rem;
+            color: var(--muted);
+            padding: 4px 0;
+            background: transparent;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .legend-dot.yellow {
+            background: var(--warning-bg);
+            border: 1px solid #eab308;
+        }
+        .legend-dot.blue {
+            background: var(--duplicate-bg);
+            border: 1px solid var(--duplicate-border);
+        }
+        .stat-range-info {
+            margin-top: 4px;
+            padding: 5px 8px;
+            background: #e0f2fe;
+            border-radius: 8px;
             font-size: 0.75rem;
-            color: #475569;
-            padding: 10px 0 4px;
+            text-align: center;
         }
-        .legend-item {
-            display: inline-flex;
-            align-items: center;
+        .parse-tip {
+            background: #f0f9ff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.75rem;
+            color: #0369a1;
+            text-align: center;
         }
-
-        .btn-share { background: #f0fdfa; border: 1.5px solid #99f6e4; color: #0f766e; }
-        .btn-share:hover { background: #e6fffa; border-color: #5eead4; }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15,23,42,0.45);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .reject-info {
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: #fef2f2;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            color: var(--danger-text);
+            display: none;
+            text-align: center;
         }
-        .modal-box {
+        .preview-table {
+            width: 100%;
+            font-size: 0.7rem;
+            border-collapse: collapse;
             background: white;
-            border-radius: var(--radius-xl);
-            padding: 22px 20px;
-            width: 620px;
-            max-width: 93vw;
-            max-height: 85vh;
-            overflow: auto;
-            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--table-border);
         }
-        .modal-box textarea { width: 100%; padding: 12px; border-radius: var(--radius-md); border: 2px solid #d1d5db; font-family: monospace; font-size: 0.72rem; resize: vertical; background: #fafbfc; }
-        .modal-box textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(13,148,136,0.08); }
-        .modal-meta { font-size: 0.7rem; color: #64748b; display: flex; justify-content: space-between; }
-        .preview-table-wrap { max-height: 260px; overflow: auto; background: #f8fafc; border-radius: var(--radius-sm); padding: 8px; border: 1px solid #e2e8f0; }
-        .mini-table { width: 100%; font-size: 0.68rem; border-collapse: collapse; background: white; }
-        .mini-table th { padding: 5px 4px; background: #f1f5f9; text-align: center; border: 1px solid #e2e8f0; font-weight: 600; }
-        .mini-table td { padding: 4px; text-align: center; border: 1px solid #f1f5f9; }
-        .mini-table td:first-child { text-align: left; font-weight: 500; }
-        .mini-table tr:nth-child(odd) { background: #fafcfd; }
-
-        @media (max-width: 860px) {
-            body { padding: 12px 10px 16px; }
-            .app-shell { flex-direction: column; }
-            .sidebar { width: 100%; position: static; }
-            .global-header .app-title { font-size: 1.15rem; }
-            .stat-tile { flex: 0 0 calc(33% - 8px); padding: 6px 4px; }
-            .stat-tile .tile-value { font-size: 1.4rem; }
-            .table-container { max-height: calc(100vh - 220px); }
-            .table-header-fixed th, .data-table td { font-size: 0.55rem; padding: 5px 2px; }
-            .table-header-fixed th { font-size: 0.5rem; }
-            .data-table { min-width: 100% !important; }
-            .btn { padding: 8px 14px; font-size: 0.72rem; }
-            .action-bar { flex-direction: column; align-items: stretch; }
-            .action-bar > * { width: 100%; justify-content: center; }
+        .preview-table th {
+            padding: 4px 3px;
+            background: #e2e8f0;
+            font-size: 0.7rem;
+            text-align: center;
+            border: 1px solid var(--table-border);
         }
-        @media (max-width: 480px) {
-            .stat-tile { flex: 0 0 calc(50% - 6px); }
-            .stat-tile .tile-value { font-size: 1.2rem; }
-            .global-header { padding: 12px 14px; }
-            .global-header .app-title { font-size: 1rem; }
+        .preview-table td {
+            padding: 3px;
+            text-align: center;
+            border: 1px solid var(--table-border);
+        }
+        .preview-table td:first-child {
+            text-align: left;
+        }
+        .preview-table tr:nth-child(odd) {
+            background-color: #f8fafc;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 25px 8px 25px;
+            }
+            .container {
+                gap: 0;
+                justify-content: space-around;
+            }
+            .main-title {
+                font-size: 1.35rem;
+            }
+            .stat-card {
+                flex: 0 0 calc(25% - 8px);
+                min-width: 0;
+                padding: 8px 4px;
+                border-radius: 14px;
+                gap: 2px;
+            }
+            .stat-number {
+                font-size: 1.1rem;
+            }
+            .stat-label {
+                font-size: 0.5rem;
+            }
+            .table-section {
+                max-height: 330px;
+            }
+            .header-table th,
+            .data-table td {
+                font-size: 0.62rem;
+                padding: 4px 2px;
+            }
+            .header-table th {
+                font-size: 0.55rem;
+            }
+            .data-table {
+                min-width: 100% !important;
+            }
+            .legend-bar {
+                font-size: 0.6rem;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
-
-    <header class="global-header">
-        <span class="app-title"><span class="emoji">🛵</span>骑手单袋比 · 领用分析</span>
-        <span class="version-pill">V9.11 重铸版</span>
-        <div class="meta-info">
-            <span id="metaOrders">单量: —</span>
-            <span class="dot"></span>
-            <span id="metaApply">申请: —</span>
+    <div class="container">
+        <div class="main-title-wrapper">
+            <div class="main-title">骑手单袋比-领用分析工具</div>
+            <div class="version-tag">V8.2 · 拖拽滚动修复</div>
         </div>
-    </header>
 
-    <div class="app-shell">
-        <aside class="sidebar">
-            <div class="sidebar-panel">
-                <div class="panel-title" style="justify-content: space-between;">
-                    <span style="display: flex; align-items: center; gap: 7px;">
-                        <span class="icon-circle required">📦</span> 骑手单量 <span class="badge-required">必须</span>
-                    </span>
-                    <button class="btn btn-outline" id="btnClear" style="padding: 6px 14px; font-size: 0.7rem;">🗑️ 清空</button>
-                </div>
-                <div class="upload-zone" id="zoneOrders">
-                    <input type="file" id="inputOrders" accept=".xlsx,.xls,.csv">
-                    <span class="upload-icon">📎</span>
-                    <span class="upload-label">上传「配送员履约明细表」</span>
-                </div>
-                <div id="chipOrders" class="status-chip idle">⏳ 等待上传</div>
-            </div>
-            <div class="sidebar-panel">
-                <div class="panel-title"><span class="icon-circle required">📋</span> 当月申请数量 <span class="badge-required">必须</span></div>
-                <div class="upload-zone" id="zoneApply">
-                    <input type="file" id="inputApply" accept=".xlsx,.xls,.csv">
-                    <span class="upload-icon">📎</span>
-                    <span class="upload-label">上传「骑手单袋比明细」</span>
-                </div>
-                <div id="chipApply" class="status-chip idle">⏳ 等待上传</div>
-                <div class="select-row"><select id="selectRange" disabled><option>请先上传申请表格</option></select></div>
-                <div id="warnRange" class="warn-text">⚠️ 统计范围不匹配</div>
-                <div id="infoRange" class="info-text"></div>
-            </div>
-            <div class="sidebar-panel">
-                <div class="panel-title"><span class="icon-circle optional">📝</span> 当日申请数据 <span class="badge-optional">可选</span></div>
-                <button class="btn-paste" id="btnPaste">📋 粘贴数据（每组11行）</button>
-                <label class="checkbox-row"><input type="checkbox" id="chkExcludeRejected" checked>🚫 剔除审批「拒绝」的记录</label>
-                <div id="chipToday" class="status-chip idle">⚪ 尚未粘贴</div>
-                <div id="rejectNote" class="warn-text"></div>
-            </div>
-        </aside>
+        <div class="card-grid">
+            <div class="card"><div class="card-header">1. 骑手单量 <span class="required-star">*</span></div><div class="file-area" id="file1Area"><input type="file" id="uploadOrders" accept=".xlsx,.xls,.csv"><label for="uploadOrders" class="file-label">📎 上传 Excel</label></div><div id="orderPreview" class="preview-stats">⏳ 未上传</div></div>
+            <div class="card"><div class="card-header">2. 当月申请数量 <span class="required-star">*</span></div><div class="file-area" id="file2Area"><input type="file" id="uploadApply" accept=".xlsx,.xls,.csv"><label for="uploadApply" class="file-label">📎 上传 Excel</label></div><div id="applyPreview" class="preview-stats">⏳ 未上传</div><div id="statRangeInfo" class="stat-range-info" style="display:none;"></div></div>
+            <div class="card optional"><div class="card-header">3. 当日申请数据 <span style="font-weight:400;">(可选)</span></div><div style="display:flex;align-items:center;gap:5px;justify-content:center;"><button class="paste-btn" id="pasteThirdBtn">📋 粘贴数据</button><span style="font-size:0.7rem;color:#475569;">每组11行</span></div><div class="checkbox-wrapper"><input type="checkbox" id="excludeRejected" checked><label for="excludeRejected">🚫 剔除审批"拒绝"的记录</label></div><div id="thirdPreview" class="preview-stats" style="margin-top:8px;">⚪ 尚未粘贴</div><div id="rejectInfo" class="reject-info"></div></div>
+            <div class="card"><div class="card-header">4. 参数与计算</div><div class="peak-input-wrapper"><label for="peakRatio">▶️ 单袋比 :</label><input type="number" id="peakRatio" value="1.2" step="0.1" min="0"></div><div class="select-wrapper"><label for="statRangeSelect">▶️ 数据过滤（剔除无效数据）</label><select id="statRangeSelect" disabled><option>请先上传申请表格</option></select><div id="rangeWarning" class="warning-text" style="color:#dc2626;font-size:0.7rem;margin-top:4px;"></div></div><div class="action-button-group"><button class="btn btn-primary" id="runCalcBtn" disabled>生成报表</button><button class="btn" id="clearAllBtn">清空数据</button></div><div style="margin-top:8px;color:#2563eb;font-size:0.75rem;text-align:center;" id="calcHint">请先完成①②上传</div></div>
+        </div>
 
-        <main class="main-area">
-            <div class="action-bar">
-                <div class="param-inline"><label for="inputPeak">单袋比系数</label><input type="number" id="inputPeak" value="1.2" step="0.1" min="0"></div>
-                <button class="btn btn-primary" id="btnRun" disabled>🚀 生成报表</button>
-                <button class="btn btn-share" id="btnShare">📄 分享报告</button>
-                <span class="hint-text" id="hintStatus" style="margin-left:auto;">请先完成数据上传</span>
+        <div class="stats-grid-row" id="statsPanel" style="display: none;">
+            <div class="stat-card"><div class="stat-label">📦 总需补袋数</div><div class="stat-number positive" id="totalNeed">0</div></div>
+            <div class="stat-card"><div class="stat-label">⚠️ 总超标袋数</div><div class="stat-number negative" id="totalOver">0</div></div>
+            <div class="stat-card"><div class="stat-label">👥 需补骑手</div><div class="stat-number accent" id="riderNeedCount">0</div></div>
+            <div class="stat-card"><div class="stat-label">🚨 超标骑手</div><div class="stat-number negative" id="riderOverCount">0</div></div>
+            <div class="stat-card"><div class="stat-label">📊 当月总单量</div><div class="stat-number accent" id="totalOrders">0</div></div>
+            <div class="stat-card"><div class="stat-label">📜 当月总申请</div><div class="stat-number accent" id="totalHistory">0</div></div>
+            <div class="stat-card"><div class="stat-label">📈 当月单袋比</div><div class="stat-number accent" id="historyRatio">0.00</div></div>
+            <div class="stat-card"><div class="stat-label">🔄 当前单袋比</div><div class="stat-number accent" id="currentRatio">0.00</div></div>
+            <button class="btn" id="shareReportBtn" style="background:#f0fdf4;border-color:#86efac;margin:8px auto;">📄 生成分享报告 (HTML)</button>
+        </div>
+
+        <div class="table-section" id="tableExportArea">
+            <table class="header-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><thead><tr><th data-sort="name">骑手</th><th data-sort="orders">总单量</th><th data-sort="history">当月申请</th><th data-sort="today">今日申请</th><th data-sort="ratio">单袋比</th><th data-sort="diff">差异</th></tr></thead></table>
+            <div class="table-body-wrapper" id="tableScrollBody">
+                <table class="data-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><tbody id="tableBody"><tr class="empty-row-msg"><td colspan="6">👆 请上传表格并选择正确统计范围</td></tr></tbody></table>
             </div>
-            <div class="stats-strip" id="statsStrip" style="display:none;">
-                <div class="stat-tile accent-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green" id="valTotalNeed">0</div></div>
-                <div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red" id="valTotalOver">0</div></div>
-                <div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal" id="valNeedRiders">0</div></div>
-                <div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red" id="valOverRiders">0</div></div>
-                <div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal" id="valHistRatio">0.00</div></div>
-                <div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal" id="valCurrRatio">0.00</div></div>
-            </div>
-            <div class="table-container">
-                <table class="table-header-fixed">
-                    <colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup>
-                    <thead><tr>
-                        <th data-sort-col="name">骑手</th><th data-sort-col="orders">总单量</th><th data-sort-col="history">当月申请</th>
-                        <th data-sort-col="today">今日申请</th><th data-sort-col="ratio">单袋比</th><th data-sort-col="diff">差异</th>
-                    </tr></thead>
-                </table>
-                <div class="table-scroll-body">
-                    <table class="data-table">
-                        <colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup>
-                        <tbody id="tableBody"><tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="legend-strip">
-                <span class="legend-item"><span class="cell-warn-highlight" style="padding:2px 8px;">需补>50</span></span>
-                <span class="legend-item"><span class="cell-over-limit">差量<0</span></span>
-                <span class="legend-item"><span class="cell-duplicate" style="padding:2px 8px;">重名提醒</span></span>
-                <span class="legend-item"><span class="delivery-pill">履约单量</span></span>
-            </div>
-        </main>
+        </div>
+
+        <div class="legend-bar">
+            <span><span class="legend-dot yellow"></span> 需补&gt;50 高亮</span>
+            <span style="color:#dc2626;font-weight:600;">● 差量&lt;0 超标</span>
+            <span><span class="legend-dot blue"></span> 重名提醒</span>
+            <span><span class="delivery-pill" style="font-size:0.7em;">履约单量</span></span>
+            <span style="font-size:0.65rem;color:#94a3b8;">🖱️ 拖拽滚动表格</span>
+        </div>
     </div>
 
     <script>
         (function() {
+            /* ===== 全局状态 ===== */
             const state = {
                 deliveryMap: new Map(),
                 applyRaw: [],
@@ -632,37 +569,78 @@
                 sortDirection: 'desc',
             };
 
-            const $ = id => document.getElementById(id);
-            const zoneOrders = $('zoneOrders'), inputOrders = $('inputOrders'), chipOrders = $('chipOrders');
-            const zoneApply = $('zoneApply'), inputApply = $('inputApply'), chipApply = $('chipApply');
-            const selectRange = $('selectRange'), warnRange = $('warnRange'), infoRange = $('infoRange');
-            const btnPaste = $('btnPaste'), chkExcludeRejected = $('chkExcludeRejected'), chipToday = $('chipToday'), rejectNote = $('rejectNote');
-            const inputPeak = $('inputPeak'), btnRun = $('btnRun'), btnClear = $('btnClear'), hintStatus = $('hintStatus');
-            const metaOrders = $('metaOrders'), metaApply = $('metaApply');
-            const statsStrip = $('statsStrip'), valTotalNeed = $('valTotalNeed'), valTotalOver = $('valTotalOver'), valNeedRiders = $('valNeedRiders'), valOverRiders = $('valOverRiders'), valHistRatio = $('valHistRatio'), valCurrRatio = $('valCurrRatio');
-            const btnShare = $('btnShare'), tableBody = $('tableBody');
+            const el = id => document.getElementById(id);
+            const orderFile = el('uploadOrders'), applyFile = el('uploadApply');
+            const orderPrev = el('orderPreview'), applyPrev = el('applyPreview');
+            const thirdPrev = el('thirdPreview'), peak = el('peakRatio');
+            const runBtn = el('runCalcBtn'), clearBtn = el('clearAllBtn');
+            const pasteBtn = el('pasteThirdBtn'), tbody = el('tableBody'), hint = el('calcHint');
+            const rangeSelect = el('statRangeSelect'), rangeWarn = el('rangeWarning'), rangeInfo = el('statRangeInfo');
+            const excludeChk = el('excludeRejected'), rejectInfo = el('rejectInfo');
+            const statsPanel = el('statsPanel');
+            const totalNeedSpan = el('totalNeed'), totalOverSpan = el('totalOver');
+            const riderNeedCountSpan = el('riderNeedCount'), riderOverCountSpan = el('riderOverCount');
+            const totalOrdersSpan = el('totalOrders'), totalHistorySpan = el('totalHistory');
+            const historyRatioSpan = el('historyRatio'), currentRatioSpan = el('currentRatio');
+            const shareReportBtn = el('shareReportBtn');
+            const tableScrollBody = el('tableScrollBody');
 
+            /* ===== 工具函数 ===== */
             const getLatestDate = s => s?.size ? [...s].sort().pop() : '';
-            const formatDate = d => d?.length === 8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
-            const expectedRange = d => d?.length === 8 ? `${d.slice(0,4)}${d.slice(4,6)}01~${d}` : '';
-            const escapeHtml = str => { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; };
+            const fmtDate = d => d?.length === 8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d;
+            const expRange = d => d?.length === 8 ? `${d.slice(0,4)}${d.slice(4,6)}01~${d}` : '';
+            const escapeHtml = str => { const div = document.createElement('div');
+                div.textContent = str; return div.innerHTML; };
 
+            /* ===== 拖拽滚动核心（修复版） ===== */
+            function setupDragScroll(container) {
+                if (!container) return;
+                let isDown = false, startX, scrollLeft;
+                container.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'TH') return;
+                    isDown = true;
+                    container.classList.add('dragging');
+                    startX = e.clientX;
+                    scrollLeft = container.scrollLeft;
+                    e.preventDefault();
+                });
+                const stopDragging = () => {
+                    isDown = false;
+                    container.classList.remove('dragging');
+                };
+                window.addEventListener('mouseup', stopDragging);
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.clientX;
+                    const walk = (x - startX) * 1.5;
+                    container.scrollLeft = scrollLeft - walk;
+                });
+                container.addEventListener('wheel', (e) => {
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        container.scrollLeft += e.deltaY;
+                    }
+                }, { passive: false });
+            }
+
+            // 启用工具页拖拽
+            setupDragScroll(tableScrollBody);
+
+            /* ===== 数据过滤 ===== */
             function filterApplyByRange(range) {
                 state.filteredApplyMap.clear();
                 state.applyNamesSet.clear();
                 if (!range || !state.applyRaw.length) return;
-                const exp = expectedRange(getLatestDate(state.applyDates));
+                const exp = expRange(getLatestDate(state.applyDates));
                 const map = new Map();
                 state.applyRaw.forEach(r => {
                     if (r.range === range || r.range === exp) {
                         const key = `${r.id}||${r.name}`;
                         const existing = map.get(key);
-                        if (existing) {
-                            existing.o2oOrders += r.o2oOrders;
-                            existing.applyQty += r.applyQty;
-                        } else {
-                            map.set(key, { id: r.id, name: r.name, o2oOrders: r.o2oOrders, applyQty: r.applyQty });
-                        }
+                        if (existing) { existing.o2oOrders += r.o2oOrders;
+                            existing.applyQty += r.applyQty; } else map.set(key, { id: r.id, name: r.name,
+                            o2oOrders: r.o2oOrders, applyQty: r.applyQty });
                     }
                 });
                 state.filteredApplyMap = map;
@@ -671,431 +649,321 @@
 
             function updateRangeSelect() {
                 if (!state.applyRanges.size) {
-                    selectRange.disabled = true; selectRange.innerHTML = '<option>请先上传申请表格</option>';
-                    state.isRangeValid = false; warnRange.classList.remove('visible'); infoRange.classList.remove('visible');
+                    rangeSelect.disabled = true;
+                    rangeSelect.innerHTML = '<option>请先上传申请表格</option>';
+                    state.isRangeValid = false;
+                    rangeWarn.textContent = '';
+                    rangeInfo.style.display = 'none';
                     return;
                 }
-                selectRange.disabled = false;
-                const exp = expectedRange(getLatestDate(state.applyDates));
+                rangeSelect.disabled = false;
+                const exp = expRange(getLatestDate(state.applyDates));
                 let html = '', hasValid = false;
-                [...state.applyRanges].sort().forEach(r => {
-                    const ok = r === exp; if (ok) hasValid = true;
-                    html += `<option value="${escapeHtml(r)}" ${ok?'selected':''}>${escapeHtml(r)} ${ok?'✓ 有效':'✗ 无效'}</option>`;
-                });
-                selectRange.innerHTML = html;
-                if (hasValid) {
-                    state.selectedRange = exp; state.isRangeValid = true;
-                    warnRange.classList.remove('visible'); infoRange.classList.add('visible');
-                    infoRange.innerHTML = `✅ 有效统计范围: ${escapeHtml(exp)}<br>最新日期: ${escapeHtml(formatDate(getLatestDate(state.applyDates)))}`;
-                    filterApplyByRange(exp);
-                } else {
-                    state.selectedRange = selectRange.value; state.isRangeValid = false;
-                    warnRange.classList.add('visible'); warnRange.textContent = `⚠️ 统计范围不匹配！期望: ${exp}`;
-                    infoRange.classList.remove('visible'); state.filteredApplyMap.clear();
-                }
+                [...state.applyRanges].sort().forEach(r => { const ok = r === exp; if (ok) hasValid = true;
+                    html +=
+                    `<option value="${escapeHtml(r)}" ${ok?'selected':''}>${escapeHtml(r)} ${ok?'✓ 有效':'✗ 无效'}</option>`; });
+                rangeSelect.innerHTML = html;
+                if (hasValid) { state.selectedRange = exp;
+                    state.isRangeValid = true;
+                    rangeWarn.textContent = '';
+                    rangeInfo.style.display = 'block';
+                    rangeInfo.innerHTML =
+                        `✅ 有效统计范围: ${escapeHtml(exp)}<br>当前统计日期(最新): ${escapeHtml(fmtDate(getLatestDate(state.applyDates)))}`;
+                    filterApplyByRange(exp); } else { state.selectedRange = rangeSelect.value;
+                    state.isRangeValid = false;
+                    rangeWarn.textContent = `⚠️ 统计范围不匹配！期望格式: ${exp}`;
+                    rangeInfo.style.display = 'none';
+                    state.filteredApplyMap.clear(); }
                 refreshAllChips();
             }
 
             function refreshAllChips() {
                 if (state.deliveryMap.size) {
                     const t = [...state.deliveryMap.values()].reduce((a,b) => a+b, 0);
-                    chipOrders.className = 'status-chip success';
-                    chipOrders.textContent = `✅ 已加载 ${state.deliveryMap.size} 人 · 总单量 ${t.toFixed(0)}`;
-                    metaOrders.textContent = `单量: ${state.deliveryMap.size}人 / ${t.toFixed(0)}单`;
-                } else {
-                    chipOrders.className = 'status-chip idle'; chipOrders.textContent = '⏳ 等待上传';
-                    metaOrders.textContent = '单量: —';
-                }
+                    orderPrev.innerHTML = `✅ 已加载 ${state.deliveryMap.size} 人 · 总单量 ${t.toFixed(0)}`;
+                } else orderPrev.innerHTML = '⏳ 未上传『配送员履约明细表』';
                 if (state.filteredApplyMap.size && state.isRangeValid) {
                     const t = [...state.filteredApplyMap.values()].reduce((a,b) => a + b.applyQty, 0);
-                    chipApply.className = 'status-chip success';
-                    chipApply.textContent = `✅ 当月申请总数 ${t.toFixed(0)} · ${state.filteredApplyMap.size}人`;
-                    metaApply.textContent = `申请: ${state.filteredApplyMap.size}人 / ${t.toFixed(0)}件`;
+                    applyPrev.innerHTML = `✅ 当月申请总数 ${t.toFixed(0)} · ${state.filteredApplyMap.size}人`;
                 } else if (!state.applyRanges.size) {
-                    chipApply.className = 'status-chip idle'; chipApply.textContent = '⏳ 等待上传';
-                    metaApply.textContent = '申请: —';
-                } else {
-                    chipApply.className = 'status-chip warning'; chipApply.textContent = '⚠️ 范围无效，请检查';
-                    metaApply.textContent = '申请: —';
-                }
+                    applyPrev.innerHTML = '⏳ 未上传『骑手单袋比明细』';
+                    rangeInfo.style.display = 'none';
+                } else applyPrev.innerHTML = '⚠️ 范围无效，请检查表格中的"统计范围"';
                 if (state.todayMap.size) {
-                    let txt = `✅ 当日申请 ${state.todayMap.size}人 · 总数 ${[...state.todayMap.values()].reduce((a,b)=>a+b.qty,0).toFixed(0)}`;
-                    if (chkExcludeRejected.checked && state.todayStats.rejected) txt += ` (已剔除拒绝 ${state.todayStats.rejected})`;
-                    chipToday.className = 'status-chip success'; chipToday.textContent = txt;
-                    if (chkExcludeRejected.checked && state.todayStats.rejected) {
-                        rejectNote.classList.add('visible'); rejectNote.textContent = `🚫 已剔除 ${state.todayStats.rejected} 条拒绝记录`;
-                    } else rejectNote.classList.remove('visible');
-                } else {
-                    chipToday.className = 'status-chip idle'; chipToday.textContent = '⚪ 尚未粘贴';
-                    rejectNote.classList.remove('visible');
-                }
-                updateRunButton();
+                    const t = [...state.todayMap.values()].reduce((a,b) => a + b.qty, 0);
+                    thirdPrev.innerHTML =
+                        `✅ 当日申请 ${state.todayMap.size}人 · 总数 ${t.toFixed(0)}` + (excludeChk.checked && state
+                            .todayStats.rejected ? ` (已剔除拒绝 ${state.todayStats.rejected})` : '');
+                    rejectInfo.style.display = excludeChk.checked && state.todayStats.rejected ? 'block' : 'none';
+                    if (excludeChk.checked && state.todayStats.rejected) rejectInfo.innerHTML =
+                        `🚫 已剔除 ${state.todayStats.rejected} 条拒绝记录`;
+                } else { thirdPrev.innerHTML = '⚪ 未粘贴『耗材领用明细』';
+                    rejectInfo.style.display = 'none'; }
+                updateBtn();
             }
 
-            function updateRunButton() {
+            function updateBtn() {
                 const ok = state.filteredApplyMap.size && state.isRangeValid;
-                btnRun.disabled = !ok;
-                hintStatus.textContent = !ok ? (state.filteredApplyMap.size ? '⚠️ 请选择正确的统计范围' : '⏳ 请先完成数据上传') : '✅ 数据就绪';
+                runBtn.disabled = !ok;
+                hint.innerText = !state.filteredApplyMap.size ? '⏳ 请先完成①②上传' : (!state.isRangeValid ?
+                    '⚠️ 请选择正确的统计范围' : '✅ 数据就绪，可点击生成报表');
             }
 
-            function parseDeliveryFile(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = e => {
+            /* ===== 文件解析 ===== */
+            function parseOrder(file) {
+                return new Promise((ok, err) => {
+                    const r = new FileReader();
+                    r.onload = e => {
                         const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
-                        if (rows.length < 2) reject(new Error('至少两行数据'));
+                        if (rows.length < 2) return err(new Error('至少需要两行数据'));
                         const h = rows[1].map(c => String(c || '').trim());
                         let ni = -1, qi = -1;
-                        h.forEach((c,i) => { if (c === '配送员名字') ni = i; if (c === '总签收单量') qi = i; });
-                        if (ni === -1 || qi === -1) reject(new Error('缺少“配送员名字”或“总签收单量”列'));
-                        const map = new Map();
-                        for (let i = 2; i < rows.length; i++) {
-                            const r = rows[i]; if (!r) continue;
-                            const n = String(r[ni] || '').trim(); if (!n) continue;
-                            map.set(n, (map.get(n) || 0) + (parseFloat(r[qi]) || 0));
-                        }
-                        resolve(map);
+                        h.forEach((c,i) => { if (c==='配送员名字') ni=i; if (c==='总签收单量') qi=i; });
+                        if (ni===-1 || qi===-1) return err(new Error('缺少列'));
+                        const m = new Map();
+                        for (let i=2; i<rows.length; i++) { const rw=rows[i]; if(!rw) continue;
+                            const n=String(rw[ni]||'').trim(); if(!n) continue;
+                            m.set(n,(m.get(n)||0)+(parseFloat(rw[qi])||0)); }
+                        ok(m);
                     };
-                    reader.onerror = () => reject(new Error('读取失败'));
-                    reader.readAsArrayBuffer(file);
+                    r.readAsArrayBuffer(file);
                 });
             }
-
-            function parseApplyFile(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = e => {
+            function parseApply(file) {
+                return new Promise((ok, err) => {
+                    const r = new FileReader();
+                    r.onload = e => {
                         const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
-                        if (!rows.length) reject(new Error('空表格'));
-                        const h = rows[0].map(c => String(c || '').trim());
-                        let di = -1, ri = -1, idi = -1, ni = -1, qi = -1, oi = -1;
-                        h.forEach((c,i) => {
-                            if (c === '统计日期') di = i;
-                            if (c === '统计范围') ri = i;
-                            if (c === '骑手id') idi = i;
-                            if (c === '骑手姓名') ni = i;
-                            if (c === '确认申领商品数量') qi = i;
-                            if (c === 'o2o签收单量') oi = i;
-                        });
-                        if (ni === -1 || qi === -1 || idi === -1 || oi === -1)
-                            reject(new Error('缺少必要列(骑手id/骑手姓名/确认申领商品数量/o2o签收单量)'));
-                        const ranges = new Set(), dates = new Set(), raw = [];
-                        for (let i = 1; i < rows.length; i++) {
-                            const r = rows[i]; if (!r) continue;
-                            const id = String(r[idi] || '').trim();
-                            const name = String(r[ni] || '').trim();
-                            if (!name) continue;
-                            const qty = parseFloat(r[qi]) || 0;
-                            const o2o = parseFloat(r[oi]) || 0;
-                            const range = ri !== -1 && r[ri] ? String(r[ri]).trim() : '';
-                            const date = di !== -1 && r[di] ? String(r[di]).trim() : '';
-                            raw.push({ id, name, o2oOrders: o2o, applyQty: qty, range, date });
-                            if (range) ranges.add(range);
-                            if (date) dates.add(date);
-                        }
-                        resolve({ raw, ranges, dates });
+                        if (!rows.length) return err(new Error('空表格'));
+                        const h = rows[0].map(c => String(c||'').trim());
+                        let di=-1,ri=-1,idi=-1,ni=-1,qi=-1,oi=-1;
+                        h.forEach((c,i)=>{ if(c==='统计日期') di=i; if(c==='统计范围') ri=i; if(c==='骑手id') idi=i; if(c==='骑手姓名') ni=i; if(c==='确认申领商品数量') qi=i; if(c==='o2o签收单量') oi=i; });
+                        const ranges=new Set(), dates=new Set(), raw=[];
+                        for (let i=1;i<rows.length;i++){ const rw=rows[i]; if(!rw) continue;
+                            const id=String(rw[idi]||'').trim(), name=String(rw[ni]||'').trim(); if(!name) continue;
+                            const qty=parseFloat(rw[qi])||0, o2o=parseFloat(rw[oi])||0;
+                            const range=ri!==-1&&rw[ri]?String(rw[ri]).trim():'', date=di!==-1&&rw[di]?String(rw[di]).trim():'';
+                            raw.push({id,name,o2oOrders:o2o,applyQty:qty,range,date}); if(range) ranges.add(range); if(date) dates.add(date); }
+                        ok({raw,ranges,dates});
                     };
-                    reader.onerror = () => reject(new Error('读取失败'));
-                    reader.readAsArrayBuffer(file);
+                    r.readAsArrayBuffer(file);
                 });
             }
 
-            function parseDailyPaste(text, exclude) {
-                const lines = text.split(/\r?\n/).filter(l => l.trim());
-                const map = new Map();
-                let total = 0, rej = 0, valid = 0;
-                const details = [];
-                for (let i = 0; i + 11 <= lines.length; i += 11) {
-                    total++;
-                    const g = lines.slice(i, i + 11);
-                    const id = g[2]?.trim() || '';
-                    const name = g[3]?.trim() || '';
-                    const qty = parseFloat(g[6]);
-                    const status = g[7]?.trim() || '';
-                    if (exclude && status === '拒绝') {
-                        rej++;
-                        details.push({ id, name, qty, status, valid: false });
-                        continue;
-                    }
-                    if (name && !isNaN(qty) && qty > 0) {
-                        const key = `${id}||${name}`;
-                        const entry = map.get(key);
-                        if (entry) entry.qty += qty;
-                        else map.set(key, { id, name, qty });
-                        valid++;
-                        details.push({ id, name, qty, status, valid: true });
-                    }
-                }
-                return { map, total, rejected: rej, valid, details };
-            }
+            orderFile.addEventListener('change', async e => { const f=e.target.files[0]; if(!f) return; try{ state.deliveryMap=await parseOrder(f); refreshAllChips(); if(state.finalRiders.length) renderTable(); } catch(er){ alert('❌ '+er.message); } orderFile.value=''; });
+            applyFile.addEventListener('change', async e => { const f=e.target.files[0]; if(!f) return; try{ const res=await parseApply(f); state.applyRaw=res.raw; state.applyRanges=res.ranges; state.applyDates=res.dates; updateRangeSelect(); refreshAllChips(); if(state.finalRiders.length) renderTable(); } catch(er){ alert('❌ '+er.message); } applyFile.value=''; });
 
-            function buildFinalRiders() {
-                const finalMap = new Map();
-                for (const [key, val] of state.filteredApplyMap) {
-                    finalMap.set(key, {
-                        key, id: val.id, name: val.name, totalOrders: val.o2oOrders,
-                        historyApply: val.applyQty, todayApply: 0, source: 'apply',
-                    });
-                }
-                for (const [key, val] of state.todayMap) {
-                    const rider = finalMap.get(key);
-                    if (rider) {
-                        rider.todayApply = val.qty;
-                    } else {
-                        const name = val.name;
-                        const inApplyNames = state.applyNamesSet.has(name);
-                        let totalOrders = 0;
-                        if (!inApplyNames && state.deliveryMap.has(name)) {
-                            totalOrders = state.deliveryMap.get(name);
-                        }
-                        finalMap.set(key, {
-                            key, id: val.id, name, totalOrders,
-                            historyApply: 0, todayApply: val.qty,
-                            source: totalOrders > 0 ? 'delivery' : 'today',
-                        });
-                    }
-                }
-                const existingNames = new Set([...finalMap.values()].map(r => r.name));
-                for (const [name, orders] of state.deliveryMap) {
-                    if (!state.applyNamesSet.has(name) && !existingNames.has(name)) {
-                        const key = `||${name}`;
-                        finalMap.set(key, {
-                            key, id: '', name, totalOrders: orders,
-                            historyApply: 0, todayApply: 0, source: 'delivery',
-                        });
-                        existingNames.add(name);
-                    }
-                }
-                const nameCount = new Map();
-                for (const rider of finalMap.values()) {
-                    nameCount.set(rider.name, (nameCount.get(rider.name) || 0) + 1);
-                }
-                for (const rider of finalMap.values()) {
-                    rider.duplicate = nameCount.get(rider.name) > 1;
-                }
-                state.finalRiders = [...finalMap.values()];
-            }
-
-            function sortTableData(data, col, dir) {
-                return [...data].sort((a,b) => {
-                    if (col === 'name') return dir === 'asc' ? a.name.localeCompare(b.name,'zh') : b.name.localeCompare(a.name,'zh');
-                    const av = a[col] || 0, bv = b[col] || 0;
-                    return dir === 'asc' ? av - bv : bv - av;
-                });
-            }
-
-            function syncColumnWidths() {
-                const headerTable = document.querySelector('.table-header-fixed');
-                const scrollBody = document.querySelector('.table-scroll-body');
-                if (!headerTable || !scrollBody) return;
-                headerTable.style.width = scrollBody.clientWidth + 'px';
-            }
-
-            function renderTable() {
-                if (!state.isRangeValid) { alert('统计范围不匹配'); return; }
-                buildFinalRiders();
-                const p = parseFloat(inputPeak.value) || 1.2;
-                let data = state.finalRiders.map(r => ({
-                    key: r.key, name: r.name, id: r.id,
-                    orders: r.totalOrders, history: r.historyApply, today: r.todayApply,
-                    ratio: r.totalOrders ? (r.historyApply + r.todayApply) / r.totalOrders : 0,
-                    diff: r.totalOrders * p - r.historyApply - r.todayApply,
-                    duplicate: r.duplicate, source: r.source,
-                }));
-                data = sortTableData(data, state.sortColumn, state.sortDirection);
-                let html = '';
-                data.forEach(r => {
-                    const d = r.diff, intDiff = d > 0 ? Math.floor(d) : Math.ceil(d);
-                    const diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` : '0');
-                    const cellClass = d < 0 ? 'cell-over-limit' : (intDiff > 50 ? 'cell-warn-highlight' : '');
-                    const nameCellClass = r.duplicate ? ' cell-duplicate' : '';
-                    const nameDisplay = r.duplicate ?
-                        `<span class="duplicate-id">${escapeHtml(r.id)}</span><span class="duplicate-name">${escapeHtml(r.name)}</span>` :
-                        escapeHtml(r.name);
-                    const ordersContent = r.source === 'delivery' ?
-                        `<span class="delivery-pill">${r.orders.toFixed(0)}</span>` :
-                        r.orders.toFixed(0);
-                    html += `<tr><td class="${nameCellClass}">${nameDisplay}</td><td class="mono">${ordersContent}</td><td class="mono">${r.history.toFixed(0)}</td><td class="mono">${r.today.toFixed(0)}</td><td class="mono">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono ${cellClass}">${diffStr}</td></tr>`;
-                });
-                tableBody.innerHTML = html || '<tr class="empty-state"><td colspan="6">无数据</td></tr>';
-                updateStatsCards(data);
-                requestAnimationFrame(syncColumnWidths);
-            }
-
-            function updateStatsCards(data) {
-                if (!data || !data.length) { statsStrip.style.display = 'none'; return; }
-                let tn = 0, to = 0, nr = 0, oR = 0, so = 0, sh = 0, st = 0;
-                data.forEach(r => {
-                    so += r.orders; sh += r.history; st += r.today;
-                    if (r.diff > 0) { tn += r.diff; nr++; }
-                    else if (r.diff < 0) { to += Math.abs(r.diff); oR++; }
-                });
-                valTotalNeed.textContent = Math.floor(tn);
-                valTotalOver.textContent = Math.floor(to);
-                valNeedRiders.textContent = nr;
-                valOverRiders.textContent = oR;
-                valHistRatio.textContent = (so ? sh/so : 0).toFixed(2);
-                valCurrRatio.textContent = (so ? (sh+st)/so : 0).toFixed(2);
-                statsStrip.style.display = 'flex';
-            }
-
-            function generateShareReport() {
-                if (!state.finalRiders.length) { alert('请先生成报表'); return; }
-                const now = new Date().toLocaleString('zh-CN',{hour12:false});
-                const peakVal = (parseFloat(inputPeak.value) || 1.2).toFixed(2);
-                const data = state.finalRiders.map(r => ({
-                    ...r,
-                    ratio: r.totalOrders ? (r.historyApply + r.todayApply) / r.totalOrders : 0,
-                    diff: r.totalOrders * parseFloat(peakVal) - r.historyApply - r.todayApply,
-                }));
-                const sorted = [...data].sort((a,b) => b.diff - a.diff);
-                let rowsHtml = '';
-                sorted.forEach(r => {
-                    const d = r.diff, intDiff = d > 0 ? Math.floor(d) : Math.ceil(d);
-                    const diffStr = intDiff > 0 ? `需补:${intDiff}` : (intDiff < 0 ? `超标:${Math.abs(intDiff)}` : '0');
-                    const nameCellStyle = r.duplicate ? ' style="background-color:#eff6ff;border-left:4px solid #3b82f6;"' : '';
-                    const nameDisplay = r.duplicate ?
-                        `<span style="font-weight:700;">${escapeHtml(r.id)}</span><br><span style="font-size:0.7em;color:#1e40af;">${escapeHtml(r.name)}</span>` :
-                        escapeHtml(r.name);
-                    const ordersContent = r.source === 'delivery' ?
-                        `<span style="display:inline-block;border:0.12em solid #b91c1c;border-radius:0.8em;padding:0.1em 0.5em;background-color:#dc2626;color:white;font-weight:600;font-size:inherit;line-height:1.3;">${r.totalOrders.toFixed(0)}</span>` :
-                        r.totalOrders.toFixed(0);
-                    rowsHtml += `<tr><td${nameCellStyle}>${nameDisplay}</td><td class="mono">${ordersContent}</td><td class="mono">${r.historyApply.toFixed(0)}</td><td class="mono">${r.todayApply.toFixed(0)}</td><td class="mono">${r.totalOrders?r.ratio.toFixed(2):'—'}</td><td class="mono ${d<0?'cell-over-limit':(intDiff>50?'cell-warn-highlight':'')}">${diffStr}</td></tr>`;
-                });
-                const reportHtml = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>单袋比领用报告</title><style>:root{--bg:#f9fafb;--surface:#fff;--text:#1e293b;--text-secondary:#64748b;--accent:#0d9488;--border:#e2e8f0;--warning-bg:#fff7ed;--warning-border:#fdba74;--danger-text:#dc2626;--duplicate-bg:#eff6ff;--duplicate-border:#3b82f6;--pill-bg:#dc2626;--pill-border:#b91c1c;--pill-text:#ffffff;--shadow-md:0 4px 16px rgba(0,0,0,0.06);--radius-lg:20px;--radius-md:14px;}*{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;height:100vh;padding:20px 16px 20px;overflow:hidden;color:var(--text);-webkit-font-smoothing:antialiased;user-select:none!important;}.report-wrapper{max-width:1100px;width:100%;height:100%;display:flex;flex-direction:column;gap:14px;}.report-wrapper h2{font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:6px;}.meta-line{font-size:0.78rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;}.stats-strip{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;flex-shrink:0;}.stat-tile{flex:0 0 calc(16.666% - 10px);min-width:70px;background:var(--surface);border-radius:var(--radius-md);padding:8px 4px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.04);border:1px solid var(--border);}.stat-tile .tile-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);}.stat-tile .tile-value{font-size:2rem;font-weight:700;font-family:'JetBrains Mono',monospace;}.tile-value.green{color:#059669;}.tile-value.red{color:#dc2626;}.tile-value.teal{color:#0d9488;}.table-container{background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}.table-header-fixed{width:100%;table-layout:fixed;border-collapse:collapse;background:#f8fafc;border-bottom:2px solid #e2e8f0;flex-shrink:0;}.table-header-fixed th{font-weight:700;text-align:center;padding:11px 6px;font-size:0.75rem;white-space:nowrap;border-right:1px solid #e2e8f0;color:#475569;}.table-header-fixed th:last-child{border-right:none;}.table-header-fixed th:first-child{text-align:right;padding-right:14px;}.table-header-fixed th:last-child{text-align:left;padding-left:14px;}.table-scroll-body{overflow-x:auto;overflow-y:auto;flex:1 1 auto;min-height:0;scrollbar-width:thin;}.data-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.8rem;min-width:700px;}.data-table td{padding:9px 6px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;vertical-align:middle;}.data-table td:last-child{border-right:none;}.data-table td:first-child{text-align:right;padding-right:14px;font-weight:600;white-space:normal;overflow-wrap:break-word;}.data-table td:last-child{text-align:left;padding-left:14px;white-space:nowrap;}.data-table td:nth-child(2),.data-table td:nth-child(3),.data-table td:nth-child(4),.data-table td:nth-child(5){text-align:center;white-space:nowrap;}tbody tr:nth-child(odd){background:#fafcfd;}tbody tr:nth-child(even){background:#fff;}.mono{font-family:'JetBrains Mono',monospace;font-weight:500;}.cell-warn-highlight{background-color:#fff7ed!important;border-left:4px solid #fdba74!important;font-weight:700;}.cell-over-limit{color:#dc2626!important;font-weight:700;}.cell-duplicate{background-color:#eff6ff!important;border-left:4px solid #3b82f6!important;}.delivery-pill{display:inline-block;border:0.12em solid #b91c1c;border-radius:0.8em;padding:0.1em 0.5em;background-color:#dc2626;color:white;font-weight:600;font-size:inherit;line-height:1.3;vertical-align:middle;}.legend-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:24px;font-size:0.75rem;color:#475569;padding:10px 0 4px;flex-shrink:0;}.legend-item{display:inline-flex;align-items:center;}@media(max-width:768px){.stat-tile{flex:0 0 calc(25% - 10px);}.stat-tile .tile-value{font-size:1.4rem;}.table-header-fixed th,.data-table td{font-size:0.62rem;padding:5px 2px;}.data-table{min-width:100%!important;}}@media(max-width:480px){.stat-tile{flex:0 0 calc(50% - 8px);}.stat-tile .tile-value{font-size:1.2rem;}}</style></head><body><div class="report-wrapper"><h2>🛵 骑手单袋比领用报告</h2><div class="meta-line"><span>生成时间：<strong>${now}</strong></span><span>单袋比系数：<strong>${peakVal}</strong></span></div><div class="stats-strip"><div class="stat-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green">${valTotalNeed.textContent}</div></div><div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red">${valTotalOver.textContent}</div></div><div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal">${valNeedRiders.textContent}</div></div><div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red">${valOverRiders.textContent}</div></div><div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal">${valHistRatio.textContent}</div></div><div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal">${valCurrRatio.textContent}</div></div></div><div class="table-container"><table class="table-header-fixed"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><thead><tr><th>骑手</th><th>总单量</th><th>当月申请</th><th>今日申请</th><th>单袋比</th><th>差异</th></tr></thead></table><div class="table-scroll-body"><table class="data-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><tbody>${rowsHtml}</tbody></table></div></div><div class="legend-strip"><span class="legend-item"><span style="background-color:#fff7ed;border-left:4px solid #fdba74;padding:2px 8px;">需补>50</span></span><span class="legend-item"><span class="cell-over-limit">差量<0</span></span><span class="legend-item"><span style="background-color:#eff6ff;border-left:4px solid #3b82f6;padding:2px 8px;">重名提醒</span></span><span class="legend-item"><span class="delivery-pill">履约单量</span></span></div></div><script>document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('copy',e=>e.preventDefault());<\/script></body></html>`;
-                const blob = new Blob([reportHtml], { type: 'text/html' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `单袋比报告-${new Date().toISOString().slice(0,10)}.html`;
-                a.click();
-            }
-
-            inputOrders.addEventListener('change', async e => {
-                const f = e.target.files[0]; if (!f) return;
-                try { state.deliveryMap = await parseDeliveryFile(f); refreshAllChips(); if (state.finalRiders.length) renderTable(); }
-                catch(er) { alert(er.message); } inputOrders.value = '';
-            });
-            inputApply.addEventListener('change', async e => {
-                const f = e.target.files[0]; if (!f) return;
-                try {
-                    const res = await parseApplyFile(f);
-                    state.applyRaw = res.raw; state.applyRanges = res.ranges; state.applyDates = res.dates;
-                    updateRangeSelect(); refreshAllChips(); if (state.finalRiders.length) renderTable();
-                } catch(er) { alert(er.message); } inputApply.value = '';
-            });
-            zoneOrders.addEventListener('click', () => inputOrders.click());
-            zoneApply.addEventListener('click', () => inputApply.click());
-            selectRange.addEventListener('change', () => {
-                const sel = selectRange.value, exp = expectedRange(getLatestDate(state.applyDates));
-                state.selectedRange = sel; state.isRangeValid = sel === exp;
-                if (state.isRangeValid) {
-                    warnRange.classList.remove('visible'); infoRange.classList.add('visible');
-                    infoRange.innerHTML = `✅ 有效统计范围: ${escapeHtml(exp)}<br>最新日期: ${escapeHtml(formatDate(getLatestDate(state.applyDates)))}`;
-                    filterApplyByRange(sel);
-                } else {
-                    warnRange.classList.add('visible'); infoRange.classList.remove('visible');
-                    state.filteredApplyMap.clear();
-                }
+            rangeSelect.addEventListener('change', () => {
+                const sel=rangeSelect.value, exp=expRange(getLatestDate(state.applyDates));
+                state.selectedRange=sel; state.isRangeValid=sel===exp;
+                if(state.isRangeValid){ rangeWarn.textContent=''; rangeInfo.style.display='block'; rangeInfo.innerHTML=`✅ 有效统计范围: ${escapeHtml(exp)}<br>当前统计日期(最新): ${escapeHtml(fmtDate(getLatestDate(state.applyDates)))}`; filterApplyByRange(sel); }
+                else { rangeWarn.textContent=`⚠️ 统计范围不匹配！期望值: ${exp}`; rangeInfo.style.display='none'; state.filteredApplyMap.clear(); }
                 refreshAllChips();
-                if (state.isRangeValid && state.finalRiders.length) renderTable();
-                else {
-                    tableBody.innerHTML = '<tr class="empty-state"><td colspan="6">⚠️ 请选择正确的统计范围</td></tr>';
-                    statsStrip.style.display = 'none'; state.finalRiders = [];
-                }
+                if(state.isRangeValid && state.finalRiders.length) renderTable(); else { tbody.innerHTML='<tr class="empty-row-msg"><td colspan="6">⚠️ 请选择正确的统计范围</td></tr>'; statsPanel.style.display='none'; }
             });
-            btnPaste.addEventListener('click', () => {
+
+            function parseDaily(text, exclude) {
+                const lines=text.split(/\r?\n/).filter(l=>l.trim()); const m=new Map(); let tot=0,rej=0,val=0; const det=[];
+                for(let i=0;i+11<=lines.length;i+=11){ tot++; const g=lines.slice(i,i+11), id=g[2]?.trim()||'', n=g[3]?.trim()||'', q=parseFloat(g[6]), s=g[7]?.trim()||''; if(exclude&&s==='拒绝'){ rej++; det.push({id,name:n,qty:q,status:s,valid:false}); continue; } if(n&&!isNaN(q)&&q>0){ const key=`${id}||${n}`; const entry=m.get(key); if(entry) entry.qty+=q; else m.set(key,{id,name:n,qty:q}); val++; det.push({id,name:n,qty:q,status:s,valid:true}); } }
+                return {map:m,total:tot,rejected:rej,valid:val,details:det};
+            }
+
+            function openPaste() {
                 document.querySelector('.modal-overlay')?.remove();
-                const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
-                overlay.innerHTML = `<div class="modal-box"><h3>粘贴当日申请数据</h3><p style="font-size:0.7rem;">每组11行：第3行=工号 / 第4行=姓名 / 第7行=数量 / 第8行=状态</p><textarea id="pasteTextarea" rows="10"></textarea><div class="modal-meta"><span>📊 <strong id="modalLineCount">0</strong>行 / <strong id="modalGroupCount">0</strong>组</span></div><label class="checkbox-row"><input type="checkbox" id="modalExcludeChk" ${chkExcludeRejected.checked?'checked':''}>剔除拒绝</label><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost" id="modalCancel">取消</button><button class="btn btn-outline" id="modalPreview">预览</button><button class="btn btn-primary" id="modalConfirm">导入</button></div><div id="modalPreviewArea" style="display:none;margin-top:8px;"><div class="preview-table-wrap" id="modalPreviewContent"></div></div></div>`;
-                document.body.appendChild(overlay);
-                const ta = document.getElementById('pasteTextarea'), lc = document.getElementById('modalLineCount'), gc = document.getElementById('modalGroupCount');
-                const chk = document.getElementById('modalExcludeChk'), prevArea = document.getElementById('modalPreviewArea'), prevContent = document.getElementById('modalPreviewContent');
-                let parsed = null;
-                const upd = () => { const l = ta.value.split(/\r?\n/).filter(l => l.trim()); lc.textContent = l.length; gc.textContent = Math.floor(l.length / 11); };
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:999;display:flex;align-items:center;justify-content:center;';
+                const md = document.createElement('div');
+                md.style.cssText = 'background:white;border-radius:20px;padding:22px;width:640px;max-width:93vw;max-height:85vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.12);';
+                md.innerHTML = `<h3 style="margin-bottom:10px;">📋 粘贴当日申请数据</h3><div class="parse-tip" style="margin:8px 0;">每组11行 ┃ 第3行=工号 / 第4行=姓名 / 第7行=数量 / 第8行=状态</div>
+                <textarea id="pasteArea" style="width:100%;padding:10px;border-radius:10px;border:2px solid #cbd5e1;font-family:monospace;font-size:0.72rem;resize:vertical;background:#fafbfc;" rows="10"></textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;color:#64748b;font-size:0.72rem;"><span>📊 <strong id="lineCount">0</strong>行 / <strong id="groupCount">0</strong>组</span></div>
+                <div class="checkbox-wrapper" style="margin-top:8px;"><input type="checkbox" id="modalExclude" ${excludeChk.checked?'checked':''}> <label>🚫 剔除审批"拒绝"的记录</label></div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;"><button id="cancelPaste" class="btn">取消</button><button id="previewPaste" class="btn">预览</button><button id="confirmPaste" class="btn btn-primary">导入</button></div>
+                <div id="previewResult" style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:10px;display:none;max-height:260px;overflow:auto;"><div id="previewContent"></div></div>`;
+                document.body.appendChild(overlay); overlay.appendChild(md);
+                const ta=document.getElementById('pasteArea'), lc=document.getElementById('lineCount'), gc=document.getElementById('groupCount');
+                const pr=document.getElementById('previewResult'), pc=document.getElementById('previewContent'), chk=document.getElementById('modalExclude');
+                let parsed=null;
+                const upd = () => { const lines=ta.value.split(/\r?\n/).filter(l=>l.trim()); lc.textContent=lines.length; gc.textContent=Math.floor(lines.length/11); };
                 ta.addEventListener('input', upd);
                 ta.addEventListener('paste', (e) => {
                     e.preventDefault();
                     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
                     if (!pastedText) return;
-                    const start = ta.selectionStart;
-                    const end = ta.selectionEnd;
-                    const currentText = ta.value;
-                    ta.value = currentText.slice(0, start) + pastedText + currentText.slice(end);
-                    if (!pastedText.endsWith('\n')) {
-                        ta.value += '\n';
-                    }
+                    const start = ta.selectionStart, end = ta.selectionEnd;
+                    ta.value = ta.value.slice(0, start) + pastedText + ta.value.slice(end);
+                    if (!pastedText.endsWith('\n')) ta.value += '\n';
                     ta.selectionStart = ta.selectionEnd = ta.value.length;
                     ta.dispatchEvent(new Event('input', { bubbles: true }));
+                    ta.focus();
                 });
                 upd();
-                document.getElementById('modalCancel').onclick = () => overlay.remove();
-                document.getElementById('modalPreview').onclick = () => {
-                    parsed = parseDailyPaste(ta.value, chk.checked);
+                document.getElementById('cancelPaste').onclick = () => overlay.remove();
+                document.getElementById('previewPaste').onclick = () => {
+                    parsed = parseDaily(ta.value, chk.checked);
                     const { total, rejected, valid, details } = parsed;
-                    let html = `<div style="font-size:0.7rem;">📊 总组数:${total} | 有效:${valid}`;
-                    if (chk.checked && rejected) html += ` | <span style="color:#dc2626;">已剔除拒绝:${rejected}</span>`;
-                    html += '</div><table class="mini-table"><thead><tr><th>工号</th><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>';
+                    let html = `<div style="font-size:0.72rem;margin-bottom:6px;">📊 总组数:${total} | 有效:${valid}${chk.checked&&rejected?` | <span style="color:#dc2626;">已剔除拒绝:${rejected}</span>`:''}</div>`;
+                    html += '<table class="preview-table"><thead><tr><th>工号</th><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>';
                     const vd = details.filter(d => d.valid);
                     if (!vd.length) html += '<tr><td colspan="4">暂无有效数据</td></tr>';
                     else {
-                        const sm = new Map();
-                        vd.forEach(d => sm.set(`${d.id}||${d.name}`, (sm.get(`${d.id}||${d.name}`) || 0) + (d.qty || 0)));
+                        const sm = new Map(); vd.forEach(d => sm.set(`${d.id}||${d.name}`, (sm.get(`${d.id}||${d.name}`) || 0) + (d.qty || 0)));
                         let tq = 0;
                         [...sm.entries()].sort((a,b) => a[0].localeCompare(b[0])).forEach(([key, q]) => {
                             const [id, name] = key.split('||');
-                            html += `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(name)}</td><td class="mono">${q}</td><td>有效</td></tr>`;
+                            html += `<tr><td style="text-align:left;">${escapeHtml(id)}</td><td style="text-align:left;">${escapeHtml(name)}</td><td>${q}</td><td>有效</td></tr>`;
                             tq += q;
                         });
-                        html += `<tr><td colspan="2"><strong>合计</strong></td><td class="mono"><strong>${tq}</strong></td><td></td></tr>`;
+                        html += `<tr style="border-top:2px solid #aaa;"><td colspan="2"><strong>合计</strong></td><td><strong>${tq}</strong></td><td></td></tr>`;
                     }
                     if (chk.checked && rejected) {
                         const rd = details.filter(d => !d.valid);
                         if (rd.length) {
-                            html += '<tr><td colspan="4" style="color:#dc2626;">已剔除的拒绝记录:</td></tr>';
-                            rd.forEach(d => { html += `<tr style="color:#94a3b8;"><td>${escapeHtml(d.id||'—')}</td><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`; });
+                            html += '<tr><td colspan="4" style="color:#dc2626;padding-top:8px;">🚫 已剔除的拒绝记录:</td></tr>';
+                            rd.forEach(d => { html += `<tr style="color:#94a3b8;"><td style="text-align:left;">${escapeHtml(d.id||'—')}</td><td style="text-align:left;">${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`; });
                         }
                     }
                     html += '</tbody></table>';
-                    prevContent.innerHTML = html; prevArea.style.display = 'block';
+                    pc.innerHTML = html; pr.style.display = 'block';
                 };
-                document.getElementById('modalConfirm').onclick = () => {
-                    if (!parsed) parsed = parseDailyPaste(ta.value, chk.checked);
+                document.getElementById('confirmPaste').onclick = () => {
+                    if (!parsed) parsed = parseDaily(ta.value, chk.checked);
                     if (!parsed.map.size) { alert('无有效数据'); return; }
-                    state.todayMap = parsed.map; state.todayStats = { total: parsed.total, rejected: parsed.rejected, valid: parsed.valid };
-                    chkExcludeRejected.checked = chk.checked;
-                    refreshAllChips(); if (state.finalRiders.length) renderTable(); overlay.remove();
+                    state.todayMap = parsed.map;
+                    state.todayStats = { total: parsed.total, rejected: parsed.rejected, valid: parsed.valid };
+                    excludeChk.checked = chk.checked;
+                    refreshAllChips(); if (state.finalRiders.length) renderTable();
+                    overlay.remove();
                 };
                 overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-            });
-            btnRun.addEventListener('click', renderTable);
-            btnClear.addEventListener('click', () => {
-                state.deliveryMap.clear(); state.applyRaw = []; state.applyRanges.clear(); state.applyDates.clear();
+            }
+
+            pasteBtn.addEventListener('click', openPaste);
+            clearBtn.addEventListener('click', () => {
+                state.deliveryMap.clear(); state.applyRaw=[]; state.applyRanges.clear(); state.applyDates.clear();
                 state.filteredApplyMap.clear(); state.applyNamesSet.clear(); state.todayMap.clear();
-                state.todayStats = { total: 0, rejected: 0, valid: 0 }; state.finalRiders = [];
-                state.isRangeValid = false; selectRange.disabled = true; selectRange.innerHTML = '<option>请先上传申请表格</option>';
-                tableBody.innerHTML = '<tr class="empty-state"><td colspan="6">👆 请在左侧上传数据并选择正确的统计范围</td></tr>';
-                statsStrip.style.display = 'none'; refreshAllChips();
-                inputPeak.value = '1.2'; chkExcludeRejected.checked = true;
-                chipOrders.className = 'status-chip idle'; chipOrders.textContent = '⏳ 等待上传';
-                chipApply.className = 'status-chip idle'; chipApply.textContent = '⏳ 等待上传';
-                chipToday.className = 'status-chip idle'; chipToday.textContent = '⚪ 尚未粘贴';
-                metaOrders.textContent = '单量: —'; metaApply.textContent = '申请: —';
-                hintStatus.textContent = '请先完成数据上传';
+                state.todayStats = { total:0, rejected:0, valid:0 }; state.finalRiders=[]; state.isRangeValid=false;
+                rangeSelect.disabled=true; rangeSelect.innerHTML='<option>请先上传申请表格</option>';
+                tbody.innerHTML='<tr class="empty-row-msg"><td colspan="6">👆 请上传表格并选择正确统计范围</td></tr>';
+                statsPanel.style.display='none'; refreshAllChips();
+                peak.value='1.2'; excludeChk.checked=true;
+                orderPrev.innerHTML='⏳ 未上传『配送员履约明细表』'; applyPrev.innerHTML='⏳ 未上传『骑手单袋比明细』';
+                thirdPrev.innerHTML='⚪ 未粘贴『耗材领用明细』'; rangeInfo.style.display='none'; rejectInfo.style.display='none';
+                hint.innerText='请先完成数据上传';
             });
-            document.querySelectorAll('.table-header-fixed th[data-sort-col]').forEach(th => {
+
+            function buildFinalRiders() {
+                const finalMap = new Map();
+                for (const [key, val] of state.filteredApplyMap) {
+                    finalMap.set(key, { key, id:val.id, name:val.name, totalOrders:val.o2oOrders, historyApply:val.applyQty, todayApply:0, source:'apply' });
+                }
+                for (const [key, val] of state.todayMap) {
+                    const rider = finalMap.get(key);
+                    if (rider) { rider.todayApply = val.qty; } else {
+                        const name = val.name; const inApplyNames = state.applyNamesSet.has(name);
+                        let totalOrders = 0;
+                        if (!inApplyNames && state.deliveryMap.has(name)) totalOrders = state.deliveryMap.get(name);
+                        finalMap.set(key, { key, id:val.id, name, totalOrders, historyApply:0, todayApply:val.qty, source: totalOrders>0?'delivery':'today' });
+                    }
+                }
+                const existingNames = new Set([...finalMap.values()].map(r => r.name));
+                for (const [name, orders] of state.deliveryMap) {
+                    if (!state.applyNamesSet.has(name) && !existingNames.has(name)) {
+                        finalMap.set(`||${name}`, { key:`||${name}`, id:'', name, totalOrders:orders, historyApply:0, todayApply:0, source:'delivery' });
+                        existingNames.add(name);
+                    }
+                }
+                const nameCount = new Map();
+                for (const rider of finalMap.values()) { nameCount.set(rider.name, (nameCount.get(rider.name)||0)+1); }
+                for (const rider of finalMap.values()) { rider.duplicate = nameCount.get(rider.name) > 1; }
+                state.finalRiders = [...finalMap.values()];
+            }
+
+            function sortData(data, col, dir) {
+                return [...data].sort((a,b) => {
+                    if (col === 'name') return dir==='asc' ? a.name.localeCompare(b.name,'zh') : b.name.localeCompare(a.name,'zh');
+                    const av = a[col]||0, bv = b[col]||0;
+                    return dir==='asc' ? av - bv : bv - av;
+                });
+            }
+
+            function syncColumnWidths() {
+                const headerTable = document.querySelector('.header-table');
+                if (!headerTable || !tableScrollBody) return;
+                headerTable.style.width = tableScrollBody.clientWidth + 'px';
+            }
+
+            function renderTable() {
+                if (!state.isRangeValid) { alert('❌ 统计范围不匹配'); return; }
+                buildFinalRiders();
+                const p = parseFloat(peak.value) || 1.2;
+                let data = state.finalRiders.map(r => ({
+                    key: r.key, name: r.name, id: r.id, orders: r.totalOrders, history: r.historyApply, today: r.todayApply,
+                    ratio: r.totalOrders ? (r.historyApply+r.todayApply)/r.totalOrders : 0,
+                    diff: r.totalOrders*p - r.historyApply - r.todayApply, duplicate: r.duplicate, source: r.source,
+                }));
+                data = sortData(data, state.sortColumn, state.sortDirection);
+                let html = '';
+                data.forEach(r => {
+                    const d = r.diff, intDiff = d>0?Math.floor(d):Math.ceil(d);
+                    const diffStr = intDiff>0?`需补:${intDiff}`:(intDiff<0?`超标:${Math.abs(intDiff)}`:'0');
+                    const cellClass = d<0?'cell-negative':(intDiff>50?'cell-highlight':'');
+                    const nameCellClass = r.duplicate?' cell-duplicate':'';
+                    const nameDisplay = r.duplicate?
+                        `<span class="duplicate-id">${escapeHtml(r.id)}</span><span class="duplicate-name">${escapeHtml(r.name)}</span>`:
+                        escapeHtml(r.name);
+                    const ordersContent = r.source==='delivery'?
+                        `<span class="delivery-pill">${r.orders.toFixed(0)}</span>`:r.orders.toFixed(0);
+                    html += `<tr><td class="${nameCellClass}">${nameDisplay}</td><td class="mono-number">${ordersContent}</td><td class="mono-number">${r.history.toFixed(0)}</td><td class="mono-number">${r.today.toFixed(0)}</td><td class="mono-number">${r.orders?r.ratio.toFixed(2):'—'}</td><td class="mono-number ${cellClass}">${diffStr}</td></tr>`;
+                });
+                tbody.innerHTML = html || '<tr><td colspan="6">无数据</td></tr>';
+                updateStatsCards(data);
+                requestAnimationFrame(syncColumnWidths);
+            }
+
+            function updateStatsCards(data) {
+                if (!data || !data.length) { statsPanel.style.display='none'; return; }
+                let tn=0, to=0, nr=0, oR=0, so=0, sh=0, st=0;
+                data.forEach(r => { so+=r.orders; sh+=r.history; st+=r.today; if(r.diff>0){ tn+=r.diff; nr++; }else if(r.diff<0){ to+=Math.abs(r.diff); oR++; } });
+                totalNeedSpan.textContent=Math.floor(tn); totalOverSpan.textContent=Math.floor(to);
+                riderNeedCountSpan.textContent=nr; riderOverCountSpan.textContent=oR;
+                totalOrdersSpan.textContent=Math.floor(so); totalHistorySpan.textContent=Math.floor(sh);
+                historyRatioSpan.textContent=(so?sh/so:0).toFixed(2); currentRatioSpan.textContent=(so?(sh+st)/so:0).toFixed(2);
+                statsPanel.style.display='flex';
+            }
+
+            document.querySelectorAll('.header-table th[data-sort]').forEach(th => {
                 th.addEventListener('click', () => {
-                    const col = th.dataset.sortCol; if (!col) return;
-                    if (state.sortColumn === col) state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
-                    else { state.sortColumn = col; state.sortDirection = 'desc'; }
+                    const col = th.dataset.sort; if (!col) return;
+                    if (state.sortColumn===col) state.sortDirection = state.sortDirection==='asc'?'desc':'asc';
+                    else { state.sortColumn=col; state.sortDirection='desc'; }
                     if (state.finalRiders.length) renderTable();
                 });
             });
-            btnShare.addEventListener('click', generateShareReport);
+            runBtn.addEventListener('click', renderTable);
+
+            shareReportBtn.addEventListener('click', () => {
+                if (!state.finalRiders.length) { alert('请先生成报表'); return; }
+                const now = new Date().toLocaleString('zh-CN',{hour12:false}); const peakVal=(parseFloat(peak.value)||1.2).toFixed(2);
+                const totalNeed=totalNeedSpan.innerText, totalOver=totalOverSpan.innerText, needRiders=riderNeedCountSpan.innerText, overRiders=riderOverCountSpan.innerText, historyRatio=historyRatioSpan.innerText, currentRatio=currentRatioSpan.innerText;
+                const p=parseFloat(peakVal); const data=state.finalRiders.map(r=>({...r,ratio:r.totalOrders?(r.historyApply+r.todayApply)/r.totalOrders:0,diff:r.totalOrders*p-r.historyApply-r.todayApply}));
+                const sorted=[...data].sort((a,b)=>b.diff-a.diff);
+                let rowsHtml='';
+                sorted.forEach(r=>{ const d=r.diff,intDiff=d>0?Math.floor(d):Math.ceil(d),diffStr=intDiff>0?`需补:${intDiff}`:(intDiff<0?`超标:${Math.abs(intDiff)}`:'0');
+                const nameCellStyle=r.duplicate?' style="background-color:#eff6ff;border-left:4px solid #3b82f6;"':'';
+                const nameDisplay=r.duplicate?`<span style="font-weight:700;">${escapeHtml(r.id)}</span><br><span style="font-size:0.7em;color:#1e40af;">${escapeHtml(r.name)}</span>`:escapeHtml(r.name);
+                const ordersContent=r.source==='delivery'?`<span class="delivery-pill">${r.totalOrders.toFixed(0)}</span>`:r.totalOrders.toFixed(0);
+                rowsHtml+=`<tr><td${nameCellStyle}>${nameDisplay}</td><td class="mono-number">${ordersContent}</td><td class="mono-number">${r.historyApply.toFixed(0)}</td><td class="mono-number">${r.todayApply.toFixed(0)}</td><td class="mono-number">${r.totalOrders?r.ratio.toFixed(2):'—'}</td><td class="mono-number ${d<0?'cell-negative':(intDiff>50?'cell-highlight':'')}">${diffStr}</td></tr>`; });
+                const reportHtml = `<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>单袋比领用报告</title><style>:root{--bg:#f4f7fb;--text:#0f172a;--muted:#64748b;--accent:#1e4bd2;--warning-bg:#fef08a;--danger-text:#dc2626;--danger-bg:#fee2e2;--duplicate-bg:#eff6ff;--duplicate-border:#3b82f6;--pill-bg:#dc2626;--pill-border:#b91c1c;--pill-text:#ffffff;--table-border:#cbd5e1;--shadow-md:0 4px 16px rgba(0,0,0,0.06);--radius-lg:20px;--radius-md:14px;}*{margin:0;padding:0;box-sizing:border-box;}body{background:var(--bg);font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;height:100vh;padding:20px 16px 20px;overflow:hidden;color:var(--text);-webkit-font-smoothing:antialiased;user-select:none!important;}.report-wrapper{max-width:1100px;width:100%;height:100%;display:flex;flex-direction:column;gap:14px;}.report-wrapper h2{font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:6px;}.meta-line{font-size:0.78rem;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;}.stats-strip{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;flex-shrink:0;}.stat-tile{flex:1 1 80px;min-width:70px;background:#fff;border-radius:var(--radius-md);padding:8px 4px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,0.04);border:1px solid var(--table-border);}.stat-tile .tile-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);}.stat-tile .tile-value{font-size:2rem;font-weight:700;font-family:'JetBrains Mono',monospace;}.tile-value.green{color:#059669;}.tile-value.red{color:var(--danger-text);}.tile-value.teal{color:var(--accent);}.table-container{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid var(--table-border);overflow:hidden;display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}.table-header-fixed{width:100%;table-layout:fixed;border-collapse:collapse;background:#f1f5f9;border-bottom:2px solid var(--table-border);flex-shrink:0;}.table-header-fixed th{font-weight:700;text-align:center;padding:11px 6px;font-size:0.75rem;white-space:nowrap;border-right:1px solid var(--table-border);color:#475569;}.table-header-fixed th:last-child{border-right:none;}.table-header-fixed th:first-child{text-align:right;padding-right:14px;}.table-header-fixed th:last-child{text-align:left;padding-left:14px;}.table-scroll-body{overflow:hidden;flex:1 1 auto;min-height:0;cursor:grab;user-select:none;}.table-scroll-body.dragging{cursor:grabbing;}.data-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.8rem;min-width:700px;}.data-table td{padding:9px 6px;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;vertical-align:middle;}.data-table td:last-child{border-right:none;}.data-table td:first-child{text-align:right;padding-right:14px;font-weight:600;white-space:normal;overflow-wrap:break-word;}.data-table td:last-child{text-align:left;padding-left:14px;white-space:nowrap;}.data-table td:nth-child(2),.data-table td:nth-child(3),.data-table td:nth-child(4),.data-table td:nth-child(5){text-align:center;white-space:nowrap;}tbody tr:nth-child(odd){background:#fafbfc;}tbody tr:nth-child(even){background:#fff;}.mono-number{font-family:'JetBrains Mono',monospace;font-weight:500;}.cell-highlight{background-color:var(--warning-bg)!important;}.cell-negative{color:var(--danger-text)!important;font-weight:700;}.cell-duplicate{background-color:var(--duplicate-bg)!important;border-left:4px solid var(--duplicate-border)!important;}.delivery-pill{display:inline-block;border:0.12em solid var(--pill-border);border-radius:0.8em;padding:0.1em 0.5em;background-color:var(--pill-bg);color:var(--pill-text);font-weight:600;font-size:inherit;line-height:1.3;vertical-align:middle;}.legend-strip{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:24px;font-size:0.75rem;color:var(--muted);padding:10px 0 4px;flex-shrink:0;}@media(max-width:768px){.stat-tile{flex:0 0 calc(25% - 8px);}.stat-tile .tile-value{font-size:1.4rem;}.table-header-fixed th,.data-table td{font-size:0.62rem;padding:5px 2px;}.data-table{min-width:100%!important;}}@media(max-width:480px){.stat-tile{flex:0 0 calc(50% - 8px);}.stat-tile .tile-value{font-size:1.2rem;}}</style></head><body><div class="report-wrapper"><h2>🛵 骑手单袋比领用报告</h2><div class="meta-line"><span>生成时间：<strong>${now}</strong></span><span>单袋比系数：<strong>${peakVal}</strong></span></div><div class="stats-strip"><div class="stat-tile"><div class="tile-label">📦 总需补袋数</div><div class="tile-value green">${totalNeed}</div></div><div class="stat-tile"><div class="tile-label">⚠️ 总超标袋数</div><div class="tile-value red">${totalOver}</div></div><div class="stat-tile"><div class="tile-label">👥 需补骑手</div><div class="tile-value teal">${needRiders}</div></div><div class="stat-tile"><div class="tile-label">🚨 超标骑手</div><div class="tile-value red">${overRiders}</div></div><div class="stat-tile"><div class="tile-label">📈 当月单袋比</div><div class="tile-value teal">${historyRatio}</div></div><div class="stat-tile"><div class="tile-label">🔄 当前单袋比</div><div class="tile-value teal">${currentRatio}</div></div></div><div class="table-container"><table class="table-header-fixed"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><thead><tr><th>骑手</th><th>总单量</th><th>当月申请</th><th>今日申请</th><th>单袋比</th><th>差异</th></tr></thead></table><div class="table-scroll-body" id="reportScrollBody"><table class="data-table"><colgroup><col style="width:21%;"><col style="width:14%;"><col style="width:14%;"><col style="width:14%;"><col style="width:12%;"><col style="width:25%;"></colgroup><tbody>${rowsHtml}</tbody></table></div></div><div class="legend-strip"><span><span style="background-color:var(--warning-bg);padding:2px 8px;">需补>50</span></span><span class="cell-negative">差量<0</span><span><span style="background-color:var(--duplicate-bg);border-left:4px solid var(--duplicate-border);padding:2px 8px;">重名提醒</span></span><span><span class="delivery-pill">履约单量</span></span></div></div><script>document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('copy',e=>e.preventDefault());(function(){const c=document.getElementById('reportScrollBody');if(!c)return;let d=!1,x,l;c.addEventListener('mousedown',e=>{if(e.target.tagName==='TH')return;d=!0;c.classList.add('dragging');x=e.clientX;l=c.scrollLeft;e.preventDefault();});window.addEventListener('mouseup',()=>{d=!1;c.classList.remove('dragging');});window.addEventListener('mousemove',e=>{if(!d)return;e.preventDefault();c.scrollLeft=l-(e.clientX-x)*1.5;});c.addEventListener('wheel',e=>{if(e.shiftKey){e.preventDefault();c.scrollLeft+=e.deltaY;}},{passive:!1});})();<\/script></body></html>`;
+                const d=new Date(); const shortDate = String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+                const blob=new Blob([reportHtml],{type:'text/html'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`单袋比领用报告-${shortDate}.html`; link.click(); URL.revokeObjectURL(link.href);
+            });
+
+            peak.value='1.2'; excludeChk.checked=true; rangeSelect.disabled=true; refreshAllChips(); hint.innerText='请先完成①数据上传';
+            document.querySelectorAll('.file-area').forEach(area => { area.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL') area.querySelector('input')?.click(); }); });
             window.addEventListener('resize', () => { if (state.finalRiders.length) requestAnimationFrame(syncColumnWidths); });
-            inputPeak.value = '1.2'; chkExcludeRejected.checked = true; selectRange.disabled = true;
-            refreshAllChips(); hintStatus.textContent = '请先完成数据上传';
         })();
     </script>
 </body>

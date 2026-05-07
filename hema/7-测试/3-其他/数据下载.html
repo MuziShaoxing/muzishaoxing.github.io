@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>配送数据生成器 · 关联全表</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0b0f1c;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',Roboto,system-ui,sans-serif;padding:16px}
+        .card{background:rgba(255,255,255,0.06);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-radius:32px;border:1px solid rgba(255,255,255,0.1);width:100%;max-width:480px;padding:24px 18px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.6)}
+        h2{font-size:19px;font-weight:700;color:#fff;letter-spacing:1px;margin-bottom:2px}
+        .sub{color:rgba(255,255,255,0.5);font-size:11px;margin-bottom:18px}
+        .tab-nav{display:flex;gap:2px;margin-bottom:16px;border-radius:14px;overflow:hidden;background:rgba(255,255,255,0.06)}
+        .tab-nav button{flex:1;border:none;padding:10px 4px;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,0.55);background:transparent;transition:all 0.2s;white-space:nowrap}
+        .tab-nav button.active{color:#fff;background:rgba(99,102,241,0.55)}
+        .tab-con{display:none;flex-direction:column;gap:9px;align-items:center}
+        .tab-con.active{display:flex}
+        .btn{width:100%;max-width:300px;padding:13px 16px;border:none;border-radius:18px;font-size:14px;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);transition:all 0.15s}
+        .btn:disabled{opacity:0.4;cursor:not-allowed}
+        .btn:active:not(:disabled){transform:scale(0.96);opacity:0.85}
+        .btn.primary{background:rgba(99,102,241,0.7);border-color:rgba(99,102,241,0.9);font-size:16px;padding:15px}
+        .status{background:rgba(0,0,0,0.4);border-radius:14px;padding:10px 12px;color:rgba(255,255,255,0.8);font-size:12px;min-height:40px;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;word-break:break-word;margin-top:12px}
+        .footer-text{color:rgba(255,255,255,0.25);font-size:10px;margin-top:10px}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>🌌 配送数据生成器</h2>
+    <p class="sub">全表关联 · 当日数据 · 30骑手3500单</p>
+
+    <!-- 开始按钮（仅在数据未生成时显示） -->
+    <button id="startBtn" class="btn primary" style="margin-bottom:16px;">⚡ 开始生成数据</button>
+
+    <div class="tab-nav">
+        <button id="tabDownloadBtn" class="active">📥 下载区</button>
+        <button id="tabCopyBtn">📋 复制区</button>
+    </div>
+
+    <!-- 下载区 -->
+    <div class="tab-con active" id="tabDownload">
+        <button id="btnAttendance" class="btn" onclick="downloadOne('attendance')" disabled>📋 日度考勤</button>
+        <button id="btnOrders" class="btn" onclick="downloadOne('orders')" disabled>📦 订单数据</button>
+        <button id="btnFulfillment" class="btn" onclick="downloadOne('fulfillment')" disabled>📅 履约明细</button>
+        <button id="btnBagRatio" class="btn" onclick="downloadOne('bagRatio')" disabled>📐 单袋比</button>
+        <button id="btnMonthly" class="btn" onclick="downloadOne('monthly')" disabled>🗓️ 月度考勤</button>
+        <button id="btnDownloadAll" class="btn primary" onclick="downloadAll()" disabled>🚀 一键打包下载 (5个Excel)</button>
+    </div>
+
+    <!-- 复制区 -->
+    <div class="tab-con" id="tabCopy">
+        <button id="btnApply" class="btn" onclick="copyApply()" disabled>📋 当日申请单据</button>
+        <button id="btnRank" class="btn" onclick="copyRank()" disabled>🏆 排行榜数据</button>
+        <button id="btnOps" class="btn" onclick="copyOps()" disabled>📈 运营指标数据</button>
+        <button id="btnPackTxt" class="btn primary" onclick="packAllTxt()" disabled>📦 一键打包下载全部TXT</button>
+    </div>
+
+    <div class="status" id="status">🟡 点击「开始」按钮初始化数据</div>
+    <div class="footer-text">全表关联 · 30骑手 · 总单量3500 · 重名骑手班次不同</div>
+</div>
+
+<script>
+    // ====== 全局变量（将在 start() 中初始化） ======
+    let allRiders = [];
+    let riderSchedules = {};
+    let phoneMap = {};
+    let isDataReady = false;
+
+    // 基础骑手定义
+    const baseRiders = [
+        { id:"R01",name:"亚索",type:"全职",shiftIdx:0 },{ id:"R02",name:"劫",type:"全职",shiftIdx:1 },
+        { id:"R03",name:"薇恩",type:"盒心",shiftIdx:2 },{ id:"R04",name:"锐雯",type:"全职",shiftIdx:0 },
+        { id:"R05",name:"盖伦",type:"全职",shiftIdx:1 },{ id:"R06",name:"德莱文",type:"盒心",shiftIdx:2 },
+        { id:"R07",name:"阿木木",type:"盒心",shiftIdx:0 },{ id:"R08",name:"机器人",type:"灵活",shiftIdx:1 },
+        { id:"R09",name:"卡牌大师",type:"盒心",shiftIdx:2 },{ id:"R10",name:"小鱼人",type:"全职",shiftIdx:0 },
+        { id:"R11",name:"炸弹人",type:"灵活",shiftIdx:1 },{ id:"R12",name:"牛头酋长",type:"盒心",shiftIdx:2 },
+        { id:"R13",name:"皮城女警",type:"灵活",shiftIdx:0 },{ id:"R14",name:"影流之主",type:"全职",shiftIdx:1 },
+        { id:"R15",name:"齐天大圣",type:"盒心",shiftIdx:2 },{ id:"R16",name:"诺克萨斯",type:"全职",shiftIdx:0 },
+        { id:"R17",name:"麦林炮手",type:"灵活",shiftIdx:1 },{ id:"R18",name:"虚空之眼",type:"盒心",shiftIdx:2 },
+        { id:"R19",name:"深海泰坦",type:"灵活",shiftIdx:0 },{ id:"R20",name:"暗夜猎手",type:"全职",shiftIdx:1 },
+        { id:"R21",name:"暴走萝莉",type:"盒心",shiftIdx:2 },{ id:"R22",name:"德玛西亚皇子",type:"全职",shiftIdx:0 },
+        { id:"R23",name:"圣枪游侠",type:"灵活",shiftIdx:1 },{ id:"R24",name:"刀锋意志",type:"盒心",shiftIdx:2 },
+        { id:"R25",name:"放逐之刃",type:"全职",shiftIdx:0 },{ id:"R26",name:"皎月女神",type:"全职",shiftIdx:1 },
+        { id:"R27",name:"曙光女神",type:"灵活",shiftIdx:2 },{ id:"R28",name:"暮光之眼",type:"全职",shiftIdx:0 },
+        { id:"R29",name:"狂暴之心",type:"盒心",shiftIdx:1 },{ id:"R30",name:"正义巨像",type:"盒心",shiftIdx:2 }
+    ];
+    const shifts = [
+        { sH:7, sM:0, eH:14, eM:0 },
+        { sH:8, sM:0, eH:20, eM:0 },
+        { sH:9, sM:0, eH:21, eM:0 }
+    ];
+    const SITE = "比邻星b基地台";
+    const SUB = "仙女座星际集团";
+    const CARRIER = "曲速引擎快递";
+    const STORE = "半人马座α中心";
+    const BLOCKS = ["α象限","β象限","γ象限","δ象限","银河悬臂-1","银河悬臂-2","猎户旋臂","英仙旋臂","人马座A*内环","大麦哲伦星云","天鹅座X-1区","巴纳德星域"];
+    const POI_P = ["星云","黑洞","脉冲星","类星体","超新星","红巨星","白矮星","中子星","暗物质","反物质","虚空","以太","量子","光子","引力波","磁星","太空","星际","深空","外域"];
+    const POI_S = ["哨站","前哨","观测站","中转港","补给点","殖民地","信号塔","研究所","枢纽站","庇护所","要塞","遗迹","市场","交易所","仓库","工厂","农场","港口"];
+    const POI_N = ["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","VI","VII","VIII","IX","X"];
+    const statuses = ["在线","忙碌","小休"];
+
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function fmtDT(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`; }
+    function fmtT(d){ return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`; }
+    function ymd(d){ return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; }
+    function randPOI(){ return POI_P[randInt(0,POI_P.length-1)]+'-'+POI_N[randInt(0,POI_N.length-1)]+POI_S[randInt(0,POI_S.length-1)]; }
+
+    const NOW = new Date();
+    const TODAY = new Date(NOW.getFullYear(),NOW.getMonth(),NOW.getDate());
+    const YESTERDAY = new Date(TODAY.getTime()-86400000);
+    const TODAY_END = new Date(TODAY.getTime()+86399000);
+
+    // 初始化数据（点击开始后调用）
+    function start() {
+        if (isDataReady) return;
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('startBtn').textContent = '⏳ 正在生成数据...';
+        setStatus('⏳ 正在分配骑手单量并生成班次...');
+
+        // 使用 setTimeout 避免 UI 冻结
+        setTimeout(() => {
+            // 生成骑手单量（总和3500）
+            const totals = baseRiders.map(() => randInt(80,150));
+            let sum = totals.reduce((a,b)=>a+b,0);
+            const target = 3500;
+            let attempts = 0;
+            while (sum !== target && attempts < 10000) {
+                const i = randInt(0,29);
+                if (sum < target && totals[i] < 160) { totals[i]++; sum++; }
+                else if (sum > target && totals[i] > 70) { totals[i]--; sum--; }
+                attempts++;
+            }
+            if (sum !== target) { const adj = target - sum; totals[29] = Math.max(70, Math.min(160, totals[29]+adj)); }
+
+            // 构建骑手列表（含重名）
+            allRiders = baseRiders.map((r,i) => ({
+                id: r.id, name: r.name, type: r.type,
+                total: totals[i], shiftIdx: r.shiftIdx
+            }));
+            // 替换重名骑手
+            allRiders[27] = { id:"R32",name:"劫",type:"全职",total:allRiders[27].total,shiftIdx:0 };
+            allRiders[28] = { id:"R33",name:"薇恩",type:"盒心",total:allRiders[28].total,shiftIdx:1 };
+            allRiders[29] = { id:"R34",name:"锐雯",type:"全职",total:allRiders[29].total,shiftIdx:2 };
+
+            // 手机号映射
+            phoneMap = {};
+            allRiders.forEach((r,i) => phoneMap[r.id] = `1380000${String(i+1).padStart(4,'0')}`);
+
+            // 班次类型映射
+            const shiftTypeMap = {};
+            allRiders.forEach(r => shiftTypeMap[r.id] = r.type==='全职'?'全职排班':(r.type==='盒心'?'盒心排班':'灵活排班'));
+
+            // 为每个骑手生成当天班次
+            riderSchedules = {};
+            allRiders.forEach(r => {
+                const sh = shifts[r.shiftIdx];
+                const ps = new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate(),sh.sH,sh.sM);
+                const pe = new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate(),sh.eH,sh.eM);
+                let ws = new Date(ps.getTime()+randInt(-10,10)*60000); if(ws<TODAY)ws=TODAY;
+                let we = new Date(pe.getTime()+randInt(-10,10)*60000); if(we<=ws)we=new Date(ws.getTime()+4*3600000); if(we>TODAY_END)we=TODAY_END;
+                riderSchedules[r.id] = { ps, pe, ws, we, shiftType: shiftTypeMap[r.id] };
+            });
+
+            // 数据就绪，启用按钮
+            isDataReady = true;
+            document.getElementById('startBtn').textContent = '✅ 数据已就绪';
+            setStatus('🟢 数据生成完毕，可下载或复制');
+            document.querySelectorAll('#tabDownload .btn, #tabCopy .btn').forEach(b => b.disabled = false);
+            document.getElementById('btnOrders').disabled = false;
+            document.getElementById('btnAttendance').disabled = false;
+            document.getElementById('btnFulfillment').disabled = false;
+            document.getElementById('btnBagRatio').disabled = false;
+            document.getElementById('btnMonthly').disabled = false;
+            document.getElementById('btnDownloadAll').disabled = false;
+            document.getElementById('btnApply').disabled = false;
+            document.getElementById('btnRank').disabled = false;
+            document.getElementById('btnOps').disabled = false;
+            document.getElementById('btnPackTxt').disabled = false;
+        }, 50);
+    }
+
+    // 保证数据就绪的辅助函数
+    function ensureReady() {
+        if (!isDataReady) { setStatus('⚠️ 请先点击「开始」按钮'); return false; }
+        return true;
+    }
+
+    // ========== 数据生成函数（依赖 allRiders 和 riderSchedules） ==========
+    function genAttendance() {
+        return allRiders.map(r => {
+            const s = riderSchedules[r.id];
+            return {
+                "统计日期":fmtDT(TODAY),"考勤骑手":r.id,"配送班次":`BC${ymd(TODAY)}${randInt(100,999)}`,
+                "骑手类型":r.type,"骑手考勤状态（实时）":statuses[randInt(0,2)],
+                "考勤骑手.行政站点名称":SITE,"考勤骑手.工作配送站名称":SITE,
+                "考勤骑手.行政站点子公司":SUB,"考勤骑手.工作站点子公司":SUB,
+                "考勤骑手.下班时间":fmtDT(s.we),"考勤骑手.上班时间":fmtDT(s.ws),
+                "考勤骑手.配送员姓名":r.name,
+                "配送班次.班次结束时间":fmtT(s.pe),"配送班次.班次开始时间":fmtT(s.ps),
+                "班次状态（1：取消；0：正常）":0,"配送班次.班次类型":s.shiftType
+            };
+        });
+    }
+
+    function genOrders() {
+        const recs = [];
+        allRiders.forEach(r => {
+            const s = riderSchedules[r.id];
+            for(let i=1;i<=r.total;i++){
+                const ed = new Date(Math.max(TODAY.getTime(),s.ws.getTime()-3600000));
+                const ld = new Date(Math.min(TODAY_END.getTime(),s.we.getTime()+3600000));
+                const dt = new Date(randInt(ed.getTime(),ld.getTime()));
+                let pu = new Date(dt.getTime()-randInt(5,30)*60000); if(pu<TODAY)pu=TODAY;
+                let ls = new Date(pu.getTime()-randInt(1,10)*60000); if(ls<TODAY)ls=TODAY;
+                const pt = new Date(randInt(YESTERDAY.getTime(),TODAY_END.getTime()));
+                const bc = new Date(randInt(Math.max(pt.getTime()+1000,ls.getTime()-900000,YESTERDAY.getTime()),ls.getTime()-1000));
+                const ts = (ls-bc)/1000;
+                let pi,pa,fi,fl;
+                if(ts<4){ const st=Math.max(1,Math.floor(ts/4)); pi=new Date(bc.getTime()+st*1000); pa=new Date(pi.getTime()+st*1000); fi=new Date(pa.getTime()+st*1000); fl=new Date(fi.getTime()+st*1000); }
+                else{ const pts=[randInt(1,ts-1),randInt(1,ts-1),randInt(1,ts-1)].sort((a,b)=>a-b); pi=new Date(bc.getTime()+pts[0]*1000); pa=new Date(pi.getTime()+(pts[1]-pts[0])*1000); fi=new Date(pa.getTime()+(pts[2]-pts[1])*1000); fl=new Date(fi.getTime()+(ts-pts[2])*1000); }
+                let dl=new Date(dt.getTime()+randInt(-10,30)*60000); if(dl<YESTERDAY)dl=YESTERDAY; if(dl>TODAY_END)dl=TODAY_END;
+                recs.push({
+                    "批次号":`BN${ymd(TODAY)}${String(recs.length+1).padStart(6,'0')}`,"履约单号":`FY${randInt(100000000,999999999)}`,
+                    "业务订单号":`BO${randInt(100000000,999999999)}`,"淘系订单号":`TO${randInt(100000000,999999999)}`,
+                    "批次包裹数":randInt(1,5),"批次类型":["即时配","预约配","半日达"][randInt(0,2)],"门店":STORE,
+                    "区块":BLOCKS[randInt(0,11)],"POI名称":randPOI(),
+                    "经度":(Math.random()*360-180).toFixed(6),"纬度":(Math.random()*180-90).toFixed(6),
+                    "商品种类数":randInt(1,10),"批次送达时间":fmtDT(dt),"批次创建时间":fmtDT(bc),
+                    "批次生成到拣货完成":`${Math.round((pi-bc)/60000)}分钟`,"订单拣货时间":fmtDT(pi),
+                    "拣货到打包完成":`${Math.round((pa-pi)/60000)}分钟`,"批次打包时间":fmtDT(pa),
+                    "过机时间(首容器)":fmtDT(fi),"过机时间(末容器)":fmtDT(fl),
+                    "打包到揽收完成":`${Math.round((pu-pa)/60000)}分钟`,"批次揽收时间":fmtDT(pu),
+                    "订单揽收到配送完成":`${Math.round((dt-pu)/60000)}分钟`,"订单配送完成时间":fmtDT(dt),
+                    "订单最晚送达时间":fmtDT(dl),"支付时间":fmtDT(pt),"是否超时":dt>dl?1:0,
+                    "订单状态":["已妥投","取消配送"][randInt(0,1)],"备注原因":["","超空间波动","离子风暴","陨石阻隔"][randInt(0,3)],
+                    "配送员姓名":r.name,"配送员电话":phoneMap[r.id],"配送员所属配送商":CARRIER,
+                    "是否大件":Math.random()<0.1?1:0,"是否首选时间片":Math.random()<0.3?1:0
+                });
+            }
+        });
+        return recs;
+    }
+
+    function genFulfillment() {
+        const y = TODAY.getFullYear(), m = TODAY.getMonth();
+        const days = new Date(y,m+1,0).getDate();
+        const rows = [];
+        for(let d=1;d<=days;d++){
+            const ds = ymd(new Date(y,m,d));
+            allRiders.forEach(r => rows.push({"统计日期":ds,"配送员名字":r.name,"总签收单量":randInt(0,45)}));
+        }
+        return rows;
+    }
+
+    function genBagRatio() {
+        const y = TODAY.getFullYear(), m = TODAY.getMonth();
+        const days = new Date(y,m+1,0).getDate();
+        const ms = new Date(y,m,1), me = new Date(y,m,days);
+        const weeks = []; const used = new Set();
+        while(weeks.length<7){ const sd=randInt(1,days-6); if(used.has(sd))continue; used.add(sd); weeks.push({start:new Date(y,m,sd),end:new Date(y,m,sd+6)}); }
+        const range = `${ymd(ms)}~${ymd(me)}`;
+        const rows = [];
+        allRiders.forEach(r => {
+            const oM=randInt(1,3000); rows.push({"骑手id":r.id,"骑手姓名":r.name,"确认申领商品数量":randInt(1,Math.min(3000,oM*2)),"统计范围":range,"统计日期":ymd(me),"o2o签收单量":oM});
+            weeks.forEach(w=>{ const oW=randInt(1,3000); rows.push({"骑手id":r.id,"骑手姓名":r.name,"确认申领商品数量":randInt(1,Math.min(3000,oW*2)),"统计范围":`${ymd(w.start)}~${ymd(w.end)}`,"统计日期":ymd(w.end),"o2o签收单量":oW}); });
+        });
+        const rr=allRiders[randInt(0,29)]; const dM=randInt(1,3000);
+        rows.push({"骑手id":"RX","骑手姓名":rr.name,"确认申领商品数量":randInt(1,Math.min(3000,dM*2)),"统计范围":range,"统计日期":ymd(me),"o2o签收单量":dM});
+        weeks.forEach(w=>{ const dW=randInt(1,3000); rows.push({"骑手id":"RX","骑手姓名":rr.name,"确认申领商品数量":randInt(1,Math.min(3000,dW*2)),"统计范围":`${ymd(w.start)}~${ymd(w.end)}`,"统计日期":ymd(w.end),"o2o签收单量":dW}); });
+        return rows;
+    }
+
+    function genMonthly() {
+        const y = TODAY.getFullYear(), m = TODAY.getMonth();
+        const dim = new Date(y,m+1,0).getDate();
+        const all = [];
+        for(let d=1;d<=dim;d++){
+            const date = new Date(y,m,d);
+            allRiders.forEach(r => {
+                const sh = shifts[r.shiftIdx];
+                const ps = new Date(date.getFullYear(),date.getMonth(),date.getDate(),sh.sH,sh.sM);
+                const pe = new Date(date.getFullYear(),date.getMonth(),date.getDate(),sh.eH,sh.eM);
+                let ws = new Date(ps.getTime()+randInt(-10,10)*60000); if(ws<date)ws=date;
+                let we = new Date(pe.getTime()+randInt(-10,10)*60000); if(we<=ws)we=new Date(ws.getTime()+4*3600000); const de=new Date(date.getTime()+86399000); if(we>de)we=de;
+                all.push({
+                    "统计日期":fmtDT(date),"考勤骑手":r.id,"配送班次":`BC${ymd(date)}${randInt(100,999)}`,
+                    "骑手类型":r.type,"骑手考勤状态（实时）":statuses[randInt(0,2)],
+                    "考勤骑手.行政站点名称":SITE,"考勤骑手.工作配送站名称":SITE,
+                    "考勤骑手.行政站点子公司":SUB,"考勤骑手.工作站点子公司":SUB,
+                    "考勤骑手.下班时间":fmtDT(we),"考勤骑手.上班时间":fmtDT(ws),
+                    "考勤骑手.配送员姓名":r.name,
+                    "配送班次.班次结束时间":fmtT(pe),"配送班次.班次开始时间":fmtT(ps),
+                    "班次状态（1：取消；0：正常）":0,"配送班次.班次类型":"兼职排班"
+                });
+            });
+        }
+        return all;
+    }
+
+    // ========== 排行榜/运营指标/申领单据 ==========
+    function genRankText() {
+        const header4 = "序号 骑手ID 骑手姓名 骑手类型";
+        const singleWords = ["妥投数量总数","o2o妥投总数量","趟数","出勤时长","有效工作时长","工作饱和度","超时单量","强制妥投单量","二次妥投单量","迟到任务数量","早退任务数量","归途超时任务数量","头盔工服任务数量","高峰不跑单任务数量","健康证任务数量","声明函任务数量"];
+        let text = header4 + "\n";
+        singleWords.forEach(w => text += w + "\n");
+        allRiders.forEach((r,idx) => {
+            const o2o = Math.floor(r.total * (0.85 + Math.random()*0.15));
+            const trips = Math.floor(r.total / (8 + Math.random()*4));
+            const vals = [idx+1, r.id, r.name, r.type, r.total, o2o, trips, (randInt(0,3)+7)+'h', (randInt(0,2)+6)+'h', (75+randInt(0,20))+'%', randInt(0,5), randInt(0,2), randInt(0,2), randInt(0,3), randInt(0,2), randInt(0,2), randInt(0,3), randInt(0,2), randInt(0,1), randInt(0,1)];
+            text += vals.join(" ");
+            if(idx < allRiders.length-1) text += "\n";
+        });
+        return text;
+    }
+
+    function genOpsText() {
+        return ["完美履约","98.50%","","配送SLA","99.20%","","仓12分钟出库率","57.10%","","40分钟送达率","55.30%","","强制妥投","0.10%","","二次妥投","0.20%","","配OP时长","85.00%"].join("\n");
+    }
+
+    function genApplyText() {
+        const so = ["确认","拒绝","待审批"];
+        const cnt = randInt(60,200);
+        const recs = [];
+        while(recs.length<cnt){
+            const r = allRiders[randInt(0,29)];
+            const ad = new Date(TODAY.getFullYear(),TODAY.getMonth(),randInt(1,28));
+            const s = so[randInt(0,2)]; const isP = s==="待审批";
+            recs.push({"申领单据":`SQ${ymd(ad)}${String(recs.length+1).padStart(3,'0')}`,"申领日期":ymd(ad),"申请人工号":r.id,"申请人姓名":r.name,"耗材商品编码":"HC005","耗材商品名称":"购物袋","申领数量":randInt(1,10),"状态":s,"操作":isP?"审批":"查看","审批时间":isP?"-":fmtDT(new Date()),"审批人":isP?"-":"管理员"+randInt(1,3)});
+        }
+        const keys = Object.keys(recs[0]);
+        return recs.map(r => keys.map(k => r[k]).join("\n")).join("\n\n");
+    }
+
+    // ========== Excel 导出 ==========
+    function toXlsxBin(dataArr, title){
+        const ed = dataArr.map(r => { const c={}; for(let k in r) if(!k.startsWith('_')) c[k]=r[k]; return c; });
+        const headers = Object.keys(ed[0]||{});
+        let aoa;
+        if(title){ aoa=[[title],headers]; ed.forEach(r=>aoa.push(headers.map(h=>r[h]??''))); }
+        else{ aoa=[headers]; ed.forEach(r=>aoa.push(headers.map(h=>r[h]??''))); }
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = headers.map(()=>({wch:18}));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+        return XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    }
+
+    function setStatus(m){ document.getElementById('status').textContent = m; }
+
+    async function copyText(text){
+        try{ await navigator.clipboard.writeText(text); return true; }
+        catch{
+            const ta = document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            try{ document.execCommand('copy'); document.body.removeChild(ta); return true; }
+            catch(e){ document.body.removeChild(ta); return false; }
+        }
+    }
+
+    // ========== 下载区 ==========
+    function downloadOne(type){
+        if(!ensureReady()) return;
+        let data, filename;
+        setStatus('⏳ 生成中...');
+        setTimeout(()=>{
+            switch(type){
+                case 'attendance': data=genAttendance(); filename='考勤数据.xlsx'; break;
+                case 'orders': data=genOrders(); filename='订单数据.xlsx'; break;
+                case 'fulfillment': data=genFulfillment(); filename='履约数据.xlsx'; break;
+                case 'bagRatio': data=genBagRatio(); filename='单袋比数据.xlsx'; break;
+                case 'monthly': data=genMonthly(); filename='考勤数据_月度.xlsx'; break;
+            }
+            const bin = toXlsxBin(data, type==='fulfillment'?'履约明细表':undefined);
+            const blob = new Blob([bin],{type:'application/octet-stream'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+            setTimeout(()=>URL.revokeObjectURL(url),200);
+            setStatus(`✅ 已下载 ${filename}`);
+        },20);
+    }
+
+    async function downloadAll(){
+        if(!ensureReady()) return;
+        setStatus('🚀 正在打包全部...');
+        setTimeout(async ()=>{
+            const att = genAttendance();
+            const orders = genOrders();
+            const ful = genFulfillment();
+            const bag = genBagRatio();
+            const mon = genMonthly();
+            const zip = new JSZip();
+            zip.file('考勤数据.xlsx', toXlsxBin(att));
+            zip.file('订单数据.xlsx', toXlsxBin(orders));
+            zip.file('履约数据.xlsx', toXlsxBin(ful,'履约明细表'));
+            zip.file('单袋比数据.xlsx', toXlsxBin(bag));
+            zip.file('考勤数据_月度.xlsx', toXlsxBin(mon));
+            const blob = await zip.generateAsync({type:'blob'});
+            saveAs(blob, '配送数据包.zip');
+            setStatus('✅ 打包完成 (5个Excel)');
+        },50);
+    }
+
+    // ========== 复制区 ==========
+    async function copyApply(){
+        if(!ensureReady()) return;
+        setStatus('⏳ 生成申领单...');
+        setTimeout(async ()=>{
+            const text = genApplyText();
+            const ok = await copyText(text);
+            setStatus(ok?'✅ 已复制申领单据':'❌ 复制失败');
+        },20);
+    }
+
+    async function copyRank(){
+        if(!ensureReady()) return;
+        setStatus('⏳ 生成排行榜...');
+        setTimeout(async ()=>{
+            const text = genRankText();
+            const ok = await copyText(text);
+            setStatus(ok?`✅ 已复制排行榜 (30骑手,总单量${allRiders.reduce((s,r)=>s+r.total,0)})`:'❌ 复制失败');
+        },20);
+    }
+
+    async function copyOps(){
+        if(!ensureReady()) return;
+        setStatus('⏳ 生成运营指标...');
+        setTimeout(async ()=>{
+            const text = genOpsText();
+            const ok = await copyText(text);
+            setStatus(ok?'✅ 已复制运营指标':'❌ 复制失败');
+        },20);
+    }
+
+    async function packAllTxt(){
+        if(!ensureReady()) return;
+        setStatus('📦 正在打包TXT...');
+        setTimeout(async ()=>{
+            const zip = new JSZip();
+            zip.file('申领单据.txt', genApplyText());
+            zip.file('排行榜数据.txt', genRankText());
+            zip.file('运营指标.txt', genOpsText());
+            const blob = await zip.generateAsync({type:'blob'});
+            saveAs(blob, '复制区数据包.zip');
+            setStatus('✅ 全部TXT已打包下载');
+        },50);
+    }
+
+    // ========== 开始按钮 ==========
+    document.getElementById('startBtn').onclick = start;
+
+    // ========== 标签页切换 ==========
+    document.getElementById('tabDownloadBtn').onclick = function(){
+        this.classList.add('active');
+        document.getElementById('tabCopyBtn').classList.remove('active');
+        document.getElementById('tabDownload').classList.add('active');
+        document.getElementById('tabCopy').classList.remove('active');
+    };
+    document.getElementById('tabCopyBtn').onclick = function(){
+        this.classList.add('active');
+        document.getElementById('tabDownloadBtn').classList.remove('active');
+        document.getElementById('tabCopy').classList.add('active');
+        document.getElementById('tabDownload').classList.remove('active');
+    };
+</script>
+</body>
+</html>
