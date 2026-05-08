@@ -213,6 +213,8 @@
                     files: [
                         { name: '1-日报-基础版.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/1-日报-基础版.html' },
                         { name: '2-日报-Pro.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/2-日报-Pro.html' },
+                        { name: '引导式完整版.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/引导式完整版.html' },
+                        { name: '日报-自动引导.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/日报-自动引导.html' },
                         { name: '3-日报-ProMax.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/3-日报-ProMax.html' },
                     ]
                 },
