@@ -313,6 +313,7 @@
         },
         '7-测试': {
             files: [
+                { name: '虚拟数据.html', icon: 'fa-file-code', path: '7-测试/虚拟数据.html' },
             ],
             folders: {
                 '1-日报': {
@@ -350,6 +351,7 @@
                 '3-其他': {
                     name: '3-其他',
                     files: [
+                        { name: '数据下载.html', icon: 'fa-file-code', path: '7-测试/3-其他/数据下载.html' },
                         { name: '运营数据.html', icon: 'fa-file-code', path: '7-测试/3-其他/运营数据.html' },
                         { name: '测试数据生成.html', icon: 'fa-file-code', path: '7-测试/3-其他/测试数据生成.html' },
                     ]
