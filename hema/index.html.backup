@@ -235,6 +235,15 @@
                         { name: '4-骑手-虚拟数据.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/4-骑手-虚拟数据.html' },
                     ]
                 },
+                '日报调整': {
+                    name: '日报调整',
+                    files: [
+                        { name: '0001调整位置.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0001调整位置.html.zip' },
+                        { name: '0002调整文案.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0002调整文案.html.zip' },
+                        { name: '0003调整导出报告名字.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0003调整导出报告名字.html.zip' },
+                        { name: '0001调整位置.html', icon: 'fa-file-code', path: '0-在线工具/日报调整/0001调整位置.html' },
+                    ]
+                },
             }
         },
         '1-HeMa': {
