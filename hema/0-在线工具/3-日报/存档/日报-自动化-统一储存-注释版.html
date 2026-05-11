@@ -1,3 +1,24 @@
+<!--
+  ============================================================
+  文件名称：骑手时段效率 · 数据分析
+  文件用途：单页Web应用，用于骑手配送数据的可视化分析
+  技术栈：
+    - HTML5 + CSS3（原生，无框架）
+    - JavaScript（ES6+，IIFE封装）
+    - SheetJS (xlsx) —— Excel/CSV文件解析
+  主要功能模块：
+    1. 运营面板（ops）—— 展示运营指标卡片、类型汇总表、骑手明细表
+    2. 区块视图（block）—— 按配送区块统计骑手单量与排名
+    3. 时效热力图（heat）—— 按时段展示骑手单量/效率，叠加考勤排班
+    4. 类型视图（type）—— 按骑手类型（全职/盒心/灵活）分时段统计
+    5. 骑手筛选器 —— 支持按姓名/类型多选筛选
+    6. 字段映射弹窗 —— 上传Excel后手动配置列名映射
+    7. 重名匹配弹窗 —— 检测同名骑手并手动确认匹配
+    8. 粘贴数据弹窗 —— 支持粘贴排行榜和运营指标文本
+    9. 引导步骤 —— 分步引导用户完成数据上传与分析
+   10. 导出报告 —— 生成独立HTML报告文件（含水印）
+  ============================================================
+-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -8,6 +29,10 @@
     <title>骑手时段效率 · 数据分析</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
+        /* ==================== 全局主题变量区（:root） ====================
+         * 所有颜色、字号、间距等设计令牌集中在此定义。
+         * JS中的 CONFIG 对象会通过 syncConfigColorsToCSS() 动态覆盖部分变量，
+         *   实现配置驱动的主题切换。 */
         :root {
             --row-height: 40px;
             --sep-height: 10px;
@@ -58,6 +83,7 @@
             --rank-tag-other: rgba(0, 0, 0, 0.5);
         }
 
+        /* ==================== 基础布局 ==================== */
         * {
             box-sizing: border-box;
             font-family: var(--font-family);
@@ -122,6 +148,8 @@
             min-height: 60px;
         }
 
+        /* ==================== 骑手筛选器 ====================
+         * 包含搜索框、下拉列表、清除按钮、遮罩层等组件 */
         .rider-center-wrapper {
             position: relative;
             z-index: 10;
@@ -262,6 +290,7 @@
             backdrop-filter: blur(1px);
         }
 
+        /* ==================== 视图切换按钮 ==================== */
         .layout-row-second {
             display: flex;
             align-items: flex-end;
@@ -322,6 +351,7 @@
             pointer-events: none;
         }
 
+        /* ==================== 表格容器与滚动区域 ==================== */
         .heatBlockTypeContainer,
         #opsPanel {
             flex: 1;
@@ -367,6 +397,9 @@
             display: none;
         }
 
+        /* ==================== 冻结表格核心样式 ====================
+         * frozen-table：支持首列冻结（sticky left）和表头冻结（sticky top）
+         * separator-row：用于分隔汇总行与数据行的视觉分隔线 */
         .frozen-table {
             border-collapse: separate;
             border-spacing: 0;
@@ -484,6 +517,7 @@
             background-color: var(--color-sticky-header) !important;
         }
 
+        /* ==================== 单元格工作状态背景色 ==================== */
         .working-bg {
             background-color: var(--color-working-bg) !important;
             color: var(--color-surface);
@@ -509,6 +543,7 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
+        /* ==================== 图例区域 ==================== */
         .global-legend {
             flex-shrink: 0;
             background: transparent;
@@ -568,6 +603,7 @@
             border-radius: 4px;
         }
 
+        /* ==================== 类型视图单元格样式 ==================== */
         .type-block-cell {
             position: relative;
             display: inline-flex;
@@ -595,6 +631,7 @@
             font-weight: 600;
         }
 
+        /* ==================== 弹窗/模态框（Modal） ==================== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -608,6 +645,7 @@
             z-index: 1000;
         }
 
+        /* -- 字段映射弹窗（mappingModal）-- */
         #mappingModal {
             z-index: 3000 !important;
         }
@@ -713,6 +751,7 @@
             display: none;
         }
 
+        /* -- 重名匹配弹窗（matchModal）-- */
         .match-modal-card {
             max-width: 650px !important;
             padding: 20px 18px !important;
@@ -805,6 +844,7 @@
             justify-content: flex-end;
         }
 
+        /* ==================== 统计卡片（运营面板指标） ==================== */
         .stats-flex-row {
             display: flex;
             flex-wrap: wrap;
@@ -849,6 +889,7 @@
             font-family: var(--font-mono);
         }
 
+        /* ==================== 响应式适配（平板） ==================== */
         @media (min-width:768px) and (max-width:1023px) {
             .stat-card {
                 flex: 1 1 calc(25% - 10px);
@@ -856,6 +897,7 @@
             }
         }
 
+        /* ==================== 响应式适配（小屏手机） ==================== */
         @media (min-width:400px) and (max-width:767px) {
             .stat-card {
                 flex: 1 1 calc(33.33% - 10px);
@@ -887,6 +929,7 @@
             }
         }
 
+        /* ==================== 响应式适配（超小屏） ==================== */
         @media (max-width:399px) {
             .stat-card {
                 flex: 1 1 calc(50% - 10px);
@@ -894,6 +937,7 @@
             }
         }
 
+        /* -- 运营面板表格特殊样式 -- */
         #opsPanel .frozen-table td,
         #opsPanel .frozen-table th {
             white-space: normal;
@@ -922,6 +966,7 @@
             font-size: var(--col-type-small-size, 0.7rem) !important;
         }
 
+        /* ==================== 排行榜表格与粘贴区域 ==================== */
         .rank-table {
             width: 100%;
             border-collapse: collapse;
@@ -954,6 +999,7 @@
             font-weight: 600;
         }
 
+        /* ==================== 配置面板与Tab切换 ==================== */
         .config-panel {
             display: flex;
             flex-wrap: wrap;
@@ -1018,6 +1064,7 @@
             display: block;
         }
 
+        /* ==================== 浮动菜单（右上角工具按钮） ==================== */
         .floating-menu {
             position: fixed;
             top: 28px;
@@ -1110,6 +1157,7 @@
             flex-shrink: 0;
         }
 
+        /* ==================== 引导步骤覆盖层（guide-overlay） ==================== */
         .guide-overlay {
             position: fixed;
             top: 0;
@@ -1316,6 +1364,7 @@
             color: var(--color-surface);
         }
 
+        /* ==================== 效率标记与零单标记 ==================== */
         .eff-low {
             color: var(--eff-low-color, #d84315) !important;
             font-weight: 700 !important;
@@ -1328,6 +1377,7 @@
             font-size: var(--zero-mark-font-size, 1.15rem);
         }
 
+        /* ==================== 排名奖牌样式 ==================== */
         .rank-cell {
             position: relative;
             display: inline-flex;
@@ -1405,6 +1455,7 @@
             font-weight: 700;
         }
 
+        /* -- 排名奖牌移动端适配 -- */
         @media (max-width: 768px) {
             .rank-medal-main {
                 font-size: var(--rank-mobile-medal-size, 1.1rem);
@@ -1435,6 +1486,7 @@
             }
         }
 
+        /* ==================== 全局移动端适配（<=768px） ==================== */
         @media (max-width:768px) {
             body {
                 padding: 4px 2px;
@@ -1569,11 +1621,15 @@
 </head>
 
 <body>
+    <!-- ==================== 主容器（app-container） ==================== -->
     <div class="app-container">
+    <!-- 页面头部（header）：标题 + 控制栏 -->
         <div class="header">
             <h1 id="mainTitle">骑手时段效率 · 数据分析</h1>
+        <!-- 控制栏（control-bar）：包含骑手筛选器和视图切换 -->
             <div class="control-bar">
                 <div class="layout-row">
+            <!-- 骑手筛选器区域 -->
                     <div class="rider-center-wrapper">
                         <div class="rider-filter-compact" id="riderFilterCompact">
                             <span class="rider-filter-label">🔍 骑手</span>
@@ -1585,6 +1641,7 @@
                         </div>
                     </div>
                 </div>
+            <!-- 视图切换按钮组 -->
                 <div class="layout-row-second">
                     <div class="view-toggle-group" id="viewToggleGroup">
                         <div class="view-option active" data-view="ops" id="viewBtn-ops"><span
@@ -1600,6 +1657,7 @@
                 </div>
             </div>
         </div>
+    <!-- 热力/区块/类型视图的表格容器 -->
         <div class="heatBlockTypeContainer" id="heatBlockTypeContainer">
             <div class="table-fixed-container">
                 <div class="table-scroll-wrapper" id="tableScrollWrapper">
@@ -1610,6 +1668,7 @@
                 </div>
             </div>
         </div>
+    <!-- 运营面板（opsPanel）：指标卡片 + 汇总表 + 明细表 -->
         <div id="opsPanel">
             <div class="stats-flex-row" id="opsStatsPanel"></div>
             <div class="table-fixed-container">
@@ -1644,10 +1703,13 @@
                 </div>
             </div>
         </div>
+    <!-- 全局图例 -->
         <div class="global-legend" id="globalLegend"></div>
     </div>
+    <!-- 隐藏的文件上传input -->
     <input type="file" id="hiddenOrderInput" accept=".xlsx,.xls,.csv" style="display:none;">
     <input type="file" id="hiddenAttInput" accept=".xlsx,.xls,.csv" style="display:none;">
+    <!-- ==================== 字段映射弹窗（mappingModal） ==================== -->
     <div id="mappingModal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div class="modal-title">📌 字段映射设置</div>
@@ -1678,6 +1740,7 @@
             </div>
         </div>
     </div>
+    <!-- ==================== 重名匹配弹窗（matchModal） ==================== -->
     <div id="matchModal" class="modal-overlay" style="display:none;z-index:2500;">
         <div class="modal-card match-modal-card">
             <div class="match-modal-title">👥 重名骑手匹配</div>
@@ -1689,6 +1752,7 @@
                     class="btn-primary">确认匹配</button></div>
         </div>
     </div>
+    <!-- ==================== 粘贴数据弹窗（pasteModal） ==================== -->
     <div id="pasteModal" class="modal-overlay" style="display:none;">
         <div class="modal-card">
             <div class="modal-title">📋 粘贴运营数据</div>
@@ -1726,6 +1790,7 @@
             <div class="modal-actions"><button id="closePasteBtn" class="btn-secondary">关闭</button></div>
         </div>
     </div>
+    <!-- ==================== 浮动菜单（右上角⚙️工具按钮） ==================== -->
     <div class="floating-menu">
         <button class="menu-toggle" id="menuToggle" title="打开工具菜单">⚙️</button>
         <div class="menu-dropdown" id="menuDropdown">
@@ -1733,6 +1798,7 @@
             <div class="menu-item" data-action="export"><span class="menu-icon">📄</span> 导出报告</div>
         </div>
     </div>
+    <!-- ==================== 引导步骤覆盖层（guide-overlay） ==================== -->
     <div id="guideOverlay" class="guide-overlay" style="display:none;">
         <div class="guide-card">
             <button class="guide-close-btn" id="guideCloseBtn">✖️</button>
@@ -1747,8 +1813,11 @@
     <script>
         (function () {
             "use strict";
-            // ==================== 集中配置区（所有可调参数） ====================
-            // 修改此对象内的值即可同步影响整个工具（包括导出的独立报告）。
+            // ==================== 集中配置区（CONFIG） ====================
+            // 所有可调参数集中在此对象中，修改此对象即可同步影响整个工具（包括导出的独立报告）。
+            // 包含：基础信息、UI颜色、骑手类型颜色、交通灯配置、排名配置、
+            //       热力图色彩、字段映射、区块排序、颗粒度选项、视图配置、
+            //       运营面板配置、排行榜解析配置、引导步骤、文案管理等。
             const CONFIG = {
 
                 // ------------------- 基础信息 -------------------
@@ -2037,7 +2106,9 @@
 
 
 
-            // ==================== 将 CONFIG 颜色同步到 CSS 变量 ====================
+            // ==================== CSS变量同步机制 ====================
+            // 将 CONFIG 中的颜色/字号等值同步到 CSS 自定义属性（--xxx），
+            // 使页面所有引用 CSS 变量的元素自动生效，实现配置驱动主题。
             const syncConfigColorsToCSS = () => {
                 const root = document.documentElement;
                 root.style.setProperty('--color-separator', CONFIG.colorSeparator);
@@ -2118,6 +2189,10 @@
                 root.style.setProperty('--parse-btn-bg', CONFIG.parseBtnBg);
             };
 
+            // ==================== 辅助工具函数 ====================
+            // logStatus：控制台日志输出
+            // getExcelHeader：获取字段映射中"|"前的精确Excel列名
+            // getDisplayName：获取字段映射中"|"后的界面显示名
             const logStatus = (msg, badge, type) => console.log(`[${type || 'info'}] ${msg} ${badge || ''}`);
             const getExcelHeader = (key) => { const entry = CONFIG.fieldDisplayMap[key]; return entry ? entry.split('｜')[0] : ''; };
             const getDisplayName = (key) => { const entry = CONFIG.fieldDisplayMap[key]; return entry ? entry.split('｜')[1] : key; };
@@ -2129,8 +2204,8 @@
 
 
 
-            // ==================== 工具函数 ====================
             const parseTimeToDate = (v) => {
+            // parseTimeToDate：将各种时间格式（Date对象、Excel序列号、字符串、HH:MM）统一转为Date
                 if (!v && v !== 0) return null;
                 if (v instanceof Date && !isNaN(v)) return v;
                 let s = String(v).trim(); if (s === '') return null;
@@ -2140,6 +2215,7 @@
                 return null;
             };
 
+            // getHeatColor：根据数值在[min,max]区间中的位置，计算绿→红渐变热力色
             const getHeatColor = (v, min, max) => {
                 if (max === min || max <= 0) return CONFIG.heatFallbackColor;
                 let t = (v - min) / (max - min);
@@ -2147,6 +2223,7 @@
                 return `rgb(${Math.floor(base.r + range.r * t)},${Math.floor(base.g + range.g * t)},${Math.floor(base.b + range.b * t)})`;
             };
 
+            // getBlockSortKey：按"层级→方向→数字"规则为区块名生成排序键（内环中1 < 外环西3）
             const getBlockSortKey = (blockName) => {
                 const name = String(blockName).trim();
                 let layerOrder = CONFIG.blockLayerDefaultOrder;
@@ -2161,6 +2238,7 @@
                 return layerOrder * 10000 + dirOrder * 100 + numOrder;
             };
 
+            // getRankMap：为数值列表生成排名映射（仅前N名有奖牌）
             const getRankMap = (values) => {
                 const uniqueSorted = [...new Set(values)].filter(v => v > 0).sort((a, b) => b - a);
                 const rankMap = new Map();
@@ -2168,8 +2246,10 @@
                 return rankMap;
             };
 
+            // isDeliveredOrder：判断订单是否为"妥投"状态（有效配送）
             const isDeliveredOrder = (row, statusCol) => !statusCol || String(row[statusCol] || '').trim().includes('妥投');
 
+            // getTrafficLightColor：根据交通灯配置返回红/黄/黑三色（支持正/反向指标）
             const getTrafficLightColor = (v, k) => {
                 const n = parseFloat(v); if (isNaN(n)) return CONFIG.trafficLightColors.fallback;
                 const c = CONFIG.trafficLight[k]; if (!c) return CONFIG.trafficLightColors.fallback;
@@ -2193,6 +2273,8 @@
             };
 
             // ==================== 排序工具 ====================
+            // createSortHandler：创建列排序状态管理器（点击表头切换升/降序）
+            // sortByColumn：通用列排序函数（支持字符串和数字）
             const createSortHandler = (initial = { colIndex: null, ascending: true }) => {
                 const state = { ...initial };
                 return {
@@ -2216,6 +2298,7 @@
             };
 
             // ==================== Modal 管理器 ====================
+            // 统一管理所有弹窗的打开/关闭，支持点击遮罩关闭
             class ModalManager {
                 constructor() { this.modals = new Map(); document.addEventListener('click', (e) => { for (let [el, { closeOnBackdrop }] of this.modals) { if (e.target === el && closeOnBackdrop) this.close(el); } }); }
                 register(el, { closeOnBackdrop = true } = {}) { this.modals.set(el, { closeOnBackdrop }); }
@@ -2224,7 +2307,8 @@
             }
             const modalManager = new ModalManager();
 
-            // ==================== DOM 引用 ====================
+            // ==================== DOM 引用区 ====================
+            // 缓存所有需要频繁操作的DOM元素引用，避免重复查询
             const hiddenOrderInput = document.getElementById('hiddenOrderInput');
             const hiddenAttInput = document.getElementById('hiddenAttInput');
             const mappingModal = document.getElementById('mappingModal');
@@ -2294,7 +2378,17 @@
             modalManager.register(pasteModal);
             modalManager.register(guideOverlayEl, { closeOnBackdrop: false });
 
-            // ==================== 应用状态 ====================
+            // ==================== 应用状态（appState） ====================
+            // 集中管理整个应用的数据状态，包括：
+            //   - 当前视图/颗粒度
+            //   - 选中的骑手名称集合
+            //   - 上传的工作簿数据（订单/考勤）
+            //   - 骑手班次映射、类型映射
+            //   - 分析结果数据结构
+            //   - 字段映射配置
+            //   - 重名检测与匹配状态
+            //   - 粘贴的排行榜/运营数据
+            //   - 引导步骤状态
             const appState = {
                 view: CONFIG.defaultView,
                 gran: CONFIG.defaultGran,
@@ -2334,6 +2428,8 @@
             const opsDetailSort = createSortHandler();
 
             // ==================== 骑手名称处理 ====================
+            // 处理骑手统一标识（uniformKey）到显示名称的转换
+            // 支持重名骑手通过手机号/ID区分
             const getPureName = (uniformKey) => {
                 if (!uniformKey) return CONFIG.messages.unknownRider;
                 if (appState.manualMatchMap.has(uniformKey)) return appState.manualMatchMap.get(uniformKey).name;
@@ -2378,6 +2474,7 @@
             };
 
             // ==================== 数据加载与解析 ====================
+            // loadExcel：读取上传的Excel/CSV文件，返回{columns, data}
             const loadExcel = (file) => new Promise((resolve, reject) => {
                 const r = new FileReader();
                 r.onload = e => {
@@ -2395,6 +2492,7 @@
                 r.readAsArrayBuffer(file);
             });
 
+            // parseAttendance：解析考勤数据，提取骑手班次时间和类型
             const parseAttendance = (mapping) => {
                 const shiftsMap = new Map(); appState.riderTypeMap.clear();
                 if (!appState.attendanceWorkbook?.data) return shiftsMap;
@@ -2419,6 +2517,7 @@
                 return shiftsMap;
             };
 
+            // analyzeData：核心分析函数，按颗粒度（半小时/小时）统计各时段单量/人数/效率
             const analyzeData = (gran) => {
                 const data = appState.workbookData.data, tCol = appState.currentMapping.orderTime, sCol = appState.currentMapping.orderStatus;
                 let valid = [];
@@ -2439,6 +2538,7 @@
                 let summary = [{ type: '时段单量', values: slotOrders, total: totalOrders }, { type: '时段人数', values: slotRiders, total: totalRiders }, { type: '时段效率', values: eff.map(v => Math.round(v * 10) / 10), total: totalRiders ? (totalOrders / totalRiders).toFixed(1) : '0' }];
                 return { timeSlotsRaw: slots, summaryRows: summary, riderDisplay: riderRows.map(r => ({ rider: r.rider, values: r.counts, total: r.total })), efficiencyRaw: eff, rawOrders: slotOrders, rawRiders: slotRiders, rawEffValues: eff };
             };
+            // computeBlockStats：按区块统计各骑手单量分布
             const computeBlockStats = () => {
                 if (!appState.workbookData || !appState.currentMapping.orderBlock || !appState.currentMapping.orderRider) throw new Error('缺少区块映射');
                 const data = appState.workbookData.data, blockCol = appState.currentMapping.orderBlock, sCol = appState.currentMapping.orderStatus;
@@ -2465,6 +2565,7 @@
                 return { blocks: sortedBlocks, blockOrders, totalOrders, riderRows, validRiderBlockCount };
             };
 
+            // computeBlockTimeStats：按区块+时段统计单量（用于类型视图的区块子表）
             const computeBlockTimeStats = (gran, riderFilterSet) => {
                 if (!appState.workbookData || !appState.currentMapping.orderBlock || !appState.currentMapping.orderTime || !appState.currentMapping.orderRider) return null;
                 const data = appState.workbookData.data, blockCol = appState.currentMapping.orderBlock, timeCol = appState.currentMapping.orderTime, sCol = appState.currentMapping.orderStatus;
@@ -2503,6 +2604,7 @@
                 return { slots, blocks, blockRows: blocks.map(block => ({ block, orders: blockSlotOrders[block], total: blockTotalOrders[block] })) };
             };
 
+            // computeTypeStats：按骑手类型+时段统计单量/人数/效率
             const computeTypeStats = (gran, riderFilterSet) => {
                 if (!appState.workbookData || !appState.currentMapping.orderRider || !appState.currentMapping.orderTime) return null;
                 const data = appState.workbookData.data, tCol = appState.currentMapping.orderTime, sCol = appState.currentMapping.orderStatus;
@@ -2556,6 +2658,8 @@
             };
 
             // ==================== 重名检测与匹配 ====================
+            // 当订单或考勤中存在同名骑手时，通过手机号/ID区分
+            // 支持自动合并建议和手动匹配确认
             const detectNameConflicts = () => {
                 const orderCol = appState.currentMapping.orderRider;
                 const orderPhoneCol = appState.currentMapping.orderPhone;
@@ -2742,7 +2846,8 @@
                 });
             };
 
-            // ==================== 图例 ====================
+            // ==================== 图例更新 ====================
+            // 根据当前视图类型渲染不同的图例内容
             const updateGlobalLegend = () => {
                 let html = '';
                 if (appState.view === 'heat') {
@@ -2757,7 +2862,10 @@
                 globalLegend.innerHTML = html;
             };
 
-            // ==================== UI 同步与切换 ====================
+            // ==================== UI 同步与视图切换 ====================
+            // syncUIFromState：根据appState同步所有UI元素状态
+            // setView：切换主视图（运营/区块/时效/类型）
+            // toggleGran：切换时间颗粒度（半小时/小时）
             const syncUIFromState = () => {
                 document.querySelectorAll('.view-option:not(.gran-option)').forEach(o => o.classList.remove('active'));
                 const activeOpt = document.querySelector(`.view-option[data-view="${appState.view}"]:not(.gran-option)`);
@@ -2789,6 +2897,7 @@
             };
 
             // ==================== 表格渲染 ====================
+            // renderCurrentView：根据当前视图分发到对应的渲染函数
             const renderCurrentView = () => {
                 if (appState.view === 'block') {
                     if (appState.blockStats) { const filteredRows = appState.blockStats.riderRows.filter(r => isRiderSelected(r.rider)); renderBlockTable({ ...appState.blockStats, riderRows: filteredRows }); }
@@ -2806,6 +2915,7 @@
                 }
             };
 
+            // renderHeatTable：渲染时效热力表（含考勤排班叠加、人效对比）
             const renderHeatTable = (struct, shifts) => {
                 const { timeSlotsRaw, summaryRows, riderDisplay, efficiencyRaw } = struct;
                 const hasAttendance = shifts && shifts.size > 0;
@@ -2855,6 +2965,7 @@
                 resultTable.querySelector('tbody').innerHTML = tbody;
             };
 
+            // renderBlockTable：渲染区块视图表格（含汇总行、类型占比、排名奖牌）
             const renderBlockTable = (stats) => {
                 const { blocks, blockOrders, totalOrders, riderRows } = stats;
                 if (!blocks.length) return;
@@ -2895,6 +3006,7 @@
                 resultTable.querySelector('tbody').innerHTML = tbody;
             };
 
+            // renderTypeTable：渲染类型视图表格（按骑手类型分时段热力图+区块子表）
             const renderTypeTable = (typeStats, gran, blockTimeStats) => {
                 if (!typeStats || !typeStats.typeRows.length) { resultTable.querySelector('thead').innerHTML = '<tr><th>提示</th></tr>'; resultTable.querySelector('tbody').innerHTML = `<tr><td>${CONFIG.messages.noTypeData}</td></tr>`; return; }
                 const { slots, typeRows } = typeStats;
@@ -2921,6 +3033,7 @@
                 }
                 resultTable.querySelector('tbody').innerHTML = tbody;
             };
+            // renderOpsView：渲染运营面板（指标卡片+类型汇总表+骑手明细表）
             const renderOpsView = () => {
                 let displayRiders = appState.riderDataFromPaste;
                 if (!displayRiders.length && !appState.structHalfHour) { opsStatsPanel.innerHTML = `<div style="padding:20px;text-align:center;">${CONFIG.messages.noOpsData}</div>`; return; }
@@ -2958,12 +3071,14 @@
                 document.querySelectorAll('#opsSummaryTable td:nth-child(1), #opsDetailTable td.col-type').forEach(cell => { const charLen = [...cell.textContent.trim()].length; cell.classList.toggle('small-text', charLen > 4); });
             };
 
+            // buildPureNameMapping：构建"纯名称→统一标识集合"的映射，用于骑手筛选
             const buildPureNameMapping = (riderDisplayList) => {
                 appState.pureNameToUniformKeys.clear(); appState.allPureNames = []; if (!riderDisplayList) return; const seenNames = new Set();
                 riderDisplayList.forEach(r => { const pureName = getPureName(r.rider); if (!appState.pureNameToUniformKeys.has(pureName)) appState.pureNameToUniformKeys.set(pureName, new Set()); appState.pureNameToUniformKeys.get(pureName).add(r.rider); if (!seenNames.has(pureName)) { seenNames.add(pureName); appState.allPureNames.push(pureName); } });
                 appState.allPureNames.sort((a, b) => a.localeCompare(b, 'zh'));
             };
 
+            // renderRiderDropdown：渲染骑手筛选下拉列表（支持按类型分组）
             const renderRiderDropdown = () => {
                 const f = riderSearchInput.value.toLowerCase().trim();
                 const fl = f ? appState.allPureNames.filter(n => n.toLowerCase().includes(f)) : appState.allPureNames;
@@ -2981,6 +3096,7 @@
             };
 
             // ==================== 事件绑定 ====================
+            // 骑手搜索、下拉选择、清空、视图切换、表头排序等
             riderSearchInput.addEventListener('focus', () => { riderDropdown.classList.add('show'); renderRiderDropdown(); });
             riderSearchInput.addEventListener('input', renderRiderDropdown);
             riderSearchInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') { riderDropdown.classList.remove('show'); riderSearchInput.blur(); } });
@@ -2990,6 +3106,11 @@
             viewToggleGroup.addEventListener('click', (e) => { const opt = e.target.closest('.view-option'); if (!opt) return; const view = opt.dataset.view; if (view === 'gran') { toggleGran(); return; } setView(view); });
             resultTable.querySelector('thead').addEventListener('click', (e) => { const th = e.target.closest('th'); if (!th) return; const colIndex = th.cellIndex; if (colIndex === -1) return; heatSort.toggle(colIndex, renderCurrentView); });
 
+            // extractBetweenMarkers：从文本中提取标志标记之间的内容
+            // parseRankText：解析排行榜文本为结构化数据
+            // convertRankToPreview：将排行榜文本转为预览表格
+            // applyPastedRankData：应用排行榜数据到appState
+            // parseAndApplyOpsData：解析运营指标文本并应用
             // ==================== 粘贴数据解析 ====================
             const extractBetweenMarkers = (text) => { const startIdx = text.indexOf(CONFIG.rankTextStartMarker), endIdx = text.indexOf(CONFIG.rankTextEndMarker); if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) return text.substring(startIdx + CONFIG.rankTextStartMarker.length, endIdx).trim(); return null; };
             const parseRankText = (text, fw, sw, mr) => { const lines = text.split(/\r?\n/).filter(l => l.trim() !== ''); if (!lines.length) throw new Error('没有有效内容'); const tc = fw + sw; if (lines.length < 1 + sw) throw new Error('文本行数不足'); const hd = []; const ft = lines[0].trim().split(/\s+/); for (let i = 0; i < fw; i++) hd.push(i < ft.length ? ft[i] : `列${i + 1}`); for (let i = 1; i <= sw; i++) hd.push(lines[i].trim() || `列${fw + i}`); const dr = lines.slice(1 + sw).map(l => { const tk = l.trim().split(/\s+/); const r = []; for (let c = 0; c < tc; c++) r.push(c < tk.length ? tk[c] : ''); return r; }); if (dr.length > mr) dr.splice(mr); return { headers: hd, dataRows: dr, totalCols: tc }; };
@@ -3005,25 +3126,46 @@
             parsePasteBtn.onclick = () => { parseAndApplyOpsData(); modalManager.close(pasteModal); };
             [rankFirstRowWords, rankSingleWordRows].forEach(inp => inp.addEventListener('input', () => rankTotalCols.textContent = (parseInt(rankFirstRowWords.value, 10) || 0) + (parseInt(rankSingleWordRows.value, 10) || 0)));
 
+            // ==================== 字段映射弹窗逻辑 ====================
+            // populateSelect：填充下拉选项
+            // openMappingModal：打开字段映射弹窗并回显当前映射
             const populateSelect = (sel, cols, def) => { sel.innerHTML = ''; if (!cols?.length) { sel.innerHTML = '<option>-- 暂无列 --</option>'; return; } cols.forEach(c => sel.add(new Option(c, c))); sel.value = def && cols.includes(def) ? def : cols[0]; };
             const openMappingModal = () => { populateSelect(mapOrderRider, appState.workbookData?.columns || [], appState.currentMapping.orderRider); populateSelect(mapOrderPhone, appState.workbookData?.columns || [], appState.currentMapping.orderPhone); populateSelect(mapOrderTime, appState.workbookData?.columns || [], appState.currentMapping.orderTime); populateSelect(mapOrderStore, appState.workbookData?.columns || [], appState.currentMapping.orderStore); populateSelect(mapOrderBlock, appState.workbookData?.columns || [], appState.currentMapping.orderBlock); populateSelect(mapOrderStatus, appState.workbookData?.columns || [], appState.currentMapping.orderStatus); populateSelect(mapAttRider, appState.attendanceWorkbook?.columns || [], appState.currentMapping.attRider); populateSelect(mapAttRiderId, appState.attendanceWorkbook?.columns || [], appState.currentMapping.attRiderId); populateSelect(mapAttStart, appState.attendanceWorkbook?.columns || [], appState.currentMapping.attStart); populateSelect(mapAttEnd, appState.attendanceWorkbook?.columns || [], appState.currentMapping.attEnd); populateSelect(mapAttStatus, appState.attendanceWorkbook?.columns || [], appState.currentMapping.attStatus); populateSelect(mapAttRiderType, appState.attendanceWorkbook?.columns || [], appState.currentMapping.attRiderType); modalManager.open(mappingModal); };
             closeModalBtn.onclick = () => modalManager.close(mappingModal);
             applyMappingBtn.onclick = () => { if (!appState.workbookData) { logStatus(CONFIG.messages.mappingMissing, '', 'error'); return; } appState.currentMapping = { orderRider: mapOrderRider.value, orderPhone: mapOrderPhone.value, orderTime: mapOrderTime.value, orderStore: mapOrderStore.value, orderBlock: mapOrderBlock.value, orderStatus: mapOrderStatus.value, attRider: mapAttRider.value, attRiderId: mapAttRiderId.value, attStart: mapAttStart.value, attEnd: mapAttEnd.value, attStatus: mapAttStatus.value, attRiderType: mapAttRiderType.value }; modalManager.close(mappingModal); };
 
+            // ==================== 全量分析流程 ====================
+            // runFullAnalysis：执行完整的分析流程（检测重名→匹配→分析）
+            // resetAllData：重置所有数据状态，重新开始
             const runFullAnalysis = async () => { if (!appState.workbookData?.data?.length || !appState.currentMapping.orderTime || !appState.currentMapping.orderRider) return; try { const hasAttData = appState.attendanceWorkbook && appState.currentMapping.attRider && appState.currentMapping.attRiderId; const { orderGroups, attGroups, attSingleMap } = detectNameConflicts(); const allGroups = []; orderGroups.forEach(g => allGroups.push({ ...g, attIds: [] })); if (hasAttData) { attGroups.forEach(g => { const exist = allGroups.find(og => og.name === g.name); if (exist) exist.attIds = g.attIds; else allGroups.push({ name: g.name, orderPhones: [], attIds: g.attIds }); }); allGroups.forEach(g => { if (g.orderPhones.length >= 2 && g.attIds.length === 0 && attSingleMap.has(g.name)) { g.attIds = attSingleMap.get(g.name); } }); } const groups = allGroups.filter(g => g.orderPhones.length > 0 || (hasAttData && g.attIds?.length > 0)); appState.pendingMatchGroups = groups; renderMatchUI(hasAttData, matchContainer, matchStatusText); if (groups.length > 0) { modalManager.open(matchModal); await new Promise((resolve) => { appState.matchResolve = resolve; }); } } catch (e) { logStatus(`分析失败:${e.message}`, '', 'warning'); } };
 
             const resetAllData = () => { appState.workbookData = null; appState.attendanceWorkbook = null; appState.riderShiftsMap.clear(); appState.riderTypeMap.clear(); appState.structHalfHour = appState.structHour = null; appState.blockStats = null; appState.typeStatsHalf = appState.typeStatsHour = null; appState.blockTimeStatsHalf = appState.blockTimeStatsHour = null; appState.storeName = ''; appState.currentMapping = { ...defaultMapping }; appState.selectedNames.clear(); appState.allPureNames = []; appState.pureNameToUniformKeys.clear(); appState.conflictNames.clear(); appState.manualMatchMap.clear(); appState.orderPhoneToRiderKey.clear(); appState.attIdToRiderKey.clear(); appState.riderDataFromPaste = []; appState.opsMetrics = { perfect: '', sla: '', outboundLabel: CONFIG.defaultOpsMetricLabels.outbound, outboundValue: '', deliveryLabel: CONFIG.defaultOpsMetricLabels.delivery, deliveryValue: '', force: '', second: '' }; appState.guideData = { orderFile: null, attFile: null, opsData: null, rankData: null, nameConflictResolved: false, conflictCount: 0, skipAtt: false }; appState.currentGuideStep = 1; updateRiderOverlay(); syncUIFromState(); modalManager.close(guideOverlayEl); setTimeout(() => { modalManager.open(guideOverlayEl); renderGuideStep(1); }, 100); };
 
+            // ==================== 引导步骤数据检查 ====================
+            // checkStepDataReady：检查当前步骤所需数据是否就绪
+            // validateRankText：验证排行榜文本格式是否正确
             const getRequiredOrderFields = () => CONFIG.requiredOrderFields;
             const getRequiredAttFields = () => CONFIG.requiredAttFields;
             const checkStepDataReady = (step) => { if (step === 1 && appState.guideData.orderFile) { const cols = appState.workbookData?.columns || []; const missing = getRequiredOrderFields().filter(f => { const excelName = getExcelHeader(f); return !cols.includes(appState.currentMapping[f]) && !cols.some(c => c.includes(excelName?.split('｜')[0])); }); return { ready: missing.length === 0, missingFields: missing.map(f => getDisplayName(f)) }; } if (step === 2) { if (!appState.guideData.attFile) return { ready: true, missingFields: [] }; const cols = appState.attendanceWorkbook?.columns || []; const missing = getRequiredAttFields().filter(f => { const excelName = getExcelHeader(f); return !cols.includes(appState.currentMapping[f]) && !cols.some(c => c.includes(excelName?.split('｜')[0])); }); return { ready: missing.length === 0, missingFields: missing.map(f => getDisplayName(f)) }; } if (step === 3) { const text = appState.guideData.opsData || ''; const missing = CONFIG.opsParseKeywords.filter(f => !text.includes(f)); return { ready: missing.length === 0, missingFields: missing }; } if (step === 4) { const text = appState.guideData.rankData || ''; const valid = validateRankText(text); if (!valid.success) return { ready: false, missingFields: CONFIG.rankRequiredHeaders }; const headers = valid.result.headers.map(h => String(h).trim()); const missing = CONFIG.rankRequiredHeaders.filter(r => !headers.some(h => h.includes(r))); return { ready: missing.length === 0, missingFields: missing }; } if (step === 5) return { ready: true, missingFields: [] }; return { ready: false, missingFields: [] }; };
             const validateRankText = (text) => { try { const extracted = extractBetweenMarkers(text) || text; const fw = CONFIG.rankParseDefaults.firstRowWords, sw = CONFIG.rankParseDefaults.singleWordRows, mr = CONFIG.rankParseDefaults.maxDataRows; const result = parseRankText(extracted, fw, sw, mr); return { success: true, result }; } catch (e) { return { success: false }; } };
 
+            // ==================== 引导步骤状态指示器更新 ====================
+            // updateStatusIndicators：更新字段检测状态（绿点/红点）
+            // updateGuideOpsStatus：更新运营指标关键词检测状态
+            // updateGuideRankStatus：更新排行榜必填字段检测状态
             const updateStatusIndicators = (step) => { if (step === 1) { const statusDiv = document.getElementById('guideOrderStatus'), btn = document.getElementById('guideMappingBtn1'); if (!statusDiv) return; const cols = appState.workbookData?.columns || []; const allFields = ['orderRider', 'orderPhone', 'orderTime', 'orderStore', 'orderBlock', 'orderStatus']; let html = ''; allFields.forEach(f => { const excelName = getExcelHeader(f), displayName = getDisplayName(f); const found = cols.includes(appState.currentMapping[f]) || cols.some(c => c.includes(excelName?.split('｜')[0])); html += `<span><span class="status-dot" style="background:${found ? '#22c55e' : (appState.guideData.orderFile ? '#ef4444' : '#9ca3af')}"></span> ${displayName}</span>`; }); statusDiv.innerHTML = html; if (btn) { const missing = getRequiredOrderFields().filter(f => !cols.includes(appState.currentMapping[f]) && !cols.some(c => c.includes(getExcelHeader(f)?.split('｜')[0]))); btn.style.display = (appState.guideData.orderFile && missing.length > 0) ? 'inline-block' : 'none'; } } if (step === 2) { const statusDiv = document.getElementById('guideAttStatus'), btn = document.getElementById('guideMappingBtn2'); if (!statusDiv) return; const cols = appState.attendanceWorkbook?.columns || []; const allFields = ['attRider', 'attRiderId', 'attStart', 'attEnd', 'attRiderType', 'attStatus']; let html = ''; allFields.forEach(f => { const excelName = getExcelHeader(f), displayName = getDisplayName(f); const found = cols.includes(appState.currentMapping[f]) || cols.some(c => c.includes(excelName?.split('｜')[0])); html += `<span><span class="status-dot" style="background:${found ? '#22c55e' : (appState.guideData.attFile ? '#ef4444' : '#9ca3af')}"></span> ${displayName}</span>`; }); statusDiv.innerHTML = html; if (btn) { const missing = getRequiredAttFields().filter(f => !cols.includes(appState.currentMapping[f]) && !cols.some(c => c.includes(getExcelHeader(f)?.split('｜')[0]))); btn.style.display = (appState.guideData.attFile && missing.length > 0) ? 'inline-block' : 'none'; } } };
             const updateGuideOpsStatus = (text) => { const statusDiv = document.getElementById('guideOpsStatus'); if (!statusDiv) return; const t = text || ''; const fields = CONFIG.opsParseKeywords; let html = ''; fields.forEach(f => { const found = t.includes(f); const color = t.length === 0 ? '#9ca3af' : (found ? '#22c55e' : '#ef4444'); html += `<span><span class="status-dot" style="background:${color};"></span> ${f}</span>`; }); statusDiv.innerHTML = html; };
             const updateGuideRankStatus = (text) => { const statusDiv = document.getElementById('guideRankStatus'); if (!statusDiv) return; const t = text || ''; const fields = CONFIG.rankRequiredHeaders; let html = ''; if (t.length === 0) { fields.forEach(f => { html += `<span><span class="status-dot" style="background:#9ca3af;"></span> ${f}</span>`; }); } else { const valid = validateRankText(t); if (valid.success) { const headers = valid.result.headers.map(h => String(h).trim()); fields.forEach(f => { const found = headers.some(h => h.includes(f)); html += `<span><span class="status-dot" style="background:${found ? '#22c55e' : '#ef4444'};"></span> ${f}</span>`; }); } else { fields.forEach(f => { const found = t.includes(f); html += `<span><span class="status-dot" style="background:${found ? '#22c55e' : '#ef4444'};"></span> ${f}</span>`; }); } } statusDiv.innerHTML = html; };
             const updateAutoToggleDisplay = (step) => { if (!guideAutoToggle) return; if (step === 1) { guideAutoToggle.style.display = 'flex'; if (appState.guideAutoNext) { guideAutoToggle.classList.add('auto-mode'); guideAutoToggle.classList.remove('manual-mode'); guideAutoToggle.querySelector('.toggle-label').textContent = '自动'; guideAutoToggle.querySelector('.toggle-dot').textContent = '⚡'; } else { guideAutoToggle.classList.add('manual-mode'); guideAutoToggle.classList.remove('auto-mode'); guideAutoToggle.querySelector('.toggle-label').textContent = '手动'; guideAutoToggle.querySelector('.toggle-dot').textContent = '🖐'; } } else { guideAutoToggle.style.display = 'none'; } };
 
+            // ==================== 引导步骤渲染 ====================
+            // renderGuideStep：根据步骤号渲染对应的引导内容
+            // 步骤1：上传订单文件
+            // 步骤2：上传考勤文件（可选）
+            // 步骤3：粘贴运营指标
+            // 步骤4：粘贴排行榜数据
+            // 步骤5：重名骑手匹配
+            // 步骤6：生成分析
             const renderGuideStep = (step) => {
                 guideBody.innerHTML = ''; guideFooter.innerHTML = ''; const dots = Array.from({ length: appState.totalGuideSteps }, (_, i) => `<div class="step-dot${i + 1 === step ? ' active' : (i + 1 < step ? ' done' : '')}"></div>`).join(''); stepIndicator.innerHTML = dots; updateAutoToggleDisplay(step); let html = '', footerLeft = '', footerRight = ''; if (step === 1) { html = `<div style="text-align:center;"><p>请上传订单文件（Excel或CSV）</p><div class="file-upload-area" id="guideOrderUpload"><span id="orderFileName">📁 点击或拖拽选择订单文件</span></div><div id="guideOrderStatus" class="status-indicator"></div></div>`; footerLeft = `<button class="guide-btn secondary" id="guideMappingBtn1" style="display:none">⚙️ 字段映射</button>`; footerRight = `<button class="guide-btn primary" id="guideNext1" disabled>${CONFIG.messages.nextStep || '下一步'}</button>`; } else if (step === 2) { html = `<div style="text-align:center;"><p>请上传考勤文件（可选）</p><div class="file-upload-area" id="guideAttUpload"><span id="attFileName">📁 点击或拖拽选择考勤文件</span></div><div id="guideAttStatus" class="status-indicator"></div></div>`; footerLeft = `<div><button class="guide-btn secondary" id="skipAttBtn">${CONFIG.messages.skipAtt || '跳过考勤'}</button><button class="guide-btn secondary" id="guideMappingBtn2" style="display:none;margin-left:8px;">⚙️ 字段映射</button></div>`; footerRight = `<button class="guide-btn primary" id="guideNext2" disabled>${CONFIG.messages.nextStep || '下一步'}</button>`; } else if (step === 3) { html = `<div style="text-align:center;"><p>粘贴运营指标数据</p><textarea id="guideOpsText" class="paste-textarea" placeholder="粘贴运营指标..."></textarea><div id="guideOpsStatus" class="status-indicator"></div></div>`; footerRight = `<button class="guide-btn primary" id="guideNext3" disabled>${CONFIG.messages.nextStep || '下一步'}</button>`; } else if (step === 4) { html = `<div style="text-align:center;"><p>粘贴排行榜数据</p><textarea id="guideRankText" class="paste-textarea" placeholder="粘贴排行榜数据..."></textarea><div id="guideRankStatus" class="status-indicator"></div></div>`; footerRight = `<button class="guide-btn primary" id="guideNext4" disabled>${CONFIG.messages.nextStep || '下一步'}</button>`; } else if (step === 5) { html = `<div id="guideMatchContainer"></div><div class="match-status-text" id="guideMatchStatusText" style="text-align:center; margin: 10px 0;"></div>`; footerLeft = ''; footerRight = `<button class="guide-btn primary" id="guideNext5" style="display:none;">${CONFIG.messages.nextStep || '下一步'}</button>`; } else if (step === 6) { html = `<div style="text-align:center;"><p>所有数据已就绪，点击生成分析结果</p></div>`; footerRight = `<button class="guide-btn primary" id="guideGenerate">${CONFIG.messages.generateAnalysis || '✨ 生成分析'}</button>`; } guideBody.innerHTML = html; guideFooter.innerHTML = `<div>${footerLeft}</div><div>${footerRight}</div>`;
 
@@ -3041,9 +3183,14 @@
                 else if (step === 2) { const area = document.getElementById('guideAttUpload'), span = document.getElementById('attFileName'), btn = document.getElementById('guideNext2'), skipBtn = document.getElementById('skipAttBtn'); let attResolved = false; const updateNext = () => { btn.disabled = !((appState.guideData.attFile && appState.attendanceWorkbook?.data?.length) || attResolved); }; area.onclick = () => hiddenAttInput.click(); hiddenAttInput.onchange = async (e) => { const f = e.target.files[0]; if (!f) return; span.textContent = `📄 ${f.name}`; try { const loaded = await loadExcel(f); if (!loaded || !loaded.columns || loaded.columns.length === 0 || !loaded.data || loaded.data.length === 0) throw new Error('文件无有效数据'); appState.guideData.attFile = f; appState.attendanceWorkbook = loaded;['attRider', 'attRiderId', 'attStart', 'attEnd', 'attRiderType', 'attStatus'].forEach(k => { if (!loaded.columns.includes(appState.currentMapping[k])) { const m = loaded.columns.find(c => c.includes(getExcelHeader(k)?.split('｜')[0])); if (m) appState.currentMapping[k] = m; } }); updateStatusIndicators(2); updateNext(); const ready = checkStepDataReady(2).ready; if (ready && appState.guideAutoNext) setTimeout(() => goToStep(3), 500); } catch (err) { span.textContent = '📁 点击或拖拽选择考勤文件'; appState.guideData.attFile = null; appState.attendanceWorkbook = null; updateNext(); logStatus(`考勤文件解析失败: ${err.message}`, '', 'warning'); } hiddenAttInput.value = ''; }; btn.onclick = () => { if (!btn.disabled) goToStep(3); }; skipBtn.onclick = () => { attResolved = true; appState.guideData.skipAtt = true; updateNext(); goToStep(3); }; }
             };
 
+            // goToStep：跳转到指定引导步骤
             const goToStep = (step) => { appState.currentGuideStep = step; renderGuideStep(step); };
 
+            // processAllData：处理所有数据（考勤解析→分析→类型统计→应用粘贴数据→渲染）
             const processAllData = async () => { appState.riderShiftsMap = parseAttendance(appState.currentMapping); appState.structHalfHour = analyzeData('half'); appState.structHour = analyzeData('hour'); if (appState.currentMapping.orderBlock) appState.blockStats = computeBlockStats(); appState.typeStatsHalf = computeTypeStats('half', null); appState.typeStatsHour = computeTypeStats('hour', null); appState.blockTimeStatsHalf = computeBlockTimeStats('half', null); appState.blockTimeStatsHour = computeBlockTimeStats('hour', null); if (appState.structHalfHour?.riderDisplay) buildPureNameMapping(appState.structHalfHour.riderDisplay); updateRiderOverlay(); if (appState.guideData.opsData) { pasteTextArea.value = appState.guideData.opsData; parseAndApplyOpsData(); } if (appState.guideData.rankData) { rankTextArea.value = appState.guideData.rankData; applyPastedRankData(); } if (appState.workbookData?.data?.length && appState.currentMapping.orderStore) { const firstRow = appState.workbookData.data[0]; appState.storeName = String(firstRow[appState.currentMapping.orderStore] || '').trim() || CONFIG.defaultStoreName; } else { appState.storeName = CONFIG.defaultStoreName; } appState.view = CONFIG.defaultView; appState.gran = CONFIG.defaultGran; syncUIFromState(); };
+            // ==================== 导出报告功能 ====================
+            // exportReport：将当前分析结果打包为独立HTML文件（含水印、防复制）
+            // 导出文件内嵌完整CSS和JS，可离线浏览
             const exportReport = () => {
                 if (!appState.structHalfHour && !appState.structHour && !appState.riderDataFromPaste.length) {
                     alert(CONFIG.messages.noData || '暂无数据');
@@ -3709,10 +3856,14 @@
             };
 
             // ==================== 菜单与拖拽事件 ====================
+            // 浮动菜单的展开/收起、菜单项点击（重新上传/导出报告）
             menuToggle.onclick = e => { e.stopPropagation(); menuDropdown.classList.toggle('show'); };
             document.addEventListener('click', e => { if (!menuToggle.contains(e.target) && !menuDropdown.contains(e.target)) menuDropdown.classList.remove('show'); });
             menuDropdown.addEventListener('click', e => { const action = e.target.closest('.menu-item')?.dataset.action; menuDropdown.classList.remove('show'); switch (action) { case 'reupload': resetAllData(); break; case 'export': exportReport(); break; } });
 
+            // ==================== 拖拽滚动功能 ====================
+            // initDragScroll：为表格滚动容器绑定鼠标/触摸拖拽滚动
+            // 按住拖动可自由滚动表格，提升移动端操作体验
             const initDragScroll = (wrapper) => {
                 let dragging = false, sX = 0, sY = 0, sL = 0, sT = 0;
                 wrapper.style.cursor = 'grab';
@@ -3726,13 +3877,14 @@
             initDragScroll(scrollWrapper);
             initDragScroll(opsScrollWrapper);
 
+            // ==================== 重名匹配按钮事件 ====================
             confirmMatchBtn.onclick = () => { processMatchResult(matchContainer, true); if (appState.matchResolve) { appState.matchResolve(); appState.matchResolve = null; } modalManager.close(matchModal); };
             skipMatchBtn.onclick = () => { processMatchResult(matchContainer, false); if (appState.matchResolve) { appState.matchResolve(); appState.matchResolve = null; } modalManager.close(matchModal); };
 
             guideCloseBtn.addEventListener('click', () => { modalManager.close(guideOverlayEl); logStatus(CONFIG.messages.guideClosed, '', 'info'); });
             guideAutoToggle.addEventListener('click', () => { appState.guideAutoNext = !appState.guideAutoNext; updateAutoToggleDisplay(appState.currentGuideStep); logStatus(appState.guideAutoNext ? CONFIG.messages.autoModeOn : CONFIG.messages.autoModeOff, '', 'info'); });
 
-            // ==================== 初始化 ====================
+            // 同步CSS变量、设置标题、初始化配置、打开引导弹窗
             syncConfigColorsToCSS();
             mainTitle.textContent = CONFIG.appTitle;
             rankFirstRowWords.value = CONFIG.rankParseDefaults.firstRowWords;
