@@ -213,8 +213,8 @@
                     files: [
                         { name: '1-日报-基础版.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/1-日报-基础版.html' },
                         { name: '2-日报-Pro.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/2-日报-Pro.html' },
-                        { name: '引导式完整版.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/引导式完整版.html' },
                         { name: '日报-自动引导.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/日报-自动引导.html' },
+                        { name: '日报-自动引导-统一储存.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/日报-自动引导-统一储存.html' },
                         { name: '3-日报-ProMax.html', icon: 'fa-file-code', path: '0-在线工具/3-日报/3-日报-ProMax.html' },
                     ]
                 },
@@ -232,16 +232,6 @@
                         { name: '1-骑手-早退速查.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/1-骑手-早退速查.html' },
                         { name: '2-骑手-轨迹分析.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/2-骑手-轨迹分析.html' },
                         { name: '4-骑手-虚拟数据.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/4-骑手-虚拟数据.html' },
-                    ]
-                },
-                '日报调整': {
-                    name: '日报调整',
-                    files: [
-                        { name: '0001调整位置.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0001调整位置.html.zip' },
-                        { name: '0002调整文案.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0002调整文案.html.zip' },
-                        { name: '0004调整自动居中.html', icon: 'fa-file-code', path: '0-在线工具/日报调整/0004调整自动居中.html' },
-                        { name: '0003调整导出报告名字.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0003调整导出报告名字.html.zip' },
-                        { name: '0004调整自动居中.html.zip', icon: 'fa-file-archive', path: '0-在线工具/日报调整/0004调整自动居中.html.zip' },
                     ]
                 },
             }
@@ -324,7 +314,7 @@
         },
         '7-测试': {
             files: [
-                { name: '虚拟数据.html', icon: 'fa-file-code', path: '7-测试/虚拟数据.html' },
+                { name: '4-骑手-虚拟数据.html', icon: 'fa-file-code', path: '7-测试/4-骑手-虚拟数据.html' },
             ],
             folders: {
                 '1-日报': {
