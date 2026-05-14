@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, viewport-fit=cover">
+    <title>问单明细 · 数据分析</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+    <style>
+        :root {
+            --bg: #f0f2f7;
+            --card-bg: #ffffff;
+            --primary: #5568f5;
+            --primary-hover: #4052d9;
+            --primary-light: #eef0ff;
+            --text: #1e1e2e;
+            --text-secondary: #5c5c78;
+            --text-muted: #8b8ba8;
+            --border: #e6e8f0;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.18);
+            --radius-lg: 14px;
+            --radius: 10px;
+            --radius-xs: 5px;
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            --tag-bg: #eef1ff;
+            --tag-active-bg: #5568f5;
+            --warning: #e67e22;
+            --cold: #0ea5b9;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { font-size:15px; -webkit-text-size-adjust:100%; }
+        body {
+            font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-container { max-width: 1700px; margin: 0 auto; padding: 16px 20px 32px; }
+
+        .page-header {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            flex-wrap: wrap; padding: 12px 0 6px; margin-bottom: 14px; position: relative;
+        }
+        .page-header h1 { font-size: 1.5rem; font-weight: 750; color: #1a1a2e; }
+
+        .header-menu-btn {
+            background: #fff; border: 1.5px solid #d8dce8; border-radius: 22px;
+            padding: 7px 16px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+            color: #4a4a65; transition: all var(--transition);
+        }
+        .header-menu-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+        .header-menu-dropdown {
+            position: absolute; top: calc(100% + 10px); right: 0; background: #fff;
+            border: 1px solid var(--border); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl); z-index: 200; display: none; min-width: 170px; padding: 6px 0;
+        }
+        .header-menu-dropdown.show { display: block; animation: fadeInDown 0.18s ease; }
+        @keyframes fadeInDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .header-menu-dropdown button {
+            display: block; width: 100%; padding: 11px 20px; border: none; background: none;
+            text-align: left; font-size: 0.85rem; cursor: pointer; font-weight: 500; color: var(--text-secondary);
+        }
+        .header-menu-dropdown button:hover { background: #f5f6fc; color: var(--primary); }
+
+        /* 筛选栏 */
+        .filter-bar {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+            background: var(--card-bg); border-radius: var(--radius-lg); padding: 14px 18px;
+            box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+        }
+        .filter-center { flex: 1; min-width: 240px; }
+        .filter-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .filter-label-row label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+
+        /* 清除筛选和日期捆绑容器 */
+        .filter-actions {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            border: 1.5px solid #e6e8f0;
+            border-radius: 24px;
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #3a3a55;
+        }
+        .btn-clear-filters {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: none;
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--warning);
+            cursor: pointer;
+            transition: all var(--transition);
+            border-radius: 14px;
+        }
+        .btn-clear-filters:hover { background: #fff3e3; }
+
+        .bubble-container { display: flex; flex-wrap: wrap; gap: 7px; }
+        .bubble-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            background: var(--tag-bg);
+            color: #4f6ef7;
+            border: 1.5px solid transparent;
+            transition: all var(--transition);
+            font-weight: 550;
+        }
+        .bubble-tag:hover { background: #dde3ff; border-color: #c5ceff; }
+        .bubble-tag.active { background: var(--tag-active-bg); color: #fff; border-color: var(--tag-active-bg); box-shadow: 0 3px 12px rgba(85,104,245,0.28); }
+        .bubble-all { background: #f5f5f8; color: #666; border: 1.5px dashed #d0d5e5; }
+        .bubble-all.active { background: #5c5c78; color: #fff; border-color: #5c5c78; }
+        .bubble-count-inline { font-size: 0.65rem; opacity: 0.78; }
+
+        /* 移动端气泡两列 */
+        @media (max-width: 768px) {
+            .bubble-tag {
+                flex: 0 0 calc(50% - 7px);
+                justify-content: center;
+            }
+        }
+
+        .stats-panel {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: stretch;
+            box-shadow: var(--shadow-sm);
+        }
+        .store-block {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; background: #fafbfd; border-radius: var(--radius); border: 1px solid #eef0f6;
+            padding: 10px 8px; min-width: 80px;
+        }
+        .store-label { font-size: 0.62rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .store-name { font-weight: 750; font-size: 0.88rem; color: #1a1a2e; }
+        .ratio-block {
+            flex: 2.2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 6px; background: #fff; border-radius: var(--radius); border: 1px solid #eef0f6; padding: 10px;
+        }
+        .ratio-title { font-weight: 700; font-size: 0.68rem; color: #5c5c78; text-transform: uppercase; letter-spacing: 0.04em; }
+        .ratio-main-bubble {
+            display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border-radius: 20px;
+            font-size: 0.8rem; font-weight: 650; border: 1.5px solid #e6e8f0; cursor: pointer; transition: all var(--transition);
+        }
+        .ratio-main-bubble:hover { border-color: var(--primary); background: #fafbff; }
+        .ratio-main-bubble.no-data { color: #b0b0c0; border-style: dashed; cursor: default; }
+        .pct-sep { color: #d0d5e5; margin: 0 3px; }
+        .pct-cang { color: #c0392b; font-weight: 750; }
+        .pct-pei { color: #1a5490; font-weight: 750; }
+        .pct-wuze { color: #1e6f5c; font-weight: 750; }
+        .ratio-stat-simple { font-size: 0.82rem; font-weight: 600; color: #3a3a55; }
+        .extra-block {
+            flex: 1.6; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #fafbfd; border-radius: var(--radius); border: 1px solid #eef0f6; padding: 8px 10px; flex-wrap: wrap;
+        }
+
+        .view-switch-bubble {
+            display: inline-flex; align-items: center; gap: 5px; padding: 9px 16px; border-radius: 22px;
+            font-size: 0.75rem; cursor: pointer; background: #f5f5f8; color: #5c5c78;
+            border: 1.5px solid #d8dce8; font-weight: 600; transition: all var(--transition);
+        }
+        .view-switch-bubble:hover { border-color: #b0b8d0; background: #eef0f8; }
+        .active-default { background: var(--primary); color: #fff; border-color: var(--primary); pointer-events: none; }
+        .active-bad { background: var(--warning); color: #fff; border-color: var(--warning); pointer-events: none; }
+        .active-cold { background: var(--cold); color: #fff; border-color: var(--cold); pointer-events: none; }
+        .view-badge { font-size: 0.62rem; background: rgba(255,255,255,0.28); padding: 2px 8px; border-radius: 10px; font-weight: 650; }
+
+        .table-wrapper {
+            background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+            border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column;
+        }
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 1200px; table-layout: auto; }
+        table thead { background: #f8f9fd; position: sticky; top: 0; z-index: 10; }
+        table thead th {
+            padding: 10px 7px; text-align: center; font-weight: 700; font-size: 0.65rem;
+            text-transform: uppercase; color: #6b6b88; border-bottom: 2px solid #e2e5ee;
+            white-space: nowrap; background: #f8f9fd;
+        }
+        table tbody td {
+            padding: 8px 7px; border-bottom: 1px solid #f0f2f7; vertical-align: middle;
+            color: #3a3a58; text-align: center; word-break: break-word; font-size: 0.73rem;
+        }
+        table tbody tr:nth-child(even) { background: #fafbfd; }
+        table tbody tr:hover { background: #f3f5fb !important; }
+        tr.duplicate-batch { background: #f2f2f8 !important; border-left: 3px solid #d0d5e5; }
+
+        .cell-clickable { cursor: pointer; display: inline-block; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 4px; border-radius: 3px; font-size: 0.73rem; }
+        .cell-clickable:hover { background: #eef1ff; color: var(--primary); }
+        .cell-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 14px; cursor: pointer; font-size: 0.68rem; border: 1.5px solid #d5dcff; background: #f0f3ff; color: #4f6ef7; font-weight: 550; transition: all var(--transition); }
+        .cell-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
+        .cell-btn.no-data { background: #f5f5f8; color: #bbb; pointer-events: none; border-color: #e8e8ed; }
+        .cell-view-btn { background: #fff8f1; color: var(--warning); border: 1.5px solid #ffe0c0; padding: 5px 12px; border-radius: 14px; cursor: pointer; font-size: 0.68rem; font-weight: 550; transition: all var(--transition); display: inline-flex; align-items: center; gap: 4px; }
+        .cell-view-btn:hover { background: var(--warning); color: #fff; border-color: var(--warning); }
+        .cell-view-btn.no-image { background: #f5f5f8; color: #bbb; pointer-events: none; border-color: #e8e8ed; }
+        .cell-select { padding: 5px 7px; border-radius: var(--radius-xs); border: 1.5px solid #d8dce8; font-size: 0.68rem; background: #fff; min-width: 65px; color: #3a3a55; cursor: pointer; }
+        .cell-select:focus { border-color: var(--primary); outline: none; }
+        .cell-input { padding: 5px 7px; border-radius: var(--radius-xs); border: 1.5px solid #d8dce8; font-size: 0.68rem; background: #fff; width: 100px; color: #3a3a55; }
+        .cell-input:focus { border-color: var(--primary); outline: none; }
+
+        .preview-bubble {
+            position: fixed; z-index: 500; background: #fff; border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.26); padding: 12px; display: none;
+            max-width: 50vw; max-height: 50vh; text-align: center; animation: fadeIn 0.2s; border: 1px solid var(--border);
+        }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        .preview-bubble img { max-width: 46vw; max-height: 38vh; object-fit: contain; border-radius: 8px; }
+        .preview-bubble .preview-controls { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 8px; }
+        .preview-bubble .preview-controls button { padding: 5px 12px; border-radius: 14px; border: 1.5px solid #e6e8f0; background: #fafbfd; cursor: pointer; font-size: 0.68rem; font-weight: 600; color: #5c5c78; }
+        .preview-bubble .preview-controls button:hover { background: #f0f3ff; border-color: var(--primary); color: var(--primary); }
+        .preview-bubble .preview-controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+        .preview-bubble .preview-counter { font-size: 0.68rem; color: var(--text-muted); min-width: 45px; }
+        .preview-bubble .preview-close { position: absolute; top: 8px; right: 12px; background: rgba(0,0,0,0.06); border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 0.95rem; color: #888; display: flex; align-items: center; justify-content: center; }
+        .preview-bubble .preview-close:hover { background: rgba(0,0,0,0.14); color: #333; }
+
+        .fullscreen-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.94); z-index: 600; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .fullscreen-overlay img { max-width: 96vw; max-height: 96vh; border-radius: 8px; }
+        .btn-close-fs { position: fixed; top: 20px; right: 26px; background: rgba(255,255,255,0.12); color: #fff; border-radius: 50%; width: 40px; height: 40px; font-size: 1.15rem; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; }
+        .btn-close-fs:hover { background: rgba(255,255,255,0.25); }
+
+        .pagination-bar {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 14px 10px; border-top: 1px solid #f0f2f7; flex-wrap: wrap;
+            background: #fafbfd; border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+        .pagination-bar button {
+            padding: 6px 12px; border: 1.5px solid #e6e8f0; border-radius: var(--radius-xs);
+            background: #fff; cursor: pointer; font-size: 0.72rem; transition: all var(--transition);
+            font-weight: 500; color: #5c5c78; min-width: 34px;
+        }
+        .pagination-bar button:hover:not(:disabled) { background: #f0f3ff; border-color: #c5ceff; color: var(--primary); }
+        .pagination-bar button:disabled { opacity: 0.35; cursor: not-allowed; background: #f5f5f8; }
+        .pagination-bar button.active-page {
+            background: var(--primary); color: #fff; border-color: var(--primary);
+            pointer-events: none; box-shadow: 0 2px 10px rgba(85,104,245,0.28);
+        }
+        .pagination-bar select {
+            padding: 6px 9px; border: 1.5px solid #e6e8f0; border-radius: var(--radius-xs);
+            font-size: 0.7rem; background: #fff; color: #3a3a55; cursor: pointer;
+        }
+        .pagination-bar .page-info { font-size: 0.68rem; color: var(--text-muted); margin-left: 5px; }
+
+        .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(3px); }
+        .guide-card { background: #fff; border-radius: 20px; padding: 28px 24px 20px; max-width: 500px; width: 92%; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 26px 70px rgba(0,0,0,0.28); animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+        .guide-title { font-size: 1.25rem; font-weight: 750; margin-bottom: 5px; text-align: center; color: #1a1a2e; }
+        .guide-subtitle { font-size: 0.78rem; color: #999; text-align: center; margin-bottom: 18px; }
+        .file-upload-area { border: 2.5px dashed #cbd5e1; border-radius: 16px; padding: 32px 22px; text-align: center; cursor: pointer; background: #fafbfc; margin: 8px 0; transition: all var(--transition); }
+        .file-upload-area:hover { border-color: var(--primary); background: #f5f7ff; }
+        .upload-text-lg { font-size: 0.95rem; font-weight: 600; color: #5c5c78; }
+        .guide-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f2f7; }
+        .guide-btn { padding: 9px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: 650; font-size: 0.82rem; transition: all var(--transition); }
+        .guide-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 3px 14px rgba(85,104,245,0.28); }
+        .guide-btn.primary:hover { background: var(--primary-hover); }
+        .guide-btn.secondary { background: #f0f2f8; color: #555; }
+        .guide-btn.secondary:hover { background: #e4e6f0; }
+        .guide-close-btn { position: absolute; top: 10px; right: 14px; width: 30px; height: 30px; border-radius: 50%; background: transparent; font-size: 1.05rem; cursor: pointer; color: #999; border: none; display: flex; align-items: center; justify-content: center; }
+        .guide-close-btn:hover { background: #f0f0f5; color: #555; }
+
+        .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #1e1e30; color: #fff; padding: 10px 24px; border-radius: 22px; z-index: 800; pointer-events: none; font-weight: 550; font-size: 0.82rem; box-shadow: 0 8px 28px rgba(0,0,0,0.30); animation: toastIn 0.4s ease, toastOut 0.4s ease 1.8s forwards; }
+        @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(18px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateX(-50%) translateY(-10px); } }
+
+        .star-rating { color: #f59e0b; letter-spacing: 2px; font-size: 0.8rem; }
+        .detail-popup { position: fixed; z-index: 900; background: #fff; border: 1px solid #e6e8f0; border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,0.16); padding: 14px 16px; max-width: 48vw; max-height: 48vh; text-align: left; animation: fadeIn 0.16s ease; font-size: 0.75rem; overflow-y: auto; }
+        .detail-popup .info-row { display: flex; gap: 12px; padding: 5px 0; border-bottom: 1px solid #f4f5f9; align-items: center; }
+        .detail-popup .info-row:last-child { border-bottom: none; }
+        .detail-popup .info-label { font-weight: 650; color: #5a5a78; min-width: 70px; flex-shrink: 0; font-size: 0.68rem; }
+        .detail-popup .info-value { word-break: break-all; flex: 1; font-size: 0.73rem; color: #2a2a40; }
+        .info-copy-btn { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 12px; border: 1.5px solid #d5dcff; background: #f0f3ff; color: #4f6ef7; cursor: pointer; font-size: 0.63rem; font-weight: 550; flex-shrink: 0; }
+        .info-copy-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
+        .info-copy-btn.copied { background: #10b981; color: #fff; border-color: #10b981; pointer-events: none; }
+        .detail-table { border-collapse: collapse; font-size: 0.65rem; margin-top: 8px; width: 100%; min-width: 450px; }
+        .detail-table th,.detail-table td { border: 1px solid #e6e8f0; padding: 6px 5px; text-align: center; white-space: nowrap; }
+        .detail-table th { background: #f8f9fd; font-weight: 700; color: #6b6b88; font-size: 0.6rem; }
+        .detail-table .total-row { font-weight: 750; background: #fef9e3; }
+
+        .empty-state { text-align: center; padding: 55px 18px; color: #b0b0c0; font-size: 0.85rem; }
+        .no-bubbles { color: #b0b0c0; font-size: 0.75rem; font-style: italic; }
+        .footer-note { text-align: center; color: #b8b8c8; font-size: 0.68rem; padding: 10px 0 0; margin-top: 8px; }
+
+        @media (max-width: 768px) {
+            .app-container { padding: 10px 8px 20px; }
+            .page-header h1 { font-size: 1.2rem; }
+            .stats-panel { flex-direction: column; gap: 8px; }
+            .store-block,.ratio-block,.extra-block { flex: none; width: 100%; }
+            table { font-size: 0.68rem; min-width: 950px; }
+            table thead th { padding: 8px 5px; font-size: 0.58rem; }
+            table tbody td { padding: 6px 5px; font-size: 0.63rem; }
+            .detail-popup { max-width: 90vw; max-height: 50vh; }
+            .preview-bubble { max-width: 90vw; max-height: 55vh; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="page-header">
+            <h1>📋 问单明细</h1>
+            <div style="position:relative;">
+                <button class="header-menu-btn" id="headerMenuBtn">⚙️ 菜单</button>
+                <div class="header-menu-dropdown" id="headerMenuDropdown">
+                    <button id="menuReupload">📂 重新上传</button>
+                    <button id="menuSelectStore">🏪 选择门店</button>
+                    <button id="menuExport">📥 导出报告</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-bar" id="filterBar" style="display:none;">
+            <div class="filter-center">
+                <div class="filter-label-row"><label>🔍 问题原因筛选</label></div>
+                <div class="bubble-container" id="bubbleContainer"><span class="no-bubbles">请先上传数据</span></div>
+            </div>
+            <!-- 清除筛选与日期捆绑 -->
+            <div class="filter-actions">
+                <button class="btn-clear-filters" id="btnClearAllFilters">✕ 清空筛选</button>
+                <span style="margin:0 6px;color:#d0d5e5;">|</span>
+                <span>📅</span><span id="dateText">--</span>
+            </div>
+        </div>
+
+        <div class="stats-panel" id="statsPanel" style="display:none;">
+            <div class="store-block"><span class="store-label">📍 当前门店</span><span class="store-name" id="currentStoreName">全部门店</span></div>
+            <div class="ratio-block">
+                <span class="ratio-title" id="ratioTitle">📊 实时责任占比</span>
+                <span class="ratio-main-bubble no-data" id="ratioMainBubble">总订单: 暂无数据</span>
+                <span class="ratio-stat-simple" id="ratioStatSimple" style="display:none;"></span>
+            </div>
+            <div class="extra-block">
+                <span class="view-switch-bubble active-default" id="viewBubbleDefault">📋 问单 <span class="view-badge" id="defaultBadge">0</span></span>
+                <span class="view-switch-bubble" id="viewBubbleColdThaw" style="display:none;">❄️ 冷链 <span class="view-badge" id="coldThawBadge">0</span></span>
+                <span class="view-switch-bubble" id="viewBubbleBadReview" style="display:none;">💬 差评 <span class="view-badge" id="badReviewBadge">0</span></span>
+            </div>
+        </div>
+
+        <div class="table-wrapper" id="tableWrapper" style="display:none;">
+            <div class="table-scroll"><table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+            <div class="pagination-bar" id="paginationBar"></div>
+            <div class="empty-state" id="emptyState" style="display:none;"><p>📭 没有匹配的数据</p></div>
+        </div>
+        <div class="footer-note">💡 点击单元格查看完整内容 &nbsp;|&nbsp; 灰色背景为同批次号 &nbsp;|&nbsp; 可编辑责任归属与原因</div>
+    </div>
+
+    <div class="guide-overlay" id="guideOverlay"><div class="guide-card" id="guideCard"></div></div>
+    <input type="file" id="hiddenFileInput" accept=".xlsx,.xls" style="display:none;">
+    <div class="preview-bubble" id="previewBubble"></div>
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <button class="btn-close-fs" id="btnCloseFullscreen">✕</button>
+        <img id="fullscreenImage" alt="全屏图片">
+    </div>
+    <div class="toast" id="toast" style="display:none;"></div>
+
+    <script>
+        (function() {
+            const $ = (sel) => document.querySelector(sel);
+            const guideOverlay = $('#guideOverlay');
+            const guideCard = $('#guideCard');
+            const hiddenFileInput = $('#hiddenFileInput');
+
+            let allData = [], badReviewData = [], coldThawData = [];
+            let filteredData = [], filteredBadReviewData = [], filteredColdThawData = [];
+            let selectedStore = null;
+            let selectedReasons = new Set();
+            let currentView = 'default';
+            let pageSize = 20;
+            let viewCurrentPages = { default: 1, badReview: 1, coldThaw: 1 };
+            let allStores = [];
+            let manualDataMap = new Map();
+            let badReviewManualMap = new Map();
+            let coldThawManualMap = new Map();
+            let rowIdCounter = 0;
+            let duplicateBatchSet = new Set();
+            let currentPopup = null;
+            let toastTimer;
+            let previewUrls = [], previewIdx = 0;
+
+            const TARGET_SHEET_KEYWORDS = ['问单明细','问单'];
+            const BAD_REVIEW_KEYWORDS = ['差评'];
+            const IGNORE_KEYWORDS = ['sheet','数据源','汇总','模板','参数','配置','说明','备份','临时','测试'];
+
+            function findSheet(sheets, keywords) {
+                for (let kw of keywords) {
+                    const exact = sheets.find(s => s.trim() === kw);
+                    if (exact) return exact;
+                }
+                for (let kw of keywords) {
+                    const fuzzy = sheets.find(s => s.trim().includes(kw));
+                    if (fuzzy) return fuzzy;
+                }
+                return null;
+            }
+
+            function shouldIgnore(sheetName) {
+                const name = sheetName.trim().toLowerCase();
+                for (let kw of IGNORE_KEYWORDS) if (name.includes(kw.toLowerCase())) return true;
+                return false;
+            }
+
+            function getColValue(row, col) {
+                if (row.hasOwnProperty(col)) return row[col];
+                for (let k of Object.keys(row)) if (k.trim() === col.trim()) return row[k];
+                return '';
+            }
+
+            function toast(msg) {
+                const t = $('#toast');
+                clearTimeout(toastTimer);
+                t.textContent = msg; t.style.display = 'block'; t.style.animation = 'none';
+                void t.offsetWidth;
+                t.style.animation = 'toastIn 0.4s ease, toastOut 0.4s ease 1.8s forwards';
+                toastTimer = setTimeout(() => t.style.display = 'none', 2300);
+            }
+
+            function escapeHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+            function openGuideView(title, subtitle, bodyHTML, footerHTML) {
+                guideCard.innerHTML = `
+                    <button class="guide-close-btn" id="guideCloseBtn">✕</button>
+                    <div class="guide-title">${title}</div>
+                    <div class="guide-subtitle">${subtitle}</div>
+                    <div class="guide-body">${bodyHTML}</div>
+                    <div class="guide-footer">${footerHTML}</div>
+                `;
+                guideOverlay.style.display = 'flex';
+                document.getElementById('guideCloseBtn').addEventListener('click', () => guideOverlay.style.display = 'none');
+            }
+
+            function showStoreSelection() {
+                let html = `<input type="text" id="storeSearch" placeholder="🔍 搜索门店..." style="width:100%;padding:10px;border:1.5px solid #e6e8f0;border-radius:8px;margin-bottom:12px;font-size:0.82rem;"><div id="storeList" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;">`;
+                html += `<label style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-radius:8px;" id="storeOptionAll"><input type="radio" name="storeRadio" value="__ALL__" ${selectedStore===null?'checked':''}> 🌐 全部门店</label>`;
+                allStores.forEach(s => html += `<label style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-radius:8px;"><input type="radio" name="storeRadio" value="${escapeHTML(s)}" ${selectedStore===s?'checked':''}> ${escapeHTML(s)}</label>`);
+                html += `</div>`;
+                openGuideView('选择门店', '请选择要分析的门店', html, '<button class="guide-btn primary" id="confirmStore">✓ 确认</button>');
+                document.getElementById('confirmStore').addEventListener('click', () => {
+                    const radio = document.querySelector('input[name="storeRadio"]:checked');
+                    selectedStore = radio && radio.value !== '__ALL__' ? radio.value : null;
+                    guideOverlay.style.display = 'none';
+                    initializeMainUI();
+                });
+                document.getElementById('storeSearch').addEventListener('input', function() {
+                    const term = this.value.toLowerCase();
+                    document.querySelectorAll('#storeList label').forEach(l => l.style.display = l.textContent.toLowerCase().includes(term) ? 'flex' : 'none');
+                });
+            }
+
+            async function handleFileUpload(file) {
+                if (!file) return;
+                toast('⏳ 正在解析文件...');
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+                        const targetSheets = wb.SheetNames.filter(s => !shouldIgnore(s));
+                        const mainSheetName = findSheet(targetSheets, TARGET_SHEET_KEYWORDS);
+                        const badReviewSheetName = findSheet(targetSheets, BAD_REVIEW_KEYWORDS);
+                        if (!mainSheetName) { toast('❌ 未找到「问单明细」工作簿'); return; }
+
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[mainSheetName], { defval:'', raw:false });
+                        if (!rows.length) { toast('❌ 工作簿为空'); return; }
+
+                        allData = []; manualDataMap.clear();
+                        const batchSize = 5000;
+                        for (let i = 0; i < rows.length; i += batchSize) {
+                            const batch = rows.slice(i, i + batchSize);
+                            batch.forEach(r => {
+                                const nr = {};
+                                for (let k in r) nr[k.trim()] = r[k];
+                                nr._rowId = rowIdCounter++;
+                                allData.push(nr);
+                                manualDataMap.set(nr._rowId, { responsible:'仓责', reason:'' });
+                            });
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+
+                        coldThawData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() === '冷链商品化冻');
+                        coldThawManualMap.clear();
+                        coldThawData.forEach(r => coldThawManualMap.set(r._rowId, { isThawIssue:'是', deliveryStandard:'规范', verifyReason:'' }));
+
+                        badReviewData = []; badReviewManualMap.clear();
+                        if (badReviewSheetName) {
+                            const brRows = XLSX.utils.sheet_to_json(wb.Sheets[badReviewSheetName], { defval:'', raw:false });
+                            brRows.forEach(r => {
+                                const nr = {};
+                                for (let k in r) nr[k.trim()] = r[k];
+                                nr._rowId = rowIdCounter++;
+                                badReviewData.push(nr);
+                                badReviewManualMap.set(nr._rowId, { responsible:'无责', verify:'' });
+                            });
+                        }
+
+                        allStores = [...new Set(allData.map(r => String(getColValue(r,'门店名称')).trim()).filter(Boolean))].sort();
+                        selectedReasons.clear();
+                        toast('✅ 成功加载 ' + allData.length + ' 条记录');
+                        showStoreSelection();
+                    } catch(err) { toast('❌ 解析文件失败'); console.error(err); }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            function initializeMainUI() {
+                currentView = 'default';
+                viewCurrentPages = { default:1, badReview:1, coldThaw:1 };
+                duplicateBatchSet.clear();
+                updateBubbles();
+                applyFilters();
+                ['filterBar','tableWrapper','statsPanel'].forEach(id => document.getElementById(id).style.display = 'flex');
+                updateViewBubblesVisibility();
+                updateViewBubbleActiveState();
+                updateCurrentStoreLabel();
+                updateRatioTitleForView();
+                extractDateDisplay();
+            }
+
+            function extractDateDisplay() {
+                if (!allData.length) { $('#dateText').textContent = '--'; return; }
+                const dates = new Set();
+                for (const row of allData) { const d = getColValue(row,'日期'); if (d) { const p = parseDateStr(String(d).trim()); if (p) dates.add(p); } }
+                if (!dates.size) { const t = new Date(); $('#dateText').textContent = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+                else if (dates.size === 1) $('#dateText').textContent = [...dates][0];
+                else { const s = [...dates].sort(); $('#dateText').textContent = s[0] + ' ~ ' + s[s.length-1]; }
+            }
+
+            function parseDateStr(s) { const m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/); if (m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0'); const d = new Date(s); if (!isNaN(d)) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); return null; }
+
+            function updateBubbles() {
+                if (currentView !== 'default') { $('#bubbleContainer').innerHTML = '<span class="no-bubbles">当前视图不支持筛选</span>'; return; }
+                let data = allData.filter(r => r && (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻');
+                if (selectedStore) data = data.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore);
+                const counts = new Map();
+                data.forEach(r => { const k = (getColValue(r,'问题原因名称')||'').trim(); if (k) counts.set(k, (counts.get(k)||0)+1); });
+                const reasons = [...counts.keys()].sort((a,b) => (counts.get(b)||0) - (counts.get(a)||0));
+                let html = `<span class="bubble-tag bubble-all ${selectedReasons.size?'':'active'}" id="bubbleAll">📋 全部 <span class="bubble-count-inline">${data.length}条</span></span>`;
+                reasons.forEach(r => html += `<span class="bubble-tag ${selectedReasons.has(r)?'active':''}" data-reason="${escapeHTML(r)}">${escapeHTML(r)} <span class="bubble-count-inline">${counts.get(r)}|${data.length?((counts.get(r)/data.length)*100).toFixed(1):0}%</span></span>`);
+                $('#bubbleContainer').innerHTML = html;
+                const ba = $('#bubbleAll');
+                if (ba) ba.addEventListener('click', () => { selectedReasons.clear(); setCurrentPage(1); updateBubbles(); applyFilters(); });
+                document.querySelectorAll('.bubble-tag[data-reason]').forEach(b => b.addEventListener('click', function() {
+                    const r = this.dataset.reason;
+                    selectedReasons.has(r) ? selectedReasons.delete(r) : selectedReasons.add(r);
+                    setCurrentPage(1); updateBubbles(); applyFilters();
+                }));
+            }
+
+            function applyFilters() {
+                let data = currentView === 'default' ? [...allData] : (currentView === 'badReview' ? [...badReviewData] : [...coldThawData]);
+                if (selectedStore) data = data.filter(r => String(getColValue(r, currentView==='badReview'?'门店':'门店名称')).trim() === selectedStore);
+                if (currentView === 'default') {
+                    data = data.filter(r => (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻');
+                    if (selectedReasons.size) data = data.filter(r => selectedReasons.has((getColValue(r,'问题原因名称')||'').trim()));
+                }
+
+                // 全局后置排序：根据视图判断后置字段
+                data.sort((a, b) => {
+                    let aDash = false, bDash = false;
+                    if (currentView === 'default') {
+                        aDash = (getColValue(a, 'app退款描述') || getColValue(a, 'APP退款描述') || '').trim() === '-';
+                        bDash = (getColValue(b, 'app退款描述') || getColValue(b, 'APP退款描述') || '').trim() === '-';
+                    } else if (currentView === 'coldThaw') {
+                        aDash = (getColValue(a, 'app退款描述') || getColValue(a, 'APP退款描述') || '').trim() === '-';
+                        bDash = (getColValue(b, 'app退款描述') || getColValue(b, 'APP退款描述') || '').trim() === '-';
+                    } else if (currentView === 'badReview') {
+                        aDash = (getColValue(a, '评价文本') || '').trim() === '-';
+                        bDash = (getColValue(b, '评价文本') || '').trim() === '-';
+                    }
+                    if (aDash && !bDash) return 1;
+                    if (!aDash && bDash) return -1;
+                    // 默认按批次号排序（仅限问单视图）
+                    if (currentView === 'default') {
+                        const aBatch = String(getColValue(a, '批次号') || '').trim();
+                        const bBatch = String(getColValue(b, '批次号') || '').trim();
+                        return aBatch.localeCompare(bBatch);
+                    }
+                    return 0;
+                });
+
+                // 计算重复批次（仅问单视图）
+                if (currentView === 'default') {
+                    duplicateBatchSet.clear();
+                    const batchCounts = new Map();
+                    data.forEach(r => { const b = String(getColValue(r,'批次号')||'').trim(); if (b) batchCounts.set(b, (batchCounts.get(b)||0)+1); });
+                    batchCounts.forEach((v,k) => { if (v > 1) duplicateBatchSet.add(k); });
+                }
+
+                if (currentView === 'default') filteredData = data;
+                else if (currentView === 'badReview') filteredBadReviewData = data;
+                else filteredColdThawData = data;
+
+                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : filteredColdThawData);
+                const totalPages = Math.ceil(cfd.length / pageSize) || 1;
+                if (getCurrentPage() > totalPages) setCurrentPage(totalPages);
+                renderTable();
+                updateRatioDisplay();
+            }
+
+            function getCurrentPage() { return viewCurrentPages[currentView] || 1; }
+            function setCurrentPage(p) { viewCurrentPages[currentView] = p; }
+
+            function updateCurrentStoreLabel() {
+                const el = $('#currentStoreName');
+                el.textContent = selectedStore || '全部门店';
+                el.style.fontSize = '';
+                if (el.scrollWidth > el.parentElement.clientWidth - 14) {
+                    el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * (el.parentElement.clientWidth - 14) / el.scrollWidth) + 'px';
+                }
+            }
+
+            function updateRatioDisplay() {
+                const bubble = $('#ratioMainBubble'), simple = $('#ratioStatSimple');
+                bubble.style.display = 'none'; simple.style.display = 'none';
+                if (currentView === 'default') {
+                    const counts = { 仓责:0, 配责:0, 无责:0 }; let total = 0; const detail = new Map();
+                    (filteredData||[]).forEach(r => {
+                        const reason = (getColValue(r,'问题原因名称')||'').trim(); if (!reason) return;
+                        const resp = (manualDataMap.get(r._rowId)||{}).responsible||''; if (!counts.hasOwnProperty(resp)) return;
+                        counts[resp]++; total++;
+                        if (!detail.has(reason)) detail.set(reason, { 仓责:0, 配责:0, 无责:0, total:0 });
+                        const d = detail.get(reason); d[resp]++; d.total++;
+                    });
+                    if (!total) { bubble.style.display='inline-flex'; bubble.className='ratio-main-bubble no-data'; bubble.textContent='总订单: 暂无数据'; return; }
+                    bubble.style.display='inline-flex'; bubble.className='ratio-main-bubble';
+                    bubble.innerHTML = `<span class="total-label">总订单:</span> <span class="pct-cang">仓${Math.round(counts['仓责']/total*100)}%</span><span class="pct-sep">|</span><span class="pct-pei">配${Math.round(counts['配责']/total*100)}%</span><span class="pct-sep">|</span><span class="pct-wuze">无责${Math.round(counts['无责']/total*100)}%</span>`;
+                    bubble.onclick = () => showDetailPopup(bubble, buildRatioDetailHTML(detail, counts, total));
+                } else if (currentView === 'badReview') {
+                    const cfd = filteredBadReviewData||[]; let you = 0;
+                    cfd.forEach(r => { if ((badReviewManualMap.get(r._rowId)||{}).responsible === '有责') you++; });
+                    simple.style.display='block';
+                    simple.textContent = cfd.length ? `有责 ${you} 条 | 无责 ${cfd.length-you} 条` : '暂无差评数据';
+                } else {
+                    const cfd = filteredColdThawData||[]; let yes = 0;
+                    cfd.forEach(r => { if ((coldThawManualMap.get(r._rowId)||{}).isThawIssue !== '否') yes++; });
+                    simple.style.display='block';
+                    simple.textContent = cfd.length ? `化冻问题: 是 ${yes} | 否 ${cfd.length-yes}` : '暂无冷链数据';
+                }
+            }
+
+            function buildRatioDetailHTML(detail, counts, total) {
+                let h = '<table class="detail-table"><thead><tr><th>问题原因</th><th>仓责</th><th>配责</th><th>无责</th></tr></thead><tbody>';
+                [...detail.keys()].sort().forEach(r => {
+                    const d = detail.get(r);
+                    h += `<tr><td>${escapeHTML(r)}</td><td>${d['仓责']}(${Math.round(d['仓责']/d.total*100)}%)</td><td>${d['配责']}(${Math.round(d['配责']/d.total*100)}%)</td><td>${d['无责']}(${Math.round(d['无责']/d.total*100)}%)</td></tr>`;
+                });
+                h += `<tr class="total-row"><td>合计</td><td>${counts['仓责']}(${Math.round(counts['仓责']/total*100)}%)</td><td>${counts['配责']}(${Math.round(counts['配责']/total*100)}%)</td><td>${counts['无责']}(${Math.round(counts['无责']/total*100)}%)</td></tr></tbody></table>`;
+                return h;
+            }
+
+            function renderTable() {
+                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : filteredColdThawData);
+                const start = (getCurrentPage()-1) * pageSize, end = Math.min(start + pageSize, cfd.length);
+                const pageData = cfd.slice(start, end);
+                const thead = $('#tableHead'), tbody = $('#tableBody');
+
+                if (currentView === 'default')
+                    thead.innerHTML = '<tr><th>问题原因名称</th><th>SKU名称</th><th>APP退款原因</th><th>APP退款描述</th><th>退款凭证</th><th>单号</th><th>责任人</th><th>责任归属</th><th>原因备注</th></tr>';
+                else if (currentView === 'badReview')
+                    thead.innerHTML = '<tr><th>交易日期</th><th>门店</th><th>配送员名称</th><th>单号</th><th>评价文本</th><th>评价标签</th><th>评价星级</th><th>责任归属</th><th>核实备注</th></tr>';
+                else
+                    thead.innerHTML = '<tr><th>门店</th><th>商品名称</th><th>是否化冻</th><th>配送规范</th><th>顾客原声</th><th>退款凭证</th><th>单号</th><th>时间戳</th><th>核实原因</th></tr>';
+
+                tbody.innerHTML = '';
+                $('#emptyState').style.display = pageData.length ? 'none' : 'block';
+                if (!pageData.length) { $('#paginationBar').innerHTML = ''; return; }
+
+                const fragment = document.createDocumentFragment();
+                pageData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    if (currentView === 'default' && duplicateBatchSet.has(String(getColValue(row,'批次号')||'').trim())) tr.classList.add('duplicate-batch');
+                    if (currentView === 'default') {
+                        tr.appendChild(createClickableCell(getColValue(row,'问题原因名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'sku名称')||getColValue(row,'SKU名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因')));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')));
+                        tr.appendChild(createVoucherCell(row));
+                        tr.appendChild(createOrderCell(row, ['淘系主订单id','批次号','配送单号']));
+                        tr.appendChild(createPersonCell(row));
+                        tr.appendChild(createSelectCell(row, 'responsible', ['仓责','配责','无责'], manualDataMap));
+                        tr.appendChild(createInputCell(row, 'reason', manualDataMap));
+                    } else if (currentView === 'badReview') {
+                        tr.appendChild(createCell(getColValue(row,'交易日期')));
+                        tr.appendChild(createCell(getColValue(row,'门店')));
+                        tr.appendChild(createCell(getColValue(row,'配送员名称')));
+                        tr.appendChild(createOrderCell(row, ['评价父订单','盒马主订单','外部主订单','履约单号']));
+                        tr.appendChild(createClickableCell(getColValue(row,'评价文本')));
+                        tr.appendChild(createCell(getColValue(row,'评价标签')));
+                        tr.appendChild(createStarCell(row));
+                        tr.appendChild(createSelectCell(row, 'responsible', ['无责','有责'], badReviewManualMap));
+                        tr.appendChild(createInputCell(row, 'verify', badReviewManualMap));
+                    } else {
+                        tr.appendChild(createCell(getColValue(row,'门店名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'sku名称')||getColValue(row,'SKU名称')));
+                        tr.appendChild(createSelectCell(row, 'isThawIssue', ['是','否'], coldThawManualMap));
+                        tr.appendChild(createSelectCell(row, 'deliveryStandard', ['规范','不规范'], coldThawManualMap));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')));
+                        tr.appendChild(createVoucherCell(row));
+                        tr.appendChild(createOrderCell(row, ['淘系主订单id','批次号','配送单号']));
+                        tr.appendChild(createTimeCell(row));
+                        tr.appendChild(createInputCell(row, 'verifyReason', coldThawManualMap));
+                    }
+                    fragment.appendChild(tr);
+                });
+                tbody.appendChild(fragment);
+                renderPagination(cfd);
+            }
+
+            function createCell(text) { const td = document.createElement('td'); td.textContent = text || '-'; return td; }
+            function createClickableCell(fullText) {
+                const td = document.createElement('td');
+                const span = document.createElement('span'); span.className = 'cell-clickable'; span.textContent = fullText || '-';
+                span.addEventListener('click', function(e) { e.stopPropagation(); showDetailPopup(span, fullText || '-', true); });
+                td.appendChild(span); return td;
+            }
+            function createVoucherCell(row) {
+                const td = document.createElement('td');
+                const urls = parseImageUrls(getColValue(row,'退款凭证')||'');
+                if (urls.length) {
+                    const btn = document.createElement('span'); btn.className='cell-view-btn'; btn.textContent='🖼 查看('+urls.length+')';
+                    btn.addEventListener('click', function(e) { e.stopPropagation(); openImagePreview(urls); });
+                    td.appendChild(btn);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-view-btn no-image'; btn.textContent='无凭证'; td.appendChild(btn);
+                }
+                return td;
+            }
+            function createOrderCell(row, fields) {
+                const td = document.createElement('td');
+                const values = fields.map(f => getColValue(row,f)||'');
+                if (values.some(v => String(v).trim())) {
+                    const btn = document.createElement('span'); btn.className='cell-btn'; btn.textContent='📋 查看';
+                    btn.addEventListener('click', e => { e.stopPropagation(); showDetailPopup(btn, fields.map((f,i) => makePopupRow(f, values[i])).join('')); });
+                    td.appendChild(btn);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-btn no-data'; btn.textContent='无数据'; td.appendChild(btn);
+                }
+                return td;
+            }
+            function createPersonCell(row) {
+                const td = document.createElement('td');
+                const packer = String(getColValue(row,'打包员名')||'').trim();
+                const delivery = String(getColValue(row,'配送员名')||'').trim();
+                if ((packer && packer !== '-') || (delivery && delivery !== '-')) {
+                    const btn = document.createElement('span'); btn.className='cell-btn'; btn.textContent='👤 查看';
+                    btn.addEventListener('click', e => { e.stopPropagation(); showDetailPopup(btn, makePopupRow('打包员',packer||'-')+makePopupRow('配送员',delivery||'-')); });
+                    td.appendChild(btn);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-btn no-data'; btn.textContent='无数据'; td.appendChild(btn);
+                }
+                return td;
+            }
+            function createTimeCell(row) {
+                const td = document.createElement('td');
+                const fields = ['批次生成时间','拣货完成时间','打包完成时间','揽收时间','最晚送达时间','签收时间'];
+                const values = fields.map(f => formatTime(getColValue(row,f)||''));
+                if (values.some(v => String(v).trim())) {
+                    const btn = document.createElement('span'); btn.className='cell-btn'; btn.textContent='🕐 查看';
+                    btn.addEventListener('click', e => { e.stopPropagation(); showDetailPopup(btn, fields.map((f,i) => makePopupRow(f, values[i]||'-')).join('')); });
+                    td.appendChild(btn);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-btn no-data'; btn.textContent='无数据'; td.appendChild(btn);
+                }
+                return td;
+            }
+            function formatTime(str) {
+                if (!str) return '';
+                const s = String(str).trim();
+                if (/^\d+$/.test(s) && parseInt(s) > 40000 && parseInt(s) < 60000) {
+                    const d = new Date((parseInt(s) - 25569) * 86400 * 1000);
+                    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+                }
+                const m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[\sT]?(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?/);
+                if (m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0')+' '+(m[4]||'00').padStart(2,'0')+':'+(m[5]||'00').padStart(2,'0')+':'+(m[6]||'00').padStart(2,'0');
+                const d = new Date(s);
+                if (!isNaN(d)) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+                return s;
+            }
+            function createStarCell(row) {
+                const td = document.createElement('td');
+                const v = parseInt(getColValue(row,'评价星级'));
+                if (!isNaN(v) && v > 0) td.innerHTML = '<span class="star-rating">'+'★'.repeat(v)+'☆'.repeat(5-v)+'</span>';
+                else td.textContent = getColValue(row,'评价星级')||'-';
+                return td;
+            }
+            function createSelectCell(row, key, options, map) {
+                const td = document.createElement('td');
+                const sel = document.createElement('select'); sel.className='cell-select';
+                options.forEach(o => { const opt = document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+                const saved = map.get(row._rowId) || {};
+                sel.value = saved[key] || options[0];
+                sel.addEventListener('change', () => { saved[key] = sel.value; map.set(row._rowId, saved); updateRatioDisplay(); });
+                td.appendChild(sel); return td;
+            }
+            function createInputCell(row, key, map) {
+                const td = document.createElement('td');
+                const inp = document.createElement('input'); inp.type='text'; inp.className='cell-input';
+                const saved = map.get(row._rowId) || {};
+                inp.value = saved[key] || '';
+                inp.addEventListener('input', () => { saved[key] = inp.value; map.set(row._rowId, saved); });
+                td.appendChild(inp); return td;
+            }
+            function parseImageUrls(v) {
+                if (!v) return [];
+                return String(v).trim().split(/[,，]+/).map(s => s.trim()).filter(s => s && s.length > 3 && !['无','空','none','null'].includes(s.toLowerCase()));
+            }
+
+            function openImagePreview(urls) {
+                if (!urls || !urls.length) return;
+                previewUrls = [...urls]; previewIdx = 0;
+                showPreviewImage();
+                $('#previewBubble').style.display = 'block';
+                setTimeout(() => document.addEventListener('click', closePreviewOnClickOutside), 50);
+            }
+            function closePreviewOnClickOutside(e) {
+                const pb = $('#previewBubble');
+                if (pb.style.display === 'none') { document.removeEventListener('click', closePreviewOnClickOutside); return; }
+                if (pb.contains(e.target) || e.target.closest('.cell-view-btn')) return;
+                closeImagePreview();
+            }
+            function closeImagePreview() {
+                $('#previewBubble').style.display = 'none';
+                previewUrls = [];
+                document.removeEventListener('click', closePreviewOnClickOutside);
+            }
+            function showPreviewImage() {
+                const pb = $('#previewBubble');
+                pb.innerHTML = `
+                    <button class="preview-close" id="previewClose">✕</button>
+                    <img src="${previewUrls[previewIdx]}" alt="预览" onclick="event.stopPropagation();">
+                    <div class="preview-controls">
+                        <button id="prevPreview" ${previewIdx===0?'disabled':''}>◀</button>
+                        <span class="preview-counter">${previewIdx+1}/${previewUrls.length}</span>
+                        <button id="nextPreview" ${previewIdx>=previewUrls.length-1?'disabled':''}>▶</button>
+                        <button id="openFullscreen">🖥 全屏</button>
+                    </div>
+                `;
+                pb.style.top = '50%'; pb.style.left = '50%'; pb.style.transform = 'translate(-50%,-50%)';
+                document.getElementById('previewClose').addEventListener('click', (e) => { e.stopPropagation(); closeImagePreview(); });
+                document.getElementById('prevPreview').addEventListener('click', (e) => { e.stopPropagation(); if (previewIdx > 0) { previewIdx--; showPreviewImage(); } });
+                document.getElementById('nextPreview').addEventListener('click', (e) => { e.stopPropagation(); if (previewIdx < previewUrls.length-1) { previewIdx++; showPreviewImage(); } });
+                document.getElementById('openFullscreen').addEventListener('click', (e) => { e.stopPropagation(); openFullscreen(previewUrls[previewIdx]); });
+            }
+            function openFullscreen(url) { $('#fullscreenImage').src = url; $('#fullscreenOverlay').style.display = 'flex'; }
+            $('#btnCloseFullscreen').addEventListener('click', () => $('#fullscreenOverlay').style.display = 'none');
+            $('#fullscreenOverlay').addEventListener('click', e => { if (e.target === $('#fullscreenOverlay')) $('#fullscreenOverlay').style.display = 'none'; });
+
+            // 分页
+            function renderPagination(cfd) {
+                const bar = $('#paginationBar');
+                bar.innerHTML = '';
+                const totalPages = Math.ceil(cfd.length / pageSize) || 1;
+                if (totalPages <= 1 && cfd.length <= pageSize) {
+                    if (cfd.length) bar.innerHTML = '<span class="page-info">显示全部 ' + cfd.length + ' 条</span>';
+                    return;
+                }
+                const cp = getCurrentPage();
+
+                const btnFirst = document.createElement('button'); btnFirst.textContent = '首页';
+                btnFirst.disabled = cp === 1;
+                btnFirst.addEventListener('click', () => { setCurrentPage(1); applyFilters(); });
+                bar.appendChild(btnFirst);
+
+                const btnPrev = document.createElement('button'); btnPrev.textContent = '上一页';
+                btnPrev.disabled = cp === 1;
+                btnPrev.addEventListener('click', () => { setCurrentPage(cp - 1); applyFilters(); });
+                bar.appendChild(btnPrev);
+
+                let sp = Math.max(1, cp - 3), ep = Math.min(totalPages, cp + 3);
+                for (let p = sp; p <= ep; p++) {
+                    const bp = document.createElement('button');
+                    bp.textContent = p;
+                    if (p === cp) bp.classList.add('active-page');
+                    bp.addEventListener('click', () => { setCurrentPage(p); applyFilters(); });
+                    bar.appendChild(bp);
+                }
+
+                const btnNext = document.createElement('button'); btnNext.textContent = '下一页';
+                btnNext.disabled = cp >= totalPages;
+                btnNext.addEventListener('click', () => { setCurrentPage(cp + 1); applyFilters(); });
+                bar.appendChild(btnNext);
+
+                const btnLast = document.createElement('button'); btnLast.textContent = '末页';
+                btnLast.disabled = cp >= totalPages;
+                btnLast.addEventListener('click', () => { setCurrentPage(totalPages); applyFilters(); });
+                bar.appendChild(btnLast);
+
+                const sel = document.createElement('select');
+                [10, 20, 30, 50, 100].forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = '每页' + n + '条'; if (n === pageSize) o.selected = true; sel.appendChild(o); });
+                sel.addEventListener('change', () => { pageSize = +sel.value; setCurrentPage(1); applyFilters(); });
+                bar.appendChild(sel);
+
+                const info = document.createElement('span'); info.className = 'page-info';
+                info.textContent = '共 ' + totalPages + ' 页 / ' + cfd.length + ' 条';
+                bar.appendChild(info);
+            }
+
+            function updateViewBubblesVisibility() {
+                const showBad = badReviewData.length && (!selectedStore || badReviewData.some(r => String(getColValue(r,'门店')||'').trim() === selectedStore));
+                $('#viewBubbleBadReview').style.display = showBad ? 'inline-flex' : 'none';
+                if (showBad) $('#badReviewBadge').textContent = selectedStore ? badReviewData.filter(r => String(getColValue(r,'门店')||'').trim()===selectedStore).length : badReviewData.length;
+                const showCold = coldThawData.length && (!selectedStore || coldThawData.some(r => String(getColValue(r,'门店名称')||'').trim() === selectedStore));
+                $('#viewBubbleColdThaw').style.display = showCold ? 'inline-flex' : 'none';
+                if (showCold) $('#coldThawBadge').textContent = selectedStore ? coldThawData.filter(r => String(getColValue(r,'门店名称')||'').trim()===selectedStore).length : coldThawData.length;
+                const defaultData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻');
+                $('#defaultBadge').textContent = selectedStore ? defaultData.filter(r => String(getColValue(r,'门店名称')||'').trim()===selectedStore).length : defaultData.length;
+                updateViewBubbleActiveState();
+                if (currentView !== 'default') $('#bubbleContainer').innerHTML = '<span class="no-bubbles">当前视图不支持筛选</span>';
+            }
+
+            function updateViewBubbleActiveState() {
+                $('#viewBubbleDefault').className = 'view-switch-bubble' + (currentView==='default'?' active-default':'');
+                $('#viewBubbleBadReview').className = 'view-switch-bubble' + (currentView==='badReview'?' active-bad':'');
+                $('#viewBubbleColdThaw').className = 'view-switch-bubble' + (currentView==='coldThaw'?' active-cold':'');
+            }
+
+            function updateRatioTitleForView() {
+                $('#ratioTitle').textContent = currentView==='default'?'📊 实时责任占比':(currentView==='badReview'?'💬 差评数据概览':'❄️ 冷链化冻数据概览');
+            }
+
+            $('#viewBubbleDefault').addEventListener('click', () => switchView('default'));
+            $('#viewBubbleBadReview').addEventListener('click', () => switchView('badReview'));
+            $('#viewBubbleColdThaw').addEventListener('click', () => switchView('coldThaw'));
+
+            function switchView(v) {
+                if (currentView === v) return;
+                currentView = v; setCurrentPage(1);
+                updateViewBubbleActiveState(); updateBubbles(); applyFilters();
+            }
+
+            $('#btnClearAllFilters').addEventListener('click', () => { selectedReasons.clear(); updateBubbles(); applyFilters(); });
+
+            document.getElementById('headerMenuBtn').addEventListener('click', e => { e.stopPropagation(); $('#headerMenuDropdown').classList.toggle('show'); });
+            document.addEventListener('click', e => { if (!e.target.closest('.header-menu-btn')) $('#headerMenuDropdown').classList.remove('show'); });
+            document.getElementById('menuReupload').addEventListener('click', () => {
+                openGuideView('📂 上传文件', '请上传问单明细Excel',
+                    '<div class="file-upload-area" id="guideUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div>',
+                    '<button class="guide-btn primary" id="guideConfirmBtn">确认</button>');
+                document.getElementById('guideUploadArea').addEventListener('click', () => hiddenFileInput.click());
+                hiddenFileInput.onchange = e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); };
+            });
+            document.getElementById('menuSelectStore').addEventListener('click', showStoreSelection);
+            document.getElementById('menuExport').addEventListener('click', exportHTMLReport);
+
+            function exportHTMLReport() {
+                const storeName = selectedStore || '全部门店';
+                const now = new Date();
+                const timestamp = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+                const title = `${storeName}-${timestamp}问单核实`;
+
+                const buildStaticTable = (data, viewType) => {
+                    if (!data || !data.length) return '<p style="text-align:center;color:#b0b0c0;">暂无数据</p>';
+                    let html = '<div class="table-scroll"><table>';
+                    if (viewType === 'default') {
+                        html += '<thead><tr><th>问题原因名称</th><th>SKU名称</th><th>APP退款原因</th><th>APP退款描述</th><th>退款凭证</th><th>责任归属</th><th>原因备注</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = manualDataMap.get(row._rowId) || {};
+                            html += `<tr><td>${escapeHTML(getColValue(row,'问题原因名称'))}</td><td>${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td>${escapeHTML(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因'))}</td><td>${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td>${getColValue(row,'退款凭证')?'有凭证':'无凭证'}</td><td>${escapeHTML(item.responsible||'仓责')}</td><td>${escapeHTML(item.reason||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'badReview') {
+                        html += '<thead><tr><th>交易日期</th><th>门店</th><th>配送员名称</th><th>评价文本</th><th>评价标签</th><th>评价星级</th><th>责任归属</th><th>核实备注</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = badReviewManualMap.get(row._rowId) || {};
+                            html += `<tr><td>${escapeHTML(getColValue(row,'交易日期'))}</td><td>${escapeHTML(getColValue(row,'门店'))}</td><td>${escapeHTML(getColValue(row,'配送员名称'))}</td><td>${escapeHTML(getColValue(row,'评价文本'))}</td><td>${escapeHTML(getColValue(row,'评价标签'))}</td><td>${escapeHTML(getColValue(row,'评价星级'))}</td><td>${escapeHTML(item.responsible||'无责')}</td><td>${escapeHTML(item.verify||'')}</td></tr>`;
+                        });
+                    } else {
+                        html += '<thead><tr><th>门店</th><th>商品名称</th><th>是否化冻</th><th>配送规范</th><th>顾客原声</th><th>退款凭证</th><th>核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const ct = coldThawManualMap.get(row._rowId) || {};
+                            html += `<tr><td>${escapeHTML(getColValue(row,'门店名称'))}</td><td>${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td>${escapeHTML(ct.isThawIssue||'是')}</td><td>${escapeHTML(ct.deliveryStandard||'规范')}</td><td>${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td>${getColValue(row,'退款凭证')?'有凭证':'无凭证'}</td><td>${escapeHTML(ct.verifyReason||'')}</td></tr>`;
+                        });
+                    }
+                    html += '</tbody></table></div>';
+                    return html;
+                };
+
+                const exportHTML = `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, viewport-fit=cover">
+            <title>${title}</title>
+            <style>
+        ${document.querySelector('style').innerHTML}
+        .header-menu-btn, .header-menu-dropdown { display: none !important; }
+        .cell-input, .cell-select { display: none; }
+        .btn-clear-filters { display: none !important; }
+        .filter-right-date { display: none !important; }
+        .filter-bar { display: none !important; }
+        .extra-block { display: none !important; }
+        .preview-bubble, .fullscreen-overlay { display: none !important; }
+        .pagination-bar { display: none !important; }
+        .footer-note { display: none !important; }
+        </style>
+        </head>
+        <body>
+        <div class="app-container">
+            <div class="page-header"><h1>📋 问单明细</h1></div>
+            <div class="stats-panel">
+                <div class="store-block"><span class="store-label">📍 当前门店</span><span class="store-name">${storeName}</span></div>
+                <div class="ratio-block">
+                    <span class="ratio-title">📊 数据概览</span>
+                    <span class="ratio-stat-simple">问单 ${filteredData.length} 条 | 冷链 ${filteredColdThawData.length} 条 | 差评 ${filteredBadReviewData.length} 条</span>
+                </div>
+            </div>
+            <h2 style="margin:20px 0 10px;font-size:1rem;">📋 问单明细</h2>
+            ${buildStaticTable(filteredData, 'default')}
+            <h2 style="margin:30px 0 10px;font-size:1rem;">❄️ 冷链明细</h2>
+            ${buildStaticTable(filteredColdThawData, 'coldThaw')}
+            <h2 style="margin:30px 0 10px;font-size:1rem;">💬 差评明细</h2>
+            ${buildStaticTable(filteredBadReviewData, 'badReview')}
+            <div class="footer-note">报告由问单明细工具生成 · ${storeName} · ${timestamp}</div>
+        </div>
+        </body>
+        </html>`;
+
+                const blob = new Blob([exportHTML], { type:'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = title + '.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast('📥 报告已导出：' + title + '.html');
+            }
+
+            function closeAllPopups() { if (currentPopup) { currentPopup.remove(); currentPopup = null; } }
+            document.addEventListener('click', function(e) {
+                if (currentPopup && !currentPopup.contains(e.target) && !e.target.closest('.cell-btn') && !e.target.closest('.cell-clickable') && !e.target.closest('.ratio-main-bubble') && !e.target.closest('.cell-view-btn')) {
+                    closeAllPopups();
+                }
+            });
+
+            function showDetailPopup(anchor, contentHTML, isPlainText = false) {
+                closeAllPopups();
+                const popup = document.createElement('div'); popup.className = 'detail-popup';
+                if (isPlainText) popup.innerHTML = `<div style="max-height:42vh;overflow-y:auto;white-space:pre-wrap;">${escapeHTML(contentHTML)}</div>`;
+                else popup.innerHTML = contentHTML;
+                document.body.appendChild(popup);
+                positionPopup(anchor, popup);
+                currentPopup = popup;
+                popup.querySelectorAll('.info-copy-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const txt = this.dataset.copy || '';
+                        if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => { this.classList.add('copied'); setTimeout(() => this.classList.remove('copied'), 1500); }); }
+                    });
+                });
+            }
+
+            function positionPopup(anchor, popup) {
+                const rect = anchor.getBoundingClientRect();
+                const pw = popup.offsetWidth || 200, ph = popup.offsetHeight || 150;
+                let top = rect.bottom + 8, left = rect.left + rect.width/2 - pw/2;
+                if (top + ph > window.innerHeight - 10) top = rect.top - ph - 8;
+                if (top < 10) top = 10;
+                if (left < 10) left = 10;
+                else if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+                popup.style.top = top + 'px'; popup.style.left = left + 'px';
+            }
+
+            function makePopupRow(label, value) {
+                return `<div class="info-row"><span class="info-label">${escapeHTML(label)}</span><span class="info-value">${escapeHTML(value||'-')}</span><span class="info-copy-btn" data-copy="${escapeHTML(value||'')}">📋 复制</span></div>`;
+            }
+
+            // 初始化
+            ['filterBar','tableWrapper','statsPanel'].forEach(id => document.getElementById(id).style.display='none');
+            openGuideView('📂 上传问单明细', '请上传Excel文件以开始分析',
+                '<div class="file-upload-area" id="initUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div>', '');
+            document.getElementById('initUploadArea').addEventListener('click', () => hiddenFileInput.click());
+            hiddenFileInput.addEventListener('change', e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); });
+        })();
+    </script>
+</body>
+</html>
