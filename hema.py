@@ -24,13 +24,12 @@ def get_file_icon(filename):
     return icons.get(ext, 'fa-file')
 
 def scan_directory_structure(base_path):
-    """扫描 hema 文件夹，返回嵌套结构。注意：忽略 index.html 自身"""
+    """扫描 hema 文件夹，跳过 index.html"""
     result = {}
     if not os.path.exists(base_path):
         return result
     for entry in sorted(os.listdir(base_path)):
         entry_path = os.path.join(base_path, entry)
-        # 跳过 index.html 本身（避免把自己扫进列表）
         if entry == 'index.html':
             continue
         if os.path.isdir(entry_path) and not entry.startswith('.'):
@@ -41,7 +40,7 @@ def scan_directory_structure(base_path):
                     folder_content['files'].append({
                         'name': item,
                         'icon': get_file_icon(item),
-                        'path': f'{entry}/{item}'          # 相对 index.html 的路径
+                        'path': f'{entry}/{item}'
                     })
                 elif os.path.isdir(item_path) and not item.startswith('.'):
                     sub_folder = {'name': item, 'files': []}
@@ -51,7 +50,7 @@ def scan_directory_structure(base_path):
                             sub_folder['files'].append({
                                 'name': sub_file,
                                 'icon': get_file_icon(sub_file),
-                                'path': f'{entry}/{item}/{sub_file}'   # 相对路径
+                                'path': f'{entry}/{item}/{sub_file}'
                             })
                     folder_content['folders'][item] = sub_folder
             result[entry] = folder_content
@@ -97,7 +96,7 @@ def update_html(html_path, folders):
     start_marker = '// ===== FILE_DATA_START ====='
     end_marker = '// ===== FILE_DATA_END ====='
     if start_marker not in content or end_marker not in content:
-        print("❌ HTML中缺少 fileData 标记，请先放置 index.html 模板")
+        print("❌ HTML中缺少 fileData 标记")
         return False
 
     start_idx = content.find(start_marker)
@@ -109,20 +108,20 @@ def update_html(html_path, folders):
 
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(content)
-    print("✅ fileData 已更新（路径相对于 index.html）")
+    print("✅ fileData 已更新")
     return True
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     hema_dir = os.path.join(script_dir, 'hema')
-    html_file = os.path.join(hema_dir, 'index.html')   # 网页位置调整
+    html_file = os.path.join(hema_dir, 'index.html')
 
     print("=" * 50)
-    print("📁 时间轴更新工具（index.html 位于 hema/ 内）")
+    print("📁 时间轴更新工具")
     print("=" * 50)
 
     if not os.path.exists(html_file):
-        print(f"❌ {html_file} 不存在，请先将 index.html 放入 hema 文件夹")
+        print(f"❌ {html_file} 不存在")
         return
     if not os.path.exists(hema_dir):
         os.makedirs(hema_dir, exist_ok=True)
