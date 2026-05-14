@@ -1,837 +1,407 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
     <title>盒马 · 常用文件</title>
     <meta name="author" content="少星">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="shortcut icon" href="./.img/favicon.ico">
+    <link rel="shortcut icon" href="https://mzsx.netlify.app/app/img/favicon.ico">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: linear-gradient(145deg, #f1f5f9 0%, #e4eaf1 100%);
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            height: 100vh;
-            overflow: hidden;
+            height: 100vh; overflow: hidden;
             padding: 1.5rem 1rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
         }
-
         .container {
-            width: 100%;
-            max-width: 520px;
-            height: calc(100vh - 3rem);
-            max-height: 900px;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            width: 100%; max-width: 520px;
+            height: calc(100vh - 3rem); max-height: 900px;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border-radius: 2rem;
-            box-shadow: 0 20px 40px -12px rgba(0, 20, 40, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            box-shadow: 0 20px 40px -12px rgba(0,20,40,0.12);
+            border: 1px solid rgba(255,255,255,0.5);
+            display: flex; flex-direction: column; overflow: hidden;
         }
-
-        .header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 24px 0 14px;
-            flex-shrink: 0;
-        }
-
-        .header .ats {
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
-            object-fit: cover;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04);
-        }
-
-        .nav-menu {
-            padding: 10px 0;
-            text-align: center;
-            background: rgba(248, 250, 252, 0.4);
-            border-bottom: 1px solid rgba(203, 221, 238, 0.4);
-            flex-shrink: 0;
-        }
-
-        .nav-menu .menu-text {
-            font-size: 1rem;
-            color: #2c5f7e;
-            font-weight: 500;
-        }
-
-        .nav-menu i {
-            margin-right: 6px;
-            color: #3e7b9f;
-        }
-
-        .dropdown-section {
-            padding: 18px 20px 0;
-            flex-shrink: 0;
-        }
-
-        .dropdown-wrapper {
-            position: relative;
-            margin-bottom: 16px;
-        }
-
+        .header { display: flex; justify-content: center; align-items: center; padding: 24px 0 14px; flex-shrink: 0; }
+        .header .ats { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; box-shadow: 0 6px 12px rgba(0,0,0,0.04); }
+        .nav-menu { padding: 10px 0; text-align: center; background: rgba(248,250,252,0.4); border-bottom: 1px solid rgba(203,221,238,0.4); flex-shrink: 0; }
+        .nav-menu .menu-text { font-size: 1rem; color: #2c5f7e; font-weight: 500; }
+        .nav-menu i { margin-right: 6px; color: #3e7b9f; }
+        .dropdown-section { padding: 18px 20px 0; flex-shrink: 0; }
+        .dropdown-wrapper { position: relative; margin-bottom: 16px; }
         .dropdown-trigger {
-            width: 100%;
-            background: #fff;
-            border: 1.5px solid #cfdfec;
-            border-radius: 1.4rem;
-            padding: 0.9rem 1.2rem;
-            font-size: 1rem;
-            font-weight: 500;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            color: #1f4662;
-            transition: all 0.2s;
+            width: 100%; background: #fff; border: 1.5px solid #cfdfec;
+            border-radius: 1.4rem; padding: 0.9rem 1.2rem;
+            font-size: 1rem; font-weight: 500; display: flex;
+            justify-content: space-between; align-items: center;
+            cursor: pointer; color: #1f4662; transition: all 0.2s;
         }
-
-        .dropdown-trigger:hover {
-            background: #fefefe;
-            border-color: #9bbad2;
+        .dropdown-trigger:hover { background: #fefefe; border-color: #9bbad2; }
+        .trigger-left { display: flex; align-items: center; gap: 10px; }
+        .trigger-left i, .trigger-left img {
+            font-size: 1.3rem; color: #2c7eb6;
+            width: 1.5rem; height: 1.5rem; object-fit: contain;
         }
-
-        .trigger-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .trigger-left i,
-        .trigger-left img {
-            font-size: 1.3rem;
-            color: #2c7eb6;
-            width: 1.5rem;
-            height: 1.5rem;
-            object-fit: contain;
-        }
-
-        .arrow-icon {
-            font-size: 1.2rem;
-            color: #7097b3;
-            transition: transform 0.25s;
-        }
-
-        .dropdown-wrapper.open .arrow-icon {
-            transform: rotate(180deg);
-        }
-
+        .arrow-icon { font-size: 1.2rem; color: #7097b3; transition: transform 0.25s; }
+        .dropdown-wrapper.open .arrow-icon { transform: rotate(180deg); }
         .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            width: 100%;
-            max-height: 280px;
-            background: #fff;
-            border-radius: 1.2rem;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
-            z-index: 100;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-8px);
+            position: absolute; top: calc(100% + 8px); left: 0; width: 100%;
+            max-height: 280px; background: #fff; border-radius: 1.2rem;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08); z-index: 100;
+            overflow-y: auto; overflow-x: hidden;
+            scrollbar-width: none; -ms-overflow-style: none;
+            opacity: 0; visibility: hidden; transform: translateY(-8px);
             transition: all 0.2s;
         }
-
-        .dropdown-menu::-webkit-scrollbar {
-            display: none;
-        }
-
-        .dropdown-wrapper.open .dropdown-menu {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .dropdown-menu ul {
-            list-style: none;
-            padding: 0.4rem 0;
-        }
-
+        .dropdown-menu::-webkit-scrollbar { display: none; }
+        .dropdown-wrapper.open .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+        .dropdown-menu ul { list-style: none; padding: 0.4rem 0; }
         .dropdown-menu li {
-            padding: 0.8rem 1.2rem;
-            cursor: pointer;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            color: #1e4d6b;
-            transition: background 0.15s;
-            word-break: break-word;
-            white-space: normal;
+            padding: 0.8rem 1.2rem; cursor: pointer; font-size: 0.95rem;
+            display: flex; align-items: center; gap: 0.8rem;
+            color: #1e4d6b; transition: background 0.15s;
+            word-break: break-word; white-space: normal;
         }
-
-        .dropdown-menu li:hover {
-            background: #f0f7fe;
-        }
-
-        .dropdown-menu li.active {
-            background: #e3f0fd;
-            color: #1c6b9e;
-        }
-
-        .dropdown-menu li i,
-        .dropdown-menu li img {
-            width: 22px;
-            color: #5882a8;
-            flex-shrink: 0;
-        }
-
-        .dropdown-menu li img {
-            object-fit: contain;
-            height: 1.2rem;
-        }
+        .dropdown-menu li:hover { background: #f0f7fe; }
+        .dropdown-menu li.active { background: #e3f0fd; color: #1c6b9e; }
+        .dropdown-menu li i, .dropdown-menu li img { width: 22px; color: #5882a8; flex-shrink: 0; }
+        .dropdown-menu li img { object-fit: contain; height: 1.2rem; }
 
         .content {
-            padding: 0 20px 0;
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            padding: 0 20px 0; flex: 1;
+            overflow-y: auto; overflow-x: hidden;
+            scrollbar-width: none; -ms-overflow-style: none;
         }
-
-        .content::-webkit-scrollbar {
-            display: none;
-        }
+        .content::-webkit-scrollbar { display: none; }
 
         .back-bar {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             padding: 20px 20px;
-            font-size: 0.95rem;
-            color: #3c7aa6;
-            cursor: pointer;
-            user-select: none;
-            flex-shrink: 0;
-            border-top: 1px solid rgba(203, 221, 238, 0.4);
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            visibility: hidden;
-            height: 0;
-            overflow: hidden;
+            font-size: 0.95rem; color: #3c7aa6;
+            cursor: pointer; user-select: none; flex-shrink: 0;
+            border-top: 1px solid rgba(203,221,238,0.4);
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            visibility: hidden; height: 0; overflow: hidden;
             transition: all 0.2s;
         }
+        .back-bar.visible { visibility: visible; height: auto; padding: 24px 20px; }
+        .back-bar i { margin-right: 8px; }
+        .back-bar span { font-weight: 500; }
 
-        .back-bar.visible {
-            visibility: visible;
-            height: auto;
-            padding: 24px 20px;
-        }
-
-        .back-bar i {
-            margin-right: 8px;
-        }
-
-        .back-bar span {
-            font-weight: 500;
-        }
-
-        .file-panel {
-            padding-top: 4px;
-            width: 100%;
-        }
-
+        .file-panel { padding-top: 4px; width: 100%; }
         .file-item {
-            display: flex;
-            align-items: center;
-            padding: 0.9rem 1rem;
-            margin-bottom: 8px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 1.2rem;
-            border: 1px solid #eaf1f9;
-            transition: all 0.2s;
-            width: 100%;
-            cursor: default;
+            display: flex; align-items: center; padding: 0.9rem 1rem;
+            margin-bottom: 8px; background: rgba(255,255,255,0.6);
+            border-radius: 1.2rem; border: 1px solid #eaf1f9;
+            transition: all 0.2s; width: 100%; cursor: default;
         }
-
-        .file-item.folder-entry {
-            cursor: pointer;
-        }
-
-        .file-item:hover {
-            transform: translateY(-2px);
-            background: #fff;
-            box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.06);
-        }
-
-        .file-item i {
-            font-size: 1.2rem;
-            margin-right: 12px;
-            color: #3c7aa6;
-            width: 22px;
-            flex-shrink: 0;
-        }
-
+        .file-item.folder-entry { cursor: pointer; }
+        .file-item:hover { transform: translateY(-2px); background: #fff; box-shadow: 0 8px 16px -8px rgba(0,0,0,0.06); }
+        .file-item i { font-size: 1.2rem; margin-right: 12px; color: #3c7aa6; width: 22px; flex-shrink: 0; }
         .file-item a {
-            text-decoration: none;
-            color: #1f4868;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            flex: 1;
-            min-width: 0;
-            word-break: break-word;
-            white-space: normal;
-            line-height: 1.4;
+            text-decoration: none; color: #1f4868; font-weight: 500;
+            display: flex; align-items: center; flex: 1;
+            min-width: 0; word-break: break-word; white-space: normal; line-height: 1.4;
         }
-
-        .file-item a span {
-            word-break: break-word;
-            white-space: normal;
-        }
-
-        .file-item a[href$=".html"]::after {
-            content: " 🌐";
-            margin-left: 6px;
-            font-size: 0.75rem;
-            opacity: 0.6;
-            flex-shrink: 0;
-        }
-
-        .empty-folder {
-            padding: 2rem;
-            text-align: center;
-            color: #7a99b3;
-            font-style: italic;
-        }
+        .file-item a span { word-break: break-word; white-space: normal; }
+        .file-item a[href$=".html"]::after { content: " 🌐"; margin-left: 6px; font-size: 0.75rem; opacity: 0.6; flex-shrink: 0; }
+        .empty-folder { padding: 2rem; text-align: center; color: #7a99b3; font-style: italic; }
 
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-
-            .container {
-                height: calc(100vh - 2rem);
-                max-height: none;
-                border-radius: 2rem;
-            }
-
-            .header {
-                padding: 16px 0 10px;
-            }
-
-            .header .ats {
-                width: 80px;
-                height: 80px;
-            }
-
-            .dropdown-section {
-                padding: 12px 16px 0;
-            }
-
-            .dropdown-menu {
-                max-height: 240px;
-            }
-
-            .back-bar.visible {
-                padding: 20px 16px;
-            }
+            body { padding: 1rem; }
+            .container { height: calc(100vh - 2rem); max-height: none; border-radius: 2rem; }
+            .header { padding: 16px 0 10px; }
+            .header .ats { width: 80px; height: 80px; }
+            .dropdown-section { padding: 12px 16px 0; }
+            .dropdown-menu { max-height: 240px; }
+            .back-bar.visible { padding: 20px 16px; }
         }
-
         @media (max-width: 480px) {
-            .header {
-                padding: 12px 0 8px;
-            }
-
-            .header .ats {
-                width: 60px;
-                height: 60px;
-            }
-
-            .nav-menu {
-                padding: 8px 0;
-            }
-
-            .dropdown-section {
-                padding: 8px 14px 0;
-            }
-
-            .content {
-                padding: 0 14px 0;
-            }
-
-            .dropdown-menu {
-                max-height: 200px;
-            }
-
-            .file-item {
-                padding: 0.8rem;
-            }
-
-            .back-bar.visible {
-                padding: 16px 14px;
-                font-size: 0.9rem;
-            }
+            .header { padding: 12px 0 8px; }
+            .header .ats { width: 60px; height: 60px; }
+            .nav-menu { padding: 8px 0; }
+            .dropdown-section { padding: 8px 14px 0; }
+            .content { padding: 0 14px 0; }
+            .dropdown-menu { max-height: 200px; }
+            .file-item { padding: 0.8rem; }
+            .back-bar.visible { padding: 16px 14px; font-size: 0.9rem; }
         }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="header">
-            <img src="./.img/favicon.ico" class="ats" alt="Logo">
-        </div>
-        <div class="nav-menu">
-            <span class="menu-text"><i class="fas fa-download"></i> 资源下载</span>
-        </div>
-        <div class="dropdown-section">
-            <div class="dropdown-wrapper" id="folderDropdown">
-                <div class="dropdown-trigger" id="dropdownTrigger">
-                    <div class="trigger-left">
-                        <span id="folderIconContainer">
-                            <i class="fa-solid fa-folder-open" id="folderIconI"></i>
-                            <img id="folderIconImg" src="" alt=""
-                                style="display: none; width: 1.5rem; height: 1.5rem; object-fit: contain;">
-                        </span>
-                        <span id="currentFolderName">HeMa</span>
-                    </div>
-                    <span class="arrow-icon">▼</span>
+<div class="container">
+    <div class="header">
+        <img src="https://mzsx.netlify.app/app/img/favicon.ico" class="ats" alt="Logo">
+    </div>
+    <div class="nav-menu">
+        <span class="menu-text"><i class="fas fa-download"></i> 资源下载</span>
+    </div>
+    <div class="dropdown-section">
+        <div class="dropdown-wrapper" id="folderDropdown">
+            <div class="dropdown-trigger" id="dropdownTrigger">
+                <div class="trigger-left">
+                    <span id="folderIconContainer">
+                        <i class="fa-solid fa-folder-open" id="folderIconI"></i>
+                        <img id="folderIconImg" src="" alt="" style="display: none; width: 1.5rem; height: 1.5rem; object-fit: contain;">
+                    </span>
+                    <span id="currentFolderName">HeMa</span>
                 </div>
-                <div class="dropdown-menu" id="dropdownMenu">
-                    <ul></ul>
-                </div>
+                <span class="arrow-icon">▼</span>
             </div>
-        </div>
-        <div class="content" id="downloads"></div>
-        <div class="back-bar" id="backButtonContainer">
-            <i class="fa-solid fa-arrow-left"></i> <span id="backButtonText">返回</span>
+            <div class="dropdown-menu" id="dropdownMenu"><ul></ul></div>
         </div>
     </div>
+    <div class="content" id="downloads"></div>
+    <div class="back-bar" id="backButtonContainer">
+        <i class="fa-solid fa-arrow-left"></i> <span id="backButtonText">返回</span>
+    </div>
+</div>
 
-    <script>
-        const HEMA_ICON_BASE64 = "data:image/webp;base64,UklGRmoDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSCABAAARkHNb27HH4u/YTlp1ts1anZ3OqpwxO9s2Ktu2bdvzvvc1eJ/ne56ImAAiIvetP3ZGko25p77PtiPhWBj4VEDkGVNcVlIY7kpU9xsGqkWPGb/xedUdhqVxZbVhmsAegQcYYABf3n349OnDu++wfiKw/wLF5wU0SVWDyGGJmkGSHK+mVua0mpUSgSar4Fd2okooThItU9Uves6KDgpqvkHx11iLip+Q/Hjv3jewFeNtJhFl/2QZm1+HkeMNaN1BVWAdJqK2QHP3A10LfhiatjxlTUt2Q/NgK1iHiXSvF9B62o4qYKrjH6lENAOsrpb+X6nMHCLr0vdg2xhPEknsNe4LWI7xqsOJpP36zkmZh1pcyfbgqulbjl26cGT9xPIgkgRWUDggJAIAADAMAJ0BKiAAIAA+tUSTQyOiDAYDAB8FonoAJ05QVQdwX27eAjALrB6AP2AySX0AOlE8nK7pPs1dTWAywNIFNB8df0X/xvYe/pP+b3gAMv4JbyZcQExzHsaXqYWMM0g3r3QV2H4yaDOuwAAA/ujkaOEdH9IaOkiSRHagNd1MyYcEoLzT70dA4zK/xCBezOPgmBiEzU635GUxFjInhBVMMMkQsotXt3aTs0IVSc0PFRSxqh9lz8JizKXeJoZV4blX0b/ygXL2fFxaJ6viTOXV3rZakhLjCnnGr1Pj4goSwVloI141eaS/+tiUZJALg2clpT36DHYqPQC3V/dS6CCwV6enbR7d83fLQAGmyIZETozk3r/h3H707B/w501/zVlQ9uoBQZ7Mrhcpve1c5aSP+lP/v/m0sE4Lp4GYBJf/xHd2PfeMHq5F1f//EChvvbeF/D8A7ZH4ybRec6JpCNfvHXp2t//Su2i/rHrKLU99jifVeaHJaO+OE3rT1Lulo3sqt3/Yfv/fplLyfnLmP2s9IgCDLs7C3xNRQd96/+r5DBLri22L0Ef88McoCBCOTNgiLWfv9kyXKlDaysoQsv94dwi6WBJFHf8npWGjqSV+XAmlb6w4j/0et6fsihbjSNBA5UiDnaWsasVoDQNFl/EEYj3LKWIdYFLB07cYBHPlAlp93QBOuhh1nm2hlcmHvk9voG09cLDZqy5RBztP9+Zi55ZgAAAA";
+<script>
+    const HEMA_ICON_BASE64 = "data:image/webp;base64,UklGRmoDAABXRUJQVlA4WAoAAAAQAAAAHwAAHwAAQUxQSCABAAARkHNb27HH4u/YTlp1ts1anZ3OqpwxO9s2Ktu2bdvzvvc1eJ/ne56ImAAiIvetP3ZGko25p77PtiPhWBj4VEDkGVNcVlIY7kpU9xsGqkWPGb/xedUdhqVxZbVhmsAegQcYYABf3n349OnDu++wfiKw/wLF5wU0SVWDyGGJmkGSHK+mVua0mpUSgSar4Fd2okooThItU9Uves6KDgpqvkHx11iLip+Q/Hjv3jewFeNtJhFl/2QZm1+HkeMNaN1BVWAdJqK2QHP3A10LfhiatjxlTUt2Q/NgK1iHiXSvF9B62o4qYKrjH6lENAOsrpb+X6nMHCLr0vdg2xhPEknsNe4LWI7xqsOJpP36zkmZh1pcyfbgqulbjl26cGT9xPIgkgRWUDggJAIAADAMAJ0BKiAAIAA+tUSTQyOiDAYDAB8FonoAJ05QVQdwX27eAjALrB6AP2AySX0AOlE8nK7pPs1dTWAywNIFNB8df0X/xvYe/pP+b3gAMv4JbyZcQExzHsaXqYWMM0g3r3QV2H4yaDOuwAAA/ujkaOEdH9IaOkiSRHagNd1MyYcEoLzT70dA4zK/xCBezOPgmBiEzU635GUxFjInhBVMMMkQsotXt3aTs0IVSc0PFRSxqh9lz8JizKXeJoZV4blX0b/ygXL2fFxaJ6viTOXV3rZakhLjCnnGr1Pj4goSwVloI141eaS/+tiUZJALg2clpT36DHYqPQC3V/dS6CCwV6enbR7d83fLQAGmyIZETozk3r/h3H707B/w501/zVlQ9uoBQZ7Mrhcpve1c5aSP+lP/v/m0sE4Lp4GYBJf/xHd2PfeMHq5F1f//EChvvbeF/D8A7ZH4ybRec6JpCNfvHXp2t//Su2i/rHrKLU99jifVeaHJaO+OE3rT1Lulo3sqt3/Yfv/fplLyfnLmP2s9IgCDLs7C3xNRQd96/+r5DBLri22L0Ef88McoCBCOTNgiLWfv9kyXKlDaysoQsv94dwi6WBJFHf8npWGjqSV+XAmlb6w4j/0et6fsihbjSNBA5UiDnaWsasVoDQNFl/EEYj3LKWIdYFLB07cYBHPlAlp93QBOuhh1nm2hlcmHvk9voG09cLDZqy5RBztP9+Zi55ZgAAAA";
 
-        const FOLDER_ICON_MAP = {
-            '1-在线工具': { type: 'icon', value: 'fa-solid fa-globe' },
-            '2-Chrome扩展': { type: 'icon', value: 'fa-brands fa-chrome' },
-            '3-Python脚本': { type: 'icon', value: 'fa-brands fa-python' },
-            '4-Mac': { type: 'icon', value: 'fa-brands fa-apple' },
-            '5-Windows': { type: 'icon', value: 'fa-brands fa-windows' },
-            '6-Android': { type: 'icon', value: 'fa-brands fa-android' },
-            'default': { type: 'icon', value: 'fa-solid fa-folder-open' }
-        };
+    const FOLDER_ICON_MAP = {
+        '1-在线工具': { type: 'icon', value: 'fa-solid fa-globe' },
+        '2-Chrome扩展': { type: 'icon', value: 'fa-brands fa-chrome' },
+        '3-Python脚本': { type: 'icon', value: 'fa-brands fa-python' },
+        '4-Mac': { type: 'icon', value: 'fa-brands fa-apple' },
+        '5-Windows': { type: 'icon', value: 'fa-brands fa-windows' },
+        '6-Android': { type: 'icon', value: 'fa-brands fa-android' },
+        'default': { type: 'icon', value: 'fa-solid fa-folder-open' }
+    };
 
-        function resolveFolderIcon(folderId) {
-            if (FOLDER_ICON_MAP[folderId]) return FOLDER_ICON_MAP[folderId];
-            if (/HeMa/i.test(folderId)) return { type: 'image', value: HEMA_ICON_BASE64 };
-            const match = folderId.match(/^(\d+)-/);
-            if (match) {
-                const prefixMap = {
-                    '1': 'fa-solid fa-globe',
-                    '2': 'fa-brands fa-chrome',
-                    '3': 'fa-brands fa-python',
-                    '4': 'fa-brands fa-apple',
-                    '5': 'fa-brands fa-windows',
-                    '6': 'fa-brands fa-android',
-                };
-                if (prefixMap[match[1]]) return { type: 'icon', value: prefixMap[match[1]] };
-            }
-            return FOLDER_ICON_MAP['default'];
+    function resolveFolderIcon(folderId) {
+        if (FOLDER_ICON_MAP[folderId]) return FOLDER_ICON_MAP[folderId];
+        if (/HeMa/i.test(folderId)) return { type: 'image', value: HEMA_ICON_BASE64 };
+        const match = folderId.match(/^(\d+)-/);
+        if (match) {
+            const prefixMap = {
+                '1': 'fa-solid fa-globe',
+                '2': 'fa-brands fa-chrome',
+                '3': 'fa-brands fa-python',
+                '4': 'fa-brands fa-apple',
+                '5': 'fa-brands fa-windows',
+                '6': 'fa-brands fa-android',
+            };
+            if (prefixMap[match[1]]) return { type: 'icon', value: prefixMap[match[1]] };
         }
+        return FOLDER_ICON_MAP['default'];
+    }
 
-        // ===== FILE_DATA_START =====
+    // ===== FILE_DATA_START =====
     const fileData = {
-        '0-在线工具': {
-            files: [
-                { name: '3-单袋比.html', icon: 'fa-file-code', path: '0-在线工具/3-单袋比.html' },
-                { name: '1-日报-迭代最新.html', icon: 'fa-file-code', path: '0-在线工具/1-日报-迭代最新.html' },
-                { name: '2-问单.html', icon: 'fa-file-code', path: '0-在线工具/2-问单.html' },
-                { name: '0-文字转语音.html', icon: 'fa-file-code', path: '0-在线工具/0-文字转语音.html' },
-            ],
-            folders: {
-                '5-骑手': {
-                    name: '5-骑手',
-                    files: [
-                        { name: '3-骑手-考勤矩阵.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/3-骑手-考勤矩阵.html' },
-                        { name: '1-骑手-早退速查.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/1-骑手-早退速查.html' },
-                        { name: '2-骑手-轨迹分析.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/2-骑手-轨迹分析.html' },
-                        { name: '4-骑手-虚拟数据.html', icon: 'fa-file-code', path: '0-在线工具/5-骑手/4-骑手-虚拟数据.html' },
-                    ]
-                },
-                '6-功能网页': {
-                    name: '6-功能网页',
-                    files: [
-                        { name: '6-文件目录树.html', icon: 'fa-file-code', path: '0-在线工具/6-功能网页/6-文件目录树.html' },
-                        { name: '1-Excel转vCard.html', icon: 'fa-file-code', path: '0-在线工具/6-功能网页/1-Excel转vCard.html' },
-                        { name: 'TXT转通讯录.html', icon: 'fa-file-code', path: '0-在线工具/6-功能网页/TXT转通讯录.html' },
-                    ]
-                },
-                '单袋比': {
-                    name: '单袋比',
-                    files: [
-                        { name: '1-单袋比-基础版.html', icon: 'fa-file-code', path: '0-在线工具/单袋比/1-单袋比-基础版.html' },
-                        { name: '2-单袋比-增强版.html', icon: 'fa-file-code', path: '0-在线工具/单袋比/2-单袋比-增强版.html' },
-                    ]
-                },
-                '日报': {
-                    name: '日报',
-                    files: [
-                        { name: '日报-自动化-统一储存-修饰.html', icon: 'fa-file-code', path: '0-在线工具/日报/日报-自动化-统一储存-修饰.html' },
-                        { name: '1-日报-基础版.html', icon: 'fa-file-code', path: '0-在线工具/日报/1-日报-基础版.html' },
-                        { name: '2-日报-Pro.html', icon: 'fa-file-code', path: '0-在线工具/日报/2-日报-Pro.html' },
-                        { name: '日报-自动引导.html', icon: 'fa-file-code', path: '0-在线工具/日报/日报-自动引导.html' },
-                        { name: '3-日报-ProMax.html', icon: 'fa-file-code', path: '0-在线工具/日报/3-日报-ProMax.html' },
-                    ]
-                },
-            }
-        },
-        '1-HeMa': {
-            files: [
-                { name: '4-扣款记录.xlsx', icon: 'fa-file-excel', path: '1-HeMa/4-扣款记录.xlsx' },
-                { name: '7-定制版二维码生成器.zip', icon: 'fa-file-archive', path: '1-HeMa/7-定制版二维码生成器.zip' },
-                { name: '6-快捷指令-盒马.zip', icon: 'fa-file-archive', path: '1-HeMa/6-快捷指令-盒马.zip' },
-                { name: '3-单袋比.xlsx', icon: 'fa-file-excel', path: '1-HeMa/3-单袋比.xlsx' },
-                { name: '2-问单.xlsx', icon: 'fa-file-excel', path: '1-HeMa/2-问单.xlsx' },
-                { name: '1-日报.xlsx', icon: 'fa-file-excel', path: '1-HeMa/1-日报.xlsx' },
-            ],
-            folders: {
-            }
-        },
-        '2-Chrome扩展': {
-            files: [
-                { name: '3-高级自定义标签页.zip', icon: 'fa-file-archive', path: '2-Chrome扩展/3-高级自定义标签页.zip' },
-                { name: '1-二维码生成-弹窗版.zip', icon: 'fa-file-archive', path: '2-Chrome扩展/1-二维码生成-弹窗版.zip' },
-                { name: '视频变速器.zip', icon: 'fa-file-archive', path: '2-Chrome扩展/视频变速器.zip' },
-                { name: '2-二维码生成-悬浮窗.zip', icon: 'fa-file-archive', path: '2-Chrome扩展/2-二维码生成-悬浮窗.zip' },
-            ],
-            folders: {
-            }
-        },
-        '3-Python脚本': {
-            files: [
-                { name: '4-一键分类存放.py', icon: 'fa-file-code', path: '3-Python脚本/4-一键分类存放.py' },
-                { name: '1-骑手指标分析.py', icon: 'fa-file-code', path: '3-Python脚本/1-骑手指标分析.py' },
-                { name: '删除修改30天文件.py', icon: 'fa-file-code', path: '3-Python脚本/删除修改30天文件.py' },
-                { name: '自动归档.py', icon: 'fa-file-code', path: '3-Python脚本/自动归档.py' },
-                { name: '3-MP3格式转换.py', icon: 'fa-file-code', path: '3-Python脚本/3-MP3格式转换.py' },
-                { name: '将TXT文件转VCF格式-带界面.py', icon: 'fa-file-code', path: '3-Python脚本/将TXT文件转VCF格式-带界面.py' },
-                { name: '删除创建30天文件.py', icon: 'fa-file-code', path: '3-Python脚本/删除创建30天文件.py' },
-                { name: '0-拖入py并运行.command', icon: 'fa-file', path: '3-Python脚本/0-拖入py并运行.command' },
-                { name: '2-Excel转vCard助手.zip', icon: 'fa-file-archive', path: '3-Python脚本/2-Excel转vCard助手.zip' },
-            ],
-            folders: {
-            }
-        },
-        '4-Mac': {
-            files: [
-                { name: '显示隐藏文件.zip', icon: 'fa-file-archive', path: '4-Mac/显示隐藏文件.zip' },
-                { name: '13-一键文件夹目录树py.zip', icon: 'fa-file-archive', path: '4-Mac/13-一键文件夹目录树py.zip' },
-                { name: '1-MacOS屏蔽更新补丁.dmg', icon: 'fa-file', path: '4-Mac/1-MacOS屏蔽更新补丁.dmg' },
-                { name: 'Python脚本运行器.command', icon: 'fa-file', path: '4-Mac/Python脚本运行器.command' },
-                { name: '12-挂载nfts分区读写.zip', icon: 'fa-file-archive', path: '4-Mac/12-挂载nfts分区读写.zip' },
-                { name: '单硬盘挂载EFI分区2.0.command', icon: 'fa-file', path: '4-Mac/单硬盘挂载EFI分区2.0.command' },
-                { name: '11-磁盘没有正常推出.zip', icon: 'fa-file-archive', path: '4-Mac/11-磁盘没有正常推出.zip' },
-            ],
-            folders: {
-            }
-        },
-        '5-Windows': {
-            files: [
-                { name: 'MAS激活.zip', icon: 'fa-file-archive', path: '5-Windows/MAS激活.zip' },
-                { name: 'BCM94360Z4.zip', icon: 'fa-file-archive', path: '5-Windows/BCM94360Z4.zip' },
-                { name: '一键开关Defender.zip', icon: 'fa-file-archive', path: '5-Windows/一键开关Defender.zip' },
-                { name: 'office365.zip', icon: 'fa-file-archive', path: '5-Windows/office365.zip' },
-                { name: 'NFC门禁卡软件.exe', icon: 'fa-file', path: '5-Windows/NFC门禁卡软件.exe' },
-                { name: 'KMS激活.zip', icon: 'fa-file-archive', path: '5-Windows/KMS激活.zip' },
-            ],
-            folders: {
-            }
-        },
-        '6-Android': {
-            files: [
-                { name: '时间窗_v1.5.4.apk', icon: 'fa-file', path: '6-Android/时间窗_v1.5.4.apk' },
-                { name: 'via浏览器.apk', icon: 'fa-file', path: '6-Android/via浏览器.apk' },
-                { name: '搜狗输入法.apk', icon: 'fa-file', path: '6-Android/搜狗输入法.apk' },
-                { name: '百度输入法.apk.zip', icon: 'fa-file-archive', path: '6-Android/百度输入法.apk.zip' },
-                { name: '应用提取.apk', icon: 'fa-file', path: '6-Android/应用提取.apk' },
-                { name: 'T9_v1.3.apk', icon: 'fa-file', path: '6-Android/T9_v1.3.apk' },
-                { name: '通讯录助手_v1.7.2.apk', icon: 'fa-file', path: '6-Android/通讯录助手_v1.7.2.apk' },
-                { name: '条码扫描器_v1.24.2.apk', icon: 'fa-file', path: '6-Android/条码扫描器_v1.24.2.apk' },
-            ],
-            folders: {
-            }
-        },
-        '7-测试': {
-            files: [
-                { name: '4-骑手-虚拟数据.html', icon: 'fa-file-code', path: '7-测试/4-骑手-虚拟数据.html' },
-            ],
-            folders: {
-                '1-日报': {
-                    name: '1-日报',
-                    files: [
-                        { name: '2-日报-ProMax2.html', icon: 'fa-file-code', path: '7-测试/1-日报/2-日报-ProMax2.html' },
-                        { name: '1-日报-Pro2.html', icon: 'fa-file-code', path: '7-测试/1-日报/1-日报-Pro2.html' },
-                        { name: '2-日报-ProMax3.html', icon: 'fa-file-code', path: '7-测试/1-日报/2-日报-ProMax3.html' },
-                        { name: '2-日报-ProMax4.html', icon: 'fa-file-code', path: '7-测试/1-日报/2-日报-ProMax4.html' },
-                        { name: '1-骑手热力-日报.html', icon: 'fa-file-code', path: '7-测试/1-日报/1-骑手热力-日报.html' },
-                        { name: '1-日报-Pro2调整.html', icon: 'fa-file-code', path: '7-测试/1-日报/1-日报-Pro2调整.html' },
-                        { name: '2-日报-ProMax5.html', icon: 'fa-file-code', path: '7-测试/1-日报/2-日报-ProMax5.html' },
-                        { name: '2-日报-ProMax6.html', icon: 'fa-file-code', path: '7-测试/1-日报/2-日报-ProMax6.html' },
-                        { name: '2-日报-ProMax6微调.html', icon: 'fa-file-code', path: '7-测试/1-日报/2-日报-ProMax6微调.html' },
-                        { name: '1-日报-Pro1.html', icon: 'fa-file-code', path: '7-测试/1-日报/1-日报-Pro1.html' },
-                    ]
-                },
-                '2-单袋比': {
-                    name: '2-单袋比',
-                    files: [
-                        { name: '单袋比-第一版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-第一版.html' },
-                        { name: '4-骑手-单袋比-重铸版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/4-骑手-单袋比-重铸版.html' },
-                        { name: '单袋比十主题版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比十主题版.html' },
-                        { name: '单袋比-重铸版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-重铸版.html' },
-                        { name: '4-骑手-单袋比-重名检测独立.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/4-骑手-单袋比-重名检测独立.html' },
-                        { name: '单袋比-第二版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-第二版.html' },
-                        { name: '单袋比-第三版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-第三版.html' },
-                        { name: '单袋比-第三版-优化.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-第三版-优化.html' },
-                        { name: '4-骑手-单袋比-重名检测屏蔽.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/4-骑手-单袋比-重名检测屏蔽.html' },
-                        { name: '单袋比-重铸版2.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-重铸版2.html' },
-                        { name: '单袋比-重铸版-优化2-第一版.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-重铸版-优化2-第一版.html' },
-                        { name: '单袋比-重名-重构.html', icon: 'fa-file-code', path: '7-测试/2-单袋比/单袋比-重名-重构.html' },
-                    ]
-                },
-                '3-其他': {
-                    name: '3-其他',
-                    files: [
-                        { name: '数据下载.html', icon: 'fa-file-code', path: '7-测试/3-其他/数据下载.html' },
-                        { name: '运营数据.html', icon: 'fa-file-code', path: '7-测试/3-其他/运营数据.html' },
-                        { name: '测试数据生成.html', icon: 'fa-file-code', path: '7-测试/3-其他/测试数据生成.html' },
-                    ]
-                },
-            }
-        },
+        // 运行 hema.py 自动更新
     };
     // ===== FILE_DATA_END =====
 
-        (function () {
-            function extractSortNumber(name) {
-                const m = name.match(/^(\d+)-/);
-                return m ? parseInt(m[1], 10) : 9999;
-            }
-            function getDisplayName(name) { return name.replace(/^\d+-/, ''); }
-            function getFileDisplayName(name) { return name.replace(/^\d+-/, ''); }
+    (function() {
+        function extractSortNumber(name) {
+            const m = name.match(/^(\d+)-/);
+            return m ? parseInt(m[1], 10) : 9999;
+        }
+        function getDisplayName(name) { return name.replace(/^\d+-/, ''); }
+        function getFileDisplayName(name) { return name.replace(/^\d+-/, ''); }
 
-            function getFolderIconHtml(folderId) {
-                const config = resolveFolderIcon(folderId);
-                if (config.type === 'image') return `<img src="${config.value}" style="width:1.2rem;height:1.2rem;object-fit:contain;">`;
-                return `<i class="${config.value}"></i>`;
-            }
+        function getFolderIconHtml(folderId) {
+            const config = resolveFolderIcon(folderId);
+            if (config.type === 'image') return `<img src="${config.value}" style="width:1.2rem;height:1.2rem;object-fit:contain;">`;
+            return `<i class="${config.value}"></i>`;
+        }
 
-            const wrapper = document.getElementById('folderDropdown');
-            const trigger = document.getElementById('dropdownTrigger');
-            const folderNameSpan = document.getElementById('currentFolderName');
-            const dropdownMenuUl = document.querySelector('#dropdownMenu ul');
-            const contentDiv = document.getElementById('downloads');
-            const backBar = document.getElementById('backButtonContainer');
-            const backText = document.getElementById('backButtonText');
-            const iconI = document.getElementById('folderIconI');
-            const iconImg = document.getElementById('folderIconImg');
+        const wrapper = document.getElementById('folderDropdown');
+        const trigger = document.getElementById('dropdownTrigger');
+        const folderNameSpan = document.getElementById('currentFolderName');
+        const dropdownMenuUl = document.querySelector('#dropdownMenu ul');
+        const contentDiv = document.getElementById('downloads');
+        const backBar = document.getElementById('backButtonContainer');
+        const backText = document.getElementById('backButtonText');
+        const iconI = document.getElementById('folderIconI');
+        const iconImg = document.getElementById('folderIconImg');
 
-            let currentPath = [];
+        let currentPath = [];
 
-            function buildUIContainers() {
-                dropdownMenuUl.innerHTML = '';
-                const ids = Object.keys(fileData).filter(id => id !== 'root');
-                ids.sort((a, b) => extractSortNumber(a) - extractSortNumber(b));
-                ids.forEach(fid => {
-                    const li = document.createElement('li');
-                    li.dataset.folder = fid;
-                    li.innerHTML = `${getFolderIconHtml(fid)} ${getDisplayName(fid)}`;
-                    dropdownMenuUl.appendChild(li);
-                });
-            }
+        function buildUIContainers() {
+            dropdownMenuUl.innerHTML = '';
+            const ids = Object.keys(fileData).filter(id => id !== 'root');
+            ids.sort((a, b) => extractSortNumber(a) - extractSortNumber(b));
+            ids.forEach(fid => {
+                const li = document.createElement('li');
+                li.dataset.folder = fid;
+                li.innerHTML = `${getFolderIconHtml(fid)} ${getDisplayName(fid)}`;
+                dropdownMenuUl.appendChild(li);
+            });
+        }
 
-            function renderCurrentLevel() {
-                if (currentPath.length === 0) {
-                    contentDiv.innerHTML = '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 请选择一个文件夹</div>';
-                    updateBackButton();
-                    return;
-                }
-                const topId = currentPath[0];
-                let node = fileData[topId];
-                if (!node) { contentDiv.innerHTML = '<div class="empty-folder">文件夹不存在</div>'; updateBackButton(); return; }
-                for (let i = 1; i < currentPath.length; i++) {
-                    const subId = currentPath[i];
-                    if (node.folders && node.folders[subId]) node = node.folders[subId];
-                    else { contentDiv.innerHTML = '<div class="empty-folder">子文件夹不存在</div>'; updateBackButton(); return; }
-                }
-
-                const files = node.files || [];
-                const folders = node.folders || {};
-                let html = '';
-
-                // 合并文件和文件夹，统一排序
-                const allItems = [];
-
-                // 收集子文件夹
-                Object.entries(folders).forEach(([sid, folder]) => {
-                    allItems.push({
-                        type: 'folder',
-                        sortKey: extractSortNumber(folder.name || sid),
-                        displayName: getFileDisplayName(folder.name || sid),
-                        subFolderId: sid
-                    });
-                });
-
-                // 收集文件
-                files.forEach(file => {
-                    const isHtml = file.name.toLowerCase().endsWith('.html');
-                    const targetAttr = isHtml ? ' target="_blank" rel="noopener noreferrer"' : '';
-                    allItems.push({
-                        type: 'file',
-                        sortKey: extractSortNumber(file.name),
-                        displayName: getFileDisplayName(file.name),
-                        icon: file.icon,
-                        path: file.path,
-                        originalName: file.name,
-                        targetAttr: targetAttr
-                    });
-                });
-
-                // 统一按数字前缀排序
-                allItems.sort((a, b) => a.sortKey - b.sortKey);
-
-                // 渲染
-                if (allItems.length === 0) {
-                    html += '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 暂无文件</div>';
-                } else {
-                    allItems.forEach(item => {
-                        if (item.type === 'folder') {
-                            html += `<div class="file-item folder-entry" data-subfolder="${item.subFolderId}">
-                    <i class="fa-solid fa-folder-open" style="color:#d97706;"></i>
-                    <span style="font-weight:500; color:#1f4868;">${item.displayName}</span>
-                </div>`;
-                        } else {
-                            html += `<div class="file-item"><a href="${item.path}"${item.targetAttr} data-original-name="${item.originalName}"><i class="fas ${item.icon}"></i><span>「${item.displayName}」</span></a></div>`;
-                        }
-                    });
-                }
-
-                contentDiv.innerHTML = html;
-                bindEventsInPanel();
+        function renderCurrentLevel() {
+            if (currentPath.length === 0) {
+                contentDiv.innerHTML = '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 请选择一个文件夹</div>';
                 updateBackButton();
+                return;
+            }
+            const topId = currentPath[0];
+            let node = fileData[topId];
+            if (!node) { contentDiv.innerHTML = '<div class="empty-folder">文件夹不存在</div>'; updateBackButton(); return; }
+            for (let i = 1; i < currentPath.length; i++) {
+                const subId = currentPath[i];
+                if (node.folders && node.folders[subId]) node = node.folders[subId];
+                else { contentDiv.innerHTML = '<div class="empty-folder">子文件夹不存在</div>'; updateBackButton(); return; }
             }
 
-            function bindEventsInPanel() {
-                contentDiv.querySelectorAll('.folder-entry').forEach(entry => {
-                    entry.addEventListener('click', function (e) {
-                        const subId = this.dataset.subfolder;
-                        if (subId) { currentPath.push(subId); renderCurrentLevel(); }
-                    });
+            const files = node.files || [];
+            const folders = node.folders || {};
+            let html = '';
+
+            // 合并文件和文件夹，统一按数字前缀排序
+            const allItems = [];
+
+            Object.entries(folders).forEach(([sid, folder]) => {
+                allItems.push({
+                    type: 'folder',
+                    sortKey: extractSortNumber(folder.name || sid),
+                    displayName: getFileDisplayName(folder.name || sid),
+                    subFolderId: sid
                 });
-                contentDiv.querySelectorAll('a[href]').forEach(link => {
-                    link.removeEventListener('click', handleDownload);
-                    link.addEventListener('click', handleDownload);
-                    if (link.href.toLowerCase().endsWith('.html')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
-                    if (!link.dataset.originalName) {
-                        const href = link.getAttribute('href') || '';
-                        link.dataset.originalName = href.substring(href.lastIndexOf('/') + 1);
+            });
+
+            files.forEach(file => {
+                const isHtml = file.name.toLowerCase().endsWith('.html');
+                const targetAttr = isHtml ? ' target="_blank" rel="noopener noreferrer"' : '';
+                allItems.push({
+                    type: 'file',
+                    sortKey: extractSortNumber(file.name),
+                    displayName: getFileDisplayName(file.name),
+                    icon: file.icon,
+                    path: file.path,
+                    originalName: file.name,
+                    targetAttr: targetAttr
+                });
+            });
+
+            allItems.sort((a, b) => a.sortKey - b.sortKey);
+
+            if (allItems.length === 0) {
+                html += '<div class="empty-folder"><i class="fa-regular fa-folder-open"></i> 暂无文件</div>';
+            } else {
+                allItems.forEach(item => {
+                    if (item.type === 'folder') {
+                        html += `<div class="file-item folder-entry" data-subfolder="${item.subFolderId}">
+                            <i class="fa-solid fa-folder-open" style="color:#d97706;"></i>
+                            <span style="font-weight:500; color:#1f4868;">${item.displayName}</span>
+                        </div>`;
+                    } else {
+                        html += `<div class="file-item"><a href="${item.path}"${item.targetAttr} data-original-name="${item.originalName}"><i class="fas ${item.icon}"></i><span>「${item.displayName}」</span></a></div>`;
                     }
                 });
             }
 
-            function updateBackButton() {
-                if (currentPath.length > 1) {
-                    backBar.classList.add('visible');
-                    const prevPath = currentPath.slice(0, -1);
-                    const prevNode = getNodeByPath(prevPath);
-                    backText.textContent = prevNode ? (getFileDisplayName(prevNode.name) || '上级') : '返回';
-                } else {
-                    backBar.classList.remove('visible');
-                }
-            }
+            contentDiv.innerHTML = html;
+            bindEventsInPanel();
+            updateBackButton();
+        }
 
-            function getNodeByPath(pathArr) {
-                if (pathArr.length === 0) return null;
-                let node = fileData[pathArr[0]];
-                for (let i = 1; i < pathArr.length; i++) { node = node && node.folders ? node.folders[pathArr[i]] : null; if (!node) return null; }
-                return node;
-            }
-
-            function switchTopFolder(folderId) {
-                currentPath = [folderId];
-                renderCurrentLevel();
-                folderNameSpan.textContent = getDisplayName(folderId);
-                updateTopFolderIcon(folderId);
-                document.querySelectorAll('#dropdownMenu li').forEach(li => li.classList.toggle('active', li.dataset.folder === folderId));
-                wrapper.classList.remove('open');
-            }
-
-            function updateTopFolderIcon(folderId) {
-                const config = resolveFolderIcon(folderId);
-                if (config.type === 'image') {
-                    iconI.style.display = 'none';
-                    iconImg.src = config.value;
-                    iconImg.style.display = 'inline-block';
-                } else {
-                    iconImg.style.display = 'none';
-                    iconI.style.display = 'inline-block';
-                    iconI.className = config.value;
-                }
-            }
-
-            function handleDownload(e) {
-                const href = this.getAttribute('href') || '';
-                if (!href || href.startsWith('javascript:')) return;
-                if (href.toLowerCase().endsWith('.html')) return;
-                e.preventDefault();
-                let originalName = this.dataset.originalName;
-                if (!originalName) originalName = href.substring(href.lastIndexOf('/') + 1);
-                const baseName = getFileDisplayName(originalName);
-                const now = new Date();
-                const dateStr = now.getFullYear().toString().slice(-2) + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0');
-                const lastDot = baseName.lastIndexOf('.');
-                const newName = lastDot > 0 ? baseName.slice(0, lastDot) + '-' + dateStr + baseName.slice(lastDot) : baseName + '-' + dateStr;
-                const a = document.createElement('a');
-                a.href = href;
-                a.download = newName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            }
-
-            backBar.addEventListener('click', () => { if (currentPath.length > 1) { currentPath.pop(); renderCurrentLevel(); } });
-
-            buildUIContainers();
-            if (Object.keys(fileData).length > 0) {
-                const ids = Object.keys(fileData).filter(id => id !== 'root').sort((a, b) => extractSortNumber(a) - extractSortNumber(b));
-                if (ids.length) switchTopFolder(ids[0]);
-            } else {
-                contentDiv.innerHTML = '<div class="empty-folder">暂无可用文件夹</div>';
-            }
-
-            trigger.addEventListener('click', e => { e.stopPropagation(); wrapper.classList.toggle('open'); });
-            dropdownMenuUl.addEventListener('click', e => {
-                const li = e.target.closest('li');
-                if (!li) return;
-                e.stopPropagation();
-                switchTopFolder(li.dataset.folder);
+        function bindEventsInPanel() {
+            contentDiv.querySelectorAll('.folder-entry').forEach(entry => {
+                entry.addEventListener('click', function(e) {
+                    const subId = this.dataset.subfolder;
+                    if (subId) { currentPath.push(subId); renderCurrentLevel(); }
+                });
             });
-            document.addEventListener('click', e => { if (!wrapper.contains(e.target)) wrapper.classList.remove('open'); });
-            document.addEventListener('keydown', e => { if (e.key === 'Escape') wrapper.classList.remove('open'); });
-        })();
-    </script>
-</body>
+            contentDiv.querySelectorAll('a[href]').forEach(link => {
+                link.removeEventListener('click', handleDownload);
+                link.addEventListener('click', handleDownload);
+                if (link.href.toLowerCase().endsWith('.html')) { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+                if (!link.dataset.originalName) {
+                    const href = link.getAttribute('href') || '';
+                    link.dataset.originalName = href.substring(href.lastIndexOf('/') + 1);
+                }
+            });
+        }
 
+        function updateBackButton() {
+            if (currentPath.length > 1) {
+                backBar.classList.add('visible');
+                const prevPath = currentPath.slice(0, -1);
+                const prevNode = getNodeByPath(prevPath);
+                backText.textContent = prevNode ? (getFileDisplayName(prevNode.name) || '上级') : '返回';
+            } else {
+                backBar.classList.remove('visible');
+            }
+        }
+
+        function getNodeByPath(pathArr) {
+            if (pathArr.length === 0) return null;
+            let node = fileData[pathArr[0]];
+            for (let i = 1; i < pathArr.length; i++) { node = node && node.folders ? node.folders[pathArr[i]] : null; if (!node) return null; }
+            return node;
+        }
+
+        function switchTopFolder(folderId) {
+            currentPath = [folderId];
+            renderCurrentLevel();
+            folderNameSpan.textContent = getDisplayName(folderId);
+            updateTopFolderIcon(folderId);
+            document.querySelectorAll('#dropdownMenu li').forEach(li => li.classList.toggle('active', li.dataset.folder === folderId));
+            wrapper.classList.remove('open');
+        }
+
+        function updateTopFolderIcon(folderId) {
+            const config = resolveFolderIcon(folderId);
+            if (config.type === 'image') {
+                iconI.style.display = 'none';
+                iconImg.src = config.value;
+                iconImg.style.display = 'inline-block';
+            } else {
+                iconImg.style.display = 'none';
+                iconI.style.display = 'inline-block';
+                iconI.className = config.value;
+            }
+        }
+
+        function handleDownload(e) {
+            const href = this.getAttribute('href') || '';
+            if (!href || href.startsWith('javascript:')) return;
+            if (href.toLowerCase().endsWith('.html')) return;
+            e.preventDefault();
+            let originalName = this.dataset.originalName;
+            if (!originalName) originalName = href.substring(href.lastIndexOf('/') + 1);
+            const baseName = getFileDisplayName(originalName);
+            const now = new Date();
+            const dateStr = now.getFullYear().toString().slice(-2) + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0');
+            const lastDot = baseName.lastIndexOf('.');
+            const newName = lastDot > 0 ? baseName.slice(0,lastDot) + '-' + dateStr + baseName.slice(lastDot) : baseName + '-' + dateStr;
+            const a = document.createElement('a');
+            a.href = href;
+            a.download = newName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        backBar.addEventListener('click', () => { if (currentPath.length > 1) { currentPath.pop(); renderCurrentLevel(); } });
+
+        buildUIContainers();
+        if (Object.keys(fileData).length > 0) {
+            const ids = Object.keys(fileData).filter(id => id !== 'root').sort((a,b) => extractSortNumber(a)-extractSortNumber(b));
+            if (ids.length) switchTopFolder(ids[0]);
+        } else {
+            contentDiv.innerHTML = '<div class="empty-folder">暂无可用文件夹</div>';
+        }
+
+        trigger.addEventListener('click', e => { e.stopPropagation(); wrapper.classList.toggle('open'); });
+        dropdownMenuUl.addEventListener('click', e => {
+            const li = e.target.closest('li');
+            if (!li) return;
+            e.stopPropagation();
+            switchTopFolder(li.dataset.folder);
+        });
+        document.addEventListener('click', e => { if (!wrapper.contains(e.target)) wrapper.classList.remove('open'); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') wrapper.classList.remove('open'); });
+    })();
+</script>
+</body>
 </html>
