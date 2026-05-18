@@ -197,6 +197,7 @@
     const fileData = {
         '0-在线工具': {
             files: [
+                { name: '问单-加图片-新版.html', icon: 'fa-file-code', path: '0-在线工具/问单-加图片-新版.html' },
                 { name: '1-日报-迭代-图片.html', icon: 'fa-file-code', path: '0-在线工具/1-日报-迭代-图片.html' },
                 { name: '日报模版-新增导出图片.html', icon: 'fa-file-code', path: '0-在线工具/日报模版-新增导出图片.html' },
                 { name: '3-单袋比.html', icon: 'fa-file-code', path: '0-在线工具/3-单袋比.html' },
