@@ -265,12 +265,6 @@
         .file-upload-area { border: 2.5px dashed #cbd5e1; border-radius: 16px; padding: 32px 22px; text-align: center; cursor: pointer; background: #fafbfc; margin: 8px 0; transition: all var(--transition); }
         .file-upload-area:hover { border-color: var(--primary); background: #f5f7ff; }
         .upload-text-lg { font-size: 0.95rem; font-weight: 600; color: #5c5c78; }
-        .upload-hint { font-size: 0.68rem; color: #a0a3b1; text-align: center; margin-top: 8px; line-height: 1.6; }
-        .upload-hint b { color: #e67e22; font-weight: 600; }
-        .upload-progress-wrap { display:none; margin-top: 14px; text-align: center; }
-        .upload-progress-bar { width: 100%; height: 6px; background: #eef0f6; border-radius: 3px; overflow: hidden; }
-        .upload-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #5568f5, #7c8cf8); border-radius: 3px; transition: width 0.3s ease; }
-        .upload-progress-text { font-size: 0.7rem; color: #8b8ba8; margin-top: 6px; }
         .guide-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f2f7; }
         .guide-btn { padding: 9px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: 650; font-size: 0.82rem; transition: all var(--transition); }
         .guide-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 3px 14px rgba(85,104,245,0.28); }
@@ -523,7 +517,7 @@
                     const achievements = {};
 
                     for (let i = 0; i < achievementCategories.length; i++) {
-                        const colIdx = i + 2; // B列(index=1)是门店名，C列(index=2)开始才是达成数据
+                        const colIdx = i + 1; // B列开始
                         const category = achievementCategories[i];
                         const value = parseFloat(row[colIdx]) || 0;
                         achievements[category] = value;
@@ -541,21 +535,6 @@
                 });
 
                 return true;
-            }
-
-            // 格式化达成值：标题含"差评"显示小数(2位)，其他显示百分比
-            function formatAchievementValue(value, category) {
-                if (category && category.includes('差评')) {
-                    return value.toFixed(2);
-                }
-                return value.toFixed(2) + '%';
-            }
-            // 格式化上限值：标题含"差评"显示小数(2位)，其他显示百分比
-            function formatLimitValue(value, category) {
-                if (category && category.includes('差评')) {
-                    return value.toFixed(2);
-                }
-                return value.toFixed(2) + '%';
             }
 
             // 渲染问单达成展示区
@@ -577,9 +556,8 @@
                 achievementCategories.forEach(category => {
                     const actualValue = achievements[category] || 0;
                     const limitValue = limits[category] || 0;
-                    const displayValue = formatAchievementValue(actualValue, category);
-                    const displayLimit = formatLimitValue(limitValue, category);
-
+                    const percentage = actualValue.toFixed(3);
+                    
                     // 判断状态：超过上限为danger，接近上限(90%)为warning
                     let statusClass = 'normal';
                     if (limitValue > 0 && actualValue > limitValue) {
@@ -591,8 +569,8 @@
                     html += `
                         <div class="achievement-item">
                             <div class="achievement-item-name" title="${escapeHTML(category)}">${escapeHTML(category)}</div>
-                            <div class="achievement-item-value ${statusClass}">${displayValue}</div>
-                            <div class="achievement-item-limit">上限: ${displayLimit}</div>
+                            <div class="achievement-item-value ${statusClass}">${percentage}%</div>
+                            <div class="achievement-item-limit">上限: ${(limitValue || 0).toFixed(3)}%</div>
                         </div>
                     `;
                 });
@@ -638,43 +616,24 @@
 
             async function handleFileUpload(file) {
                 if (!file) return;
-
-                // 显示进度条
-                const progressWrap = document.getElementById('guideProgressWrap') || document.getElementById('initProgressWrap');
-                const progressFill = document.getElementById('guideProgressFill') || document.getElementById('initProgressFill');
-                const progressText = document.getElementById('guideProgressText') || document.getElementById('initProgressText');
-                if (progressWrap) { progressWrap.style.display = 'block'; }
-                if (progressFill) { progressFill.style.width = '5%'; }
-                if (progressText) { progressText.textContent = '正在读取文件...'; }
-
                 toast('⏳ 正在解析文件...');
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     try {
-                        if (progressFill) progressFill.style.width = '15%';
-                        if (progressText) progressText.textContent = '正在解析Excel...';
-
                         const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
                         const targetSheets = wb.SheetNames.filter(s => !shouldIgnore(s));
                         const mainSheetName = findSheet(targetSheets, TARGET_SHEET_KEYWORDS);
                         const badReviewSheetName = findSheet(targetSheets, BAD_REVIEW_KEYWORDS);
-                        if (!mainSheetName) { toast('❌ 未找到「问单明细」工作簿'); if (progressWrap) progressWrap.style.display = 'none'; return; }
-
-                        if (progressFill) progressFill.style.width = '30%';
-                        if (progressText) progressText.textContent = '正在解析数据展示...';
+                        if (!mainSheetName) { toast('❌ 未找到「问单明细」工作簿'); return; }
 
                         // 解析数据展示工作簿
                         parseDataDisplaySheet(wb);
 
-                        if (progressFill) progressFill.style.width = '40%';
-                        if (progressText) progressText.textContent = '正在加载问单明细...';
-
                         const rows = XLSX.utils.sheet_to_json(wb.Sheets[mainSheetName], { defval:'', raw:false });
-                        if (!rows.length) { toast('❌ 工作簿为空'); if (progressWrap) progressWrap.style.display = 'none'; return; }
+                        if (!rows.length) { toast('❌ 工作簿为空'); return; }
 
                         allData = []; manualDataMap.clear();
                         const batchSize = 5000;
-                        const totalRows = rows.length;
                         for (let i = 0; i < rows.length; i += batchSize) {
                             const batch = rows.slice(i, i + batchSize);
                             batch.forEach(r => {
@@ -684,15 +643,8 @@
                                 allData.push(nr);
                                 manualDataMap.set(nr._rowId, { responsible:'仓责', reason:'' });
                             });
-                            // 更新进度
-                            const pct = 40 + Math.round(((i + batch.length) / totalRows) * 35);
-                            if (progressFill) progressFill.style.width = pct + '%';
-                            if (progressText) progressText.textContent = `正在处理数据... ${Math.min(100, pct)}%`;
                             await new Promise(resolve => setTimeout(resolve, 0));
                         }
-
-                        if (progressFill) progressFill.style.width = '80%';
-                        if (progressText) progressText.textContent = '正在分类数据...';
 
                         coldThawData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() === '冷链商品化冻');
                         coldThawManualMap.clear();
@@ -710,23 +662,11 @@
                             });
                         }
 
-                        if (progressFill) progressFill.style.width = '95%';
-                        if (progressText) progressText.textContent = '正在初始化界面...';
-
                         allStores = [...new Set(allData.map(r => String(getColValue(r,'门店名称')).trim()).filter(Boolean))].sort();
                         selectedReasons.clear();
-
-                        if (progressFill) progressFill.style.width = '100%';
-                        if (progressText) progressText.textContent = '加载完成！';
-
                         toast('✅ 成功加载 ' + allData.length + ' 条记录');
-
-                        // 短暂延迟后隐藏进度条并弹出门店选择
-                        setTimeout(() => {
-                            if (progressWrap) progressWrap.style.display = 'none';
-                            showStoreSelection();
-                        }, 400);
-                    } catch(err) { toast('❌ 解析文件失败'); console.error(err); if (progressWrap) progressWrap.style.display = 'none'; }
+                        showStoreSelection();
+                    } catch(err) { toast('❌ 解析文件失败'); console.error(err); }
                 };
                 reader.readAsArrayBuffer(file);
             }
@@ -1155,7 +1095,7 @@
             document.addEventListener('click', e => { if (!e.target.closest('.header-menu-btn')) $('#headerMenuDropdown').classList.remove('show'); });
             document.getElementById('menuReupload').addEventListener('click', () => {
                 openGuideView('📂 上传文件', '请上传问单明细Excel',
-                    '<div class="file-upload-area" id="guideUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div><div class="upload-hint">💡 上传大文件时页面可能出现短暂卡顿，请耐心等待加载完成。<br>如页面提示"无响应"，请点击<b>「等待」</b>按钮，切勿关闭页面。</div><div class="upload-progress-wrap" id="guideProgressWrap"><div class="upload-progress-bar"><div class="upload-progress-fill" id="guideProgressFill"></div></div><div class="upload-progress-text" id="guideProgressText">准备中...</div></div>',
+                    '<div class="file-upload-area" id="guideUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div>',
                     '<button class="guide-btn primary" id="guideConfirmBtn">确认</button>');
                 document.getElementById('guideUploadArea').addEventListener('click', () => hiddenFileInput.click());
                 hiddenFileInput.onchange = e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); };
@@ -1229,12 +1169,11 @@
                     achievementCategories.forEach(category => {
                         const actualValue = achievements[category] || 0;
                         const limitValue = limits[category] || 0;
-                        const displayValue = formatAchievementValue(actualValue, category);
-                        const displayLimit = formatLimitValue(limitValue, category);
+                        const percentage = actualValue.toFixed(3);
                         let statusClass = 'normal';
                         if (limitValue > 0 && actualValue > limitValue) statusClass = 'danger';
                         else if (limitValue > 0 && actualValue >= limitValue * 0.9) statusClass = 'warning';
-                        html += `<div class="achievement-item"><div class="achievement-item-name" title="${escapeHTML(category)}">${escapeHTML(category)}</div><div class="achievement-item-value ${statusClass}">${displayValue}</div><div class="achievement-item-limit">上限: ${displayLimit}</div></div>`;
+                        html += `<div class="achievement-item"><div class="achievement-item-name" title="${escapeHTML(category)}">${escapeHTML(category)}</div><div class="achievement-item-value ${statusClass}">${percentage}%</div><div class="achievement-item-limit">上限: ${(limitValue || 0).toFixed(3)}%</div></div>`;
                     });
                     html += '</div></div>';
                     return html;
@@ -1368,12 +1307,11 @@
                     achievementCategories.forEach(category => {
                         const actualValue = achievements[category] || 0;
                         const limitValue = limits[category] || 0;
-                        const displayValue = formatAchievementValue(actualValue, category);
-                        const displayLimit = formatLimitValue(limitValue, category);
+                        const percentage = actualValue.toFixed(3);
                         let valueColor = '#27ae60'; // normal=success
                         if (limitValue > 0 && actualValue > limitValue) valueColor = '#e74c3c'; // danger
                         else if (limitValue > 0 && actualValue >= limitValue * 0.9) valueColor = '#e67e22'; // warning
-                        html += `<div style="background:#fafbfd;border:1px solid #eef0f6;border-radius:10px;padding:10px 8px;text-align:center;"><div style="font-size:11px;color:#5c5c78;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(category)}">${escapeHTML(category)}</div><div style="font-size:14px;font-weight:700;color:${valueColor};">${displayValue}</div><div style="font-size:10px;color:#8b8ba8;margin-top:4px;">上限: ${displayLimit}</div></div>`;
+                        html += `<div style="background:#fafbfd;border:1px solid #eef0f6;border-radius:10px;padding:10px 8px;text-align:center;"><div style="font-size:11px;color:#5c5c78;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(category)}">${escapeHTML(category)}</div><div style="font-size:14px;font-weight:700;color:${valueColor};">${percentage}%</div><div style="font-size:10px;color:#8b8ba8;margin-top:4px;">上限: ${(limitValue || 0).toFixed(3)}%</div></div>`;
                     });
                     html += '</div></div>';
                     return html;
@@ -1483,7 +1421,7 @@
                 if (el) el.style.display='none';
             });
             openGuideView('📂 上传问单明细', '请上传Excel文件以开始分析',
-                '<div class="file-upload-area" id="initUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div><div class="upload-hint">💡 上传大文件时页面可能出现短暂卡顿，请耐心等待加载完成。<br>如页面提示"无响应"，请点击<b>「等待」</b>按钮，切勿关闭页面。</div><div class="upload-progress-wrap" id="initProgressWrap"><div class="upload-progress-bar"><div class="upload-progress-fill" id="initProgressFill"></div></div><div class="upload-progress-text" id="initProgressText">准备中...</div></div>', '');
+                '<div class="file-upload-area" id="initUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div>', '');
             document.getElementById('initUploadArea').addEventListener('click', () => hiddenFileInput.click());
             hiddenFileInput.addEventListener('change', e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); });
         })();

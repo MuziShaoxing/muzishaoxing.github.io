@@ -197,8 +197,8 @@
     const fileData = {
         '0-在线工具': {
             files: [
+                { name: '1-日报-520.html', icon: 'fa-file-code', path: '0-在线工具/1-日报-520.html' },
                 { name: '3-单袋比.html', icon: 'fa-file-code', path: '0-在线工具/3-单袋比.html' },
-                { name: '1-日报-迭代.html', icon: 'fa-file-code', path: '0-在线工具/1-日报-迭代.html' },
                 { name: '2-问单.html', icon: 'fa-file-code', path: '0-在线工具/2-问单.html' },
                 { name: '0-文字转语音.html', icon: 'fa-file-code', path: '0-在线工具/0-文字转语音.html' },
             ],
@@ -237,6 +237,7 @@
                         { name: '2-日报-Pro.html', icon: 'fa-file-code', path: '0-在线工具/日报/2-日报-Pro.html' },
                         { name: '日报-自动引导.html', icon: 'fa-file-code', path: '0-在线工具/日报/日报-自动引导.html' },
                         { name: '1-日报-迭代-图片.html', icon: 'fa-file-code', path: '0-在线工具/日报/1-日报-迭代-图片.html' },
+                        { name: '1-日报-迭代519.html', icon: 'fa-file-code', path: '0-在线工具/日报/1-日报-迭代519.html' },
                         { name: '2-问单.html', icon: 'fa-file-code', path: '0-在线工具/日报/2-问单.html' },
                         { name: '3-日报-ProMax.html', icon: 'fa-file-code', path: '0-在线工具/日报/3-日报-ProMax.html' },
                     ]
