@@ -4488,7 +4488,7 @@ const exportReport = () => {
         riderDataFromPaste: appState.riderDataFromPaste,
         opsMetrics: appState.opsMetrics,
         storeName: appState.storeName || CONFIG.defaultStoreName,
-        allPureNamesExport: [...new Set(appState.structHalfHour?.riderDisplay?.map(r => getPureName(r.rider)) || [])],
+        allPureNamesExport: appState.allPureNames.length > 0 ? appState.allPureNames : [...new Set(appState.structHalfHour?.riderDisplay?.map(r => getPureName(r.rider)) || [])],
         pureNameToUniformKeysArr: Array.from(appState.pureNameToUniformKeys).map(([k, v]) => [k, Array.from(v)]),
         config: { ...CONFIG },
     };
@@ -4554,7 +4554,22 @@ const exportReport = () => {
         const conflictNames = new Set(payload.conflictNames);
         const pureNameToUniformKeys = new Map();
         payload.pureNameToUniformKeysArr.forEach(([k, v]) => pureNameToUniformKeys.set(k, new Set(v)));
-        const allPureNamesExport = payload.allPureNamesExport || [];
+        let allPureNamesExport = payload.allPureNamesExport || [];
+        // 如果 allPureNamesExport 为空，尝试从 riderDataFromPaste 或 structHalfHour 中提取
+        if (allPureNamesExport.length === 0) {
+            const namesSet = new Set();
+            if (payload.riderDataFromPaste && payload.riderDataFromPaste.length > 0) {
+                payload.riderDataFromPaste.forEach(r => {
+                    if (r.name) namesSet.add(getPureName(r.name));
+                });
+            }
+            if (namesSet.size === 0 && payload.structHalfHour && payload.structHalfHour.riderDisplay) {
+                payload.structHalfHour.riderDisplay.forEach(r => {
+                    if (r.rider) namesSet.add(getPureName(r.rider));
+                });
+            }
+            allPureNamesExport = Array.from(namesSet).sort((a, b) => a.localeCompare(b, 'zh'));
+        }
 
         const getTrafficLightColor = (v, k) => {
             const n = parseFloat(v);
@@ -5126,7 +5141,7 @@ const exportReport = () => {
             }
             if (selectedNames.size > 0) dr = dr.filter(r => selectedNames.has(getPureName(r.name)) || selectedNames.has(r.name));
             const cards = CONFIG.opsMetricCards || [];
-            const isQianzhiCang = (appState.storeName || '').includes('前置仓');
+            const isQianzhiCang = (payload.storeName || '').includes('前置仓');
             OSP.innerHTML = cards.map(c => {
                 const val = payload.opsMetrics[c.key] || (c.key === 'force' || c.key === 'second' ? '0%' : '-');
                 const color = getTrafficLightColor(val, c.key === 'outboundValue' ? 'outbound' : (c.key === 'deliveryValue' ? 'delivery' : c.key));
