@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>判责数据统计</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 28px 20px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+        .step-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 60px;
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .step-item.active {
+            background: #eef2ff;
+            color: #1e40af;
+            border: 1px solid #b9d0f8;
+        }
+        .step-item.completed {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .upload-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            margin: 20px 0 20px;
+        }
+        .upload-box {
+            flex: 1;
+            background: #fefefe;
+            border: 1px solid #e4e7ef;
+            border-radius: 24px;
+            padding: 20px 20px;
+            transition: 0.2s;
+        }
+        .upload-box h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+        /* 整个虚线区域都是可点击的上传区 */
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 20px;
+            padding: 28px 20px;
+            text-align: center;
+            background: #fafcff;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        /* 隐藏原始input，点击区域由父级触发 */
+        .hidden-input {
+            display: none;
+        }
+        .required-note {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 8px;
+            user-select: text;
+            cursor: text;
+            background: transparent;
+        }
+        .file-status {
+            margin-top: 14px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-ok {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .status-missing {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .file-list-mini {
+            font-size: 0.75rem;
+            color: #334155;
+            margin-top: 8px;
+            word-break: break-word;
+        }
+        .next-btn {
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 12px;
+            display: inline-block;
+        }
+        .next-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .team-list-section {
+            margin-top: 16px;
+        }
+        .team-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding: 4px 6px;
+        }
+        .team-button {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 60px;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .team-button:hover {
+            background: #eef2ff;
+            border-color: #3b82f6;
+            transform: translateX(4px);
+        }
+        .result-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-top: 12px;
+        }
+        .result-card {
+            flex: 1;
+            min-width: 280px;
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #e9edf2;
+            overflow: hidden;
+        }
+        .result-header {
+            padding: 16px 20px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border-bottom: 2px solid;
+        }
+        .result-header.first {
+            background: #fff7ed;
+            border-bottom-color: #f97316;
+            color: #c2410c;
+        }
+        .result-header.final {
+            background: #f0fdf4;
+            border-bottom-color: #22c55e;
+            color: #15803d;
+        }
+        .table-wrapper {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .stats-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background-color: #f1f5f9;
+            position: sticky;
+            top: 0;
+        }
+        .stats-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #eef2ff;
+        }
+        .empty-note {
+            padding: 32px 20px;
+            text-align: center;
+            color: #64748b;
+        }
+        .summary-banner {
+            background: #fefce8;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-top: 20px;
+            border-left: 5px solid #eab308;
+        }
+        .rule-box {
+            background: #f9fafb;
+            border-radius: 20px;
+            padding: 12px 20px;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+            border: 1px solid #eef2ff;
+            color: #1f2937;
+        }
+        .copy-btn {
+            background: #10b981;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 16px;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .missing-data-warning {
+            background: #fff0f0;
+            border-left: 4px solid #ef4444;
+            padding: 8px 12px;
+            border-radius: 14px;
+            font-size: 0.75rem;
+            margin-top: 10px;
+            color: #b91c1c;
+        }
+        .multi-file-list {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 6px 10px;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        .file-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            border-radius: 16px;
+            padding: 2px 8px;
+            margin: 2px 4px 2px 0;
+            font-size: 0.7rem;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 28px;
+        }
+        button {
+            background: none;
+            border: none;
+        }
+    </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="step-bar">
+        <div class="step-item" id="step1Item">📁 1. 上传文件</div>
+        <div class="step-item" id="step2Item">🎯 2. 选择战区</div>
+        <div class="step-item" id="step3Item">📊 3. 分析结果</div>
+    </div>
+
+    <!-- 步骤1：上传文件卡片 -->
+    <div id="stepUploadCard" class="card">
+        <div class="flex-between">
+            <h2 style="margin:0">📂 上传数据源</h2>
+            <span class="status-badge" id="globalStatusHint">等待文件</span>
+        </div>
+        <div class="upload-group">
+            <!-- 问单信息表（支持多文件）整个虚线区域可点击 -->
+            <div class="upload-box">
+                <h3>📋 问单信息表 <span style="font-size:0.7rem; font-weight:normal;">(可多选合并)</span></h3>
+                <div id="questionUploadArea" class="upload-area">
+                    <div style="pointer-events: none;">
+                        <div style="font-size:0.9rem; margin-bottom:6px;">📂 点击此区域上传 / 拖拽文件</div>
+                        <div class="required-note">必需列: 判责域、门店/仓名称、状态、一判一级类目名称、认责单进展1</div>
+                    </div>
+                    <input type="file" id="questionFileInput" multiple accept=".xlsx, .xls, .csv, .xlsm" class="hidden-input">
+                </div>
+                <div class="file-status">
+                    <span id="questionStatusBadge" class="status-badge status-missing">❌ 未上传</span>
+                </div>
+                <div id="questionFileList" class="multi-file-list" style="max-height:100px;">未上传任何问单文件</div>
+                <div id="questionDetailInfo" class="file-list-mini" style="color:#475569;"></div>
+                <div id="questionMissingWarning" class="missing-data-warning" style="display:none;"></div>
+            </div>
+            <!-- 战区映射表（单文件）整个虚线区域可点击 -->
+            <div class="upload-box">
+                <h3>🗺️ 战区映射表</h3>
+                <div id="warzoneUploadArea" class="upload-area">
+                    <div style="pointer-events: none;">
+                        <div style="font-size:0.9rem; margin-bottom:6px;">📂 点击此区域上传 / 拖拽文件</div>
+                        <div class="required-note">必需列: 所属战队、门店</div>
+                    </div>
+                    <input type="file" id="warzoneFileInput" accept=".xlsx, .xls, .csv, .xlsm" class="hidden-input">
+                </div>
+                <div class="file-status">
+                    <span id="warzoneStatusBadge" class="status-badge status-missing">❌ 未上传</span>
+                    <span id="warzoneFileName" class="file-list-mini"></span>
+                </div>
+                <div id="warzoneDetailInfo" class="file-list-mini" style="color:#475569;"></div>
+                <div id="warzoneMissingWarning" class="missing-data-warning" style="display:none;"></div>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 12px;">
+            <button id="nextToTeamBtn" class="next-btn" disabled>▶ 下一步：选择战区</button>
+        </div>
+        <div class="rule-box" style="margin-top: 16px;">
+            <strong>📐 判责规则</strong><br>
+            • <strong>一判</strong>：“一判一级类目名称” 为空<br>
+            • <strong>终判</strong>：“一判一级类目名称” 非空 且 (“认责单进展1” 等于 “申诉” 或 “认责单进展1” 为空/无数据)<br>
+            • 基础筛选：判责域 = “盒马O2O配送域” & 状态 = “进行中”<br>
+            • 战区匹配：通过战区表的“门店” 与 问单表的“门店/仓名称” 关联
+        </div>
+    </div>
+
+    <!-- 步骤2：选择战区卡片 -->
+    <div id="stepTeamCard" class="card" style="display: none;">
+        <div class="flex-between">
+            <h2>🎯 选择所属战区</h2>
+            <button id="backToUploadBtn" class="status-badge" style="background:#e2e8f0; cursor:pointer;">⬅ 返回上一步</button>
+        </div>
+        <div id="teamListContainer" class="team-list-section">
+            <div class="empty-note">加载战区列表中...</div>
+        </div>
+    </div>
+
+    <!-- 步骤3：分析结果卡片 -->
+    <div id="stepResultCard" class="card" style="display: none;">
+        <div class="flex-between">
+            <h2>📊 判责统计结果 <span id="currentTeamNameSpan"></span></h2>
+            <div>
+                <button id="copyResultBtn" class="copy-btn">📋 一键复制数据</button>
+                <button id="backToTeamBtn" class="status-badge" style="background:#e2e8f0; margin-left:8px; cursor:pointer;">◀ 切换战区</button>
+            </div>
+        </div>
+        <div id="resultsArea" class="result-section"></div>
+        <div class="summary-banner">
+            ✅ 统计基于当前战区门店匹配 | 一判/终判规则已生效
+        </div>
+    </div>
+    <footer>判责数据统计 · 支持多问单合并 | 点击虚线区域即可上传</footer>
+</div>
+
+<script>
+    (function() {
+        // DOM 元素
+        const questionFileInput = document.getElementById('questionFileInput');
+        const warzoneFileInput = document.getElementById('warzoneFileInput');
+        const questionStatusBadge = document.getElementById('questionStatusBadge');
+        const warzoneStatusBadge = document.getElementById('warzoneStatusBadge');
+        const warzoneFileNameSpan = document.getElementById('warzoneFileName');
+        const questionDetailInfo = document.getElementById('questionDetailInfo');
+        const warzoneDetailInfo = document.getElementById('warzoneDetailInfo');
+        const questionMissingWarning = document.getElementById('questionMissingWarning');
+        const warzoneMissingWarning = document.getElementById('warzoneMissingWarning');
+        const questionFileListDiv = document.getElementById('questionFileList');
+        const nextToTeamBtn = document.getElementById('nextToTeamBtn');
+        const stepUploadCard = document.getElementById('stepUploadCard');
+        const stepTeamCard = document.getElementById('stepTeamCard');
+        const stepResultCard = document.getElementById('stepResultCard');
+        const teamListContainer = document.getElementById('teamListContainer');
+        const backToUploadBtn = document.getElementById('backToUploadBtn');
+        const backToTeamBtn = document.getElementById('backToTeamBtn');
+        const copyResultBtn = document.getElementById('copyResultBtn');
+        const resultsArea = document.getElementById('resultsArea');
+        const currentTeamNameSpan = document.getElementById('currentTeamNameSpan');
+        const globalStatusHint = document.getElementById('globalStatusHint');
+        const step1Item = document.getElementById('step1Item');
+        const step2Item = document.getElementById('step2Item');
+        const step3Item = document.getElementById('step3Item');
+
+        // 存储数据
+        let allQuestionRecords = [];           // 合并所有问单记录
+        let warzoneMapping = new Map();        
+        let allTeamsList = [];                
+        let currentSelectedTeam = "";
+        let isQuestionReady = false;
+        let isWarzoneReady = false;
+        let uploadedQuestionFiles = []; // { name, recordCount }
+
+        // ========== 工具函数 ==========
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function copyToClipboardSilent(text) {
+            navigator.clipboard.writeText(text).catch(() => {});
+        }
+
+        function readFileToJSON(file) {
+            return new Promise((resolve, reject) => {
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        let data = e.target.result;
+                        let workbook = null;
+                        if (fileExt === 'csv') workbook = XLSX.read(data, { type: 'string', raw: true });
+                        else workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+                        resolve(rows);
+                    } catch (err) { reject(err); }
+                };
+                reader.onerror = () => reject(new Error("文件读取错误"));
+                if (fileExt === 'csv') reader.readAsText(file, 'UTF-8');
+                else reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function getCol(row, colName) {
+            if (row.hasOwnProperty(colName)) {
+                let v = row[colName];
+                return (v === undefined || v === null) ? "" : String(v).trim();
+            }
+            for (let key in row) {
+                if (key.trim() === colName) {
+                    let v = row[key];
+                    return (v === undefined || v === null) ? "" : String(v).trim();
+                }
+            }
+            return "";
+        }
+
+        function checkColumnsExist(rows, requiredCols) {
+            if (!rows.length) return { allExist: false, missing: requiredCols };
+            const sample = rows[0];
+            const existing = new Set();
+            for (let key in sample) existing.add(key.trim());
+            const missing = requiredCols.filter(col => !existing.has(col));
+            return { allExist: missing.length === 0, missing };
+        }
+
+        async function parseSingleQuestionFile(file) {
+            const rows = await readFileToJSON(file);
+            if (!rows.length) throw new Error("文件无数据行");
+            const required = ['判责域', '门店/仓名称', '状态', '一判一级类目名称', '认责单进展1'];
+            const colCheck = checkColumnsExist(rows, required);
+            if (!colCheck.allExist) {
+                throw new Error(`缺少必需列: ${colCheck.missing.join(', ')}`);
+            }
+            const valid = [];
+            for (const row of rows) {
+                const panze = getCol(row, "判责域");
+                const status = getCol(row, "状态");
+                if (panze === "盒马O2O配送域" && status === "进行中") {
+                    let shopName = getCol(row, "门店/仓名称");
+                    if (shopName === "") continue;
+                    const categoryName = getCol(row, "一判一级类目名称");
+                    const progress1 = getCol(row, "认责单进展1");
+                    valid.push({ shopName, categoryName, progress1 });
+                }
+            }
+            return valid;
+        }
+
+        async function processWarzoneFile(file) {
+            const rows = await readFileToJSON(file);
+            if (!rows.length) throw new Error("文件无数据行");
+            const required = ['所属战队', '门店'];
+            const colCheck = checkColumnsExist(rows, required);
+            if (!colCheck.allExist) {
+                throw new Error(`缺少必需列: ${colCheck.missing.join(', ')}`);
+            }
+            const mapping = new Map();
+            const teamsSet = new Set();
+            let emptyTeamOrStore = 0;
+            for (const row of rows) {
+                let team = getCol(row, "所属战队");
+                let store = getCol(row, "门店");
+                if (team === "" || store === "") {
+                    emptyTeamOrStore++;
+                    continue;
+                }
+                if (!mapping.has(store)) mapping.set(store, team);
+                teamsSet.add(team);
+            }
+            if (mapping.size === 0) {
+                throw new Error(`无有效映射关系 (战队或门店为空的行数: ${emptyTeamOrStore})`);
+            }
+            return { mapping, teams: Array.from(teamsSet).sort((a,b)=>a.localeCompare(b,'zh')), emptyRows: emptyTeamOrStore };
+        }
+
+        function updateQuestionUI() {
+            const totalRecords = allQuestionRecords.length;
+            if (uploadedQuestionFiles.length === 0) {
+                questionStatusBadge.innerHTML = '❌ 未上传';
+                questionStatusBadge.className = 'status-badge status-missing';
+                questionFileListDiv.innerHTML = '未上传任何问单文件';
+                questionDetailInfo.innerHTML = '';
+                isQuestionReady = false;
+                return;
+            }
+            let filesHtml = '';
+            uploadedQuestionFiles.forEach(f => {
+                filesHtml += `<span class="file-badge">📄 ${escapeHtml(f.name)} (${f.recordCount}条)</span>`;
+            });
+            questionFileListDiv.innerHTML = filesHtml || '无有效文件';
+            if (totalRecords > 0) {
+                questionStatusBadge.innerHTML = `✅ 已合并 (${totalRecords}条有效)`;
+                questionStatusBadge.className = 'status-badge status-ok';
+                questionDetailInfo.innerHTML = `共 ${uploadedQuestionFiles.length} 个文件，合并有效记录 ${totalRecords} 条`;
+                showQuestionWarning('');
+                isQuestionReady = true;
+            } else {
+                questionStatusBadge.innerHTML = `❌ 无有效记录`;
+                questionStatusBadge.className = 'status-badge status-missing';
+                questionDetailInfo.innerHTML = `共 ${uploadedQuestionFiles.length} 个文件，无符合条件记录`;
+                isQuestionReady = false;
+                showQuestionWarning('所有问单文件均无符合条件的数据（判责域=盒马O2O配送域,状态=进行中）');
+            }
+        }
+
+        function showQuestionWarning(msg) {
+            if (msg) {
+                questionMissingWarning.style.display = 'block';
+                questionMissingWarning.innerHTML = `⚠️ ${escapeHtml(msg)}`;
+            } else {
+                questionMissingWarning.style.display = 'none';
+            }
+        }
+
+        function showWarzoneWarning(msg) {
+            if (msg) {
+                warzoneMissingWarning.style.display = 'block';
+                warzoneMissingWarning.innerHTML = `⚠️ ${escapeHtml(msg)}`;
+            } else {
+                warzoneMissingWarning.style.display = 'none';
+            }
+        }
+
+        async function onQuestionFilesUpload(files) {
+            if (!files.length) return;
+            showQuestionWarning('');
+            let newFilesAdded = false;
+            for (const file of files) {
+                try {
+                    const records = await parseSingleQuestionFile(file);
+                    if (records.length > 0) {
+                        allQuestionRecords.push(...records);
+                        uploadedQuestionFiles.push({ name: file.name, recordCount: records.length });
+                        newFilesAdded = true;
+                    } else {
+                        uploadedQuestionFiles.push({ name: file.name, recordCount: 0 });
+                        showQuestionWarning(`文件 ${file.name} 无符合条件的数据`);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    uploadedQuestionFiles.push({ name: file.name, recordCount: 0, error: err.message });
+                    showQuestionWarning(`文件 ${file.name} 解析失败: ${err.message}`);
+                }
+            }
+            if (newFilesAdded) showQuestionWarning('');
+            updateQuestionUI();
+            await updateGlobalReady();
+        }
+
+        async function onWarzoneUpload(file) {
+            if (!file) return;
+            showWarzoneWarning('');
+            try {
+                const { mapping, teams, emptyRows } = await processWarzoneFile(file);
+                warzoneMapping = mapping;
+                allTeamsList = teams;
+                isWarzoneReady = true;
+                warzoneStatusBadge.innerHTML = `✅ 已加载 (${mapping.size}门店,${teams.length}战队)`;
+                warzoneStatusBadge.className = 'status-badge status-ok';
+                warzoneFileNameSpan.innerHTML = `🗺️ ${escapeHtml(file.name)}`;
+                let detail = `${mapping.size} 个门店映射，${teams.length} 个战队`;
+                if (emptyRows > 0) detail += `，跳过 ${emptyRows} 行空值`;
+                warzoneDetailInfo.innerHTML = detail;
+                if (mapping.size === 0) {
+                    isWarzoneReady = false;
+                    warzoneStatusBadge.innerHTML = `❌ 无有效映射`;
+                    warzoneStatusBadge.className = 'status-badge status-missing';
+                    showWarzoneWarning(detail);
+                } else {
+                    showWarzoneWarning('');
+                }
+            } catch (err) {
+                console.error(err);
+                isWarzoneReady = false;
+                warzoneMapping.clear();
+                allTeamsList = [];
+                warzoneStatusBadge.innerHTML = `❌ 解析失败`;
+                warzoneStatusBadge.className = 'status-badge status-missing';
+                warzoneFileNameSpan.innerHTML = `⚠️ ${escapeHtml(file.name)}`;
+                warzoneDetailInfo.innerHTML = err.message;
+                showWarzoneWarning(err.message);
+            }
+            await updateGlobalReady();
+        }
+
+        async function updateGlobalReady() {
+            if (isQuestionReady && isWarzoneReady && allQuestionRecords.length > 0 && warzoneMapping.size > 0) {
+                globalStatusHint.innerHTML = '✅ 双表就绪';
+                globalStatusHint.className = 'status-badge status-ok';
+                nextToTeamBtn.disabled = false;
+            } else {
+                globalStatusHint.innerHTML = '⏳ 等待双表就绪';
+                globalStatusHint.className = 'status-badge status-missing';
+                nextToTeamBtn.disabled = true;
+            }
+        }
+
+        function showTeamSelection() {
+            if (!isQuestionReady || !isWarzoneReady) {
+                alert("请确保问单表和战区表均已成功上传并检测通过（双表状态全绿）");
+                return;
+            }
+            if (allTeamsList.length === 0) {
+                alert("战区列表为空，请检查战区映射表内容");
+                return;
+            }
+            let html = `<div class="team-grid">`;
+            allTeamsList.forEach(team => {
+                html += `<div class="team-button" data-team="${escapeHtml(team)}">🏢 ${escapeHtml(team)}</div>`;
+            });
+            html += `</div>`;
+            teamListContainer.innerHTML = html;
+            document.querySelectorAll('.team-button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const team = btn.getAttribute('data-team');
+                    if (team) selectTeamAndAnalyze(team);
+                });
+            });
+            stepUploadCard.style.display = 'none';
+            stepTeamCard.style.display = 'block';
+            stepResultCard.style.display = 'none';
+            step1Item.classList.add('completed');
+            step2Item.classList.add('active');
+            step3Item.classList.remove('active');
+        }
+
+        function isFinalJudgment(categoryName, progress1) {
+            if (categoryName === "") return false;
+            const progressTrim = (progress1 || "").trim();
+            return (progressTrim === "" || progressTrim === "申诉");
+        }
+
+        function filterAndClassifyByTeam(teamName) {
+            if (!teamName) return { firstRecords: [], finalRecords: [] };
+            const firstRecords = [];
+            const finalRecords = [];
+            for (const rec of allQuestionRecords) {
+                const shopTeam = warzoneMapping.get(rec.shopName);
+                if (shopTeam === teamName) {
+                    if (rec.categoryName === "") {
+                        firstRecords.push(rec);
+                    } else {
+                        if (isFinalJudgment(rec.categoryName, rec.progress1)) {
+                            finalRecords.push(rec);
+                        }
+                    }
+                }
+            }
+            return { firstRecords, finalRecords };
+        }
+
+        function aggregateByShop(records) {
+            const map = new Map();
+            for (const rec of records) {
+                map.set(rec.shopName, (map.get(rec.shopName) || 0) + 1);
+            }
+            const list = Array.from(map.entries()).map(([name, cnt]) => ({ name, count: cnt }));
+            list.sort((a,b) => a.name.localeCompare(b.name, 'zh'));
+            const total = list.reduce((s,i)=>s+i.count,0);
+            return { list, total };
+        }
+
+        function renderResultTable(title, dataList, totalCount, accentColor) {
+            if (!dataList.length) {
+                return `<div class="result-card"><div class="result-header" style="background: ${accentColor === '#f97316' ? '#fff7ed' : '#f0fdf4'}; border-bottom-color: ${accentColor};">${title}</div><div class="empty-note">暂无门店数据</div><div style="padding:12px 20px;">总计: 0</div></div>`;
+            }
+            let rows = '';
+            for (let item of dataList) {
+                rows += `<tr><td style="font-weight:500;">${escapeHtml(item.name)}</td><td style="text-align:center; font-weight:600;">${item.count}</td></tr>`;
+            }
+            return `<div class="result-card"><div class="result-header" style="background: ${accentColor === '#f97316' ? '#fff7ed' : '#f0fdf4'}; border-bottom-color: ${accentColor};">${title}</div><div class="table-wrapper"><table class="stats-table"><thead><tr><th>门店/仓名称</th><th style="width:90px;">判责数量</th></tr></thead><tbody>${rows}</tbody></table></div><div style="padding:12px 20px; background: ${accentColor === '#f97316' ? '#fef9e8' : '#f0fdf4'};">📊 总计: ${totalCount} 条</div></div>`;
+        }
+
+        function selectTeamAndAnalyze(teamName) {
+            currentSelectedTeam = teamName;
+            const { firstRecords, finalRecords } = filterAndClassifyByTeam(teamName);
+            const firstAgg = aggregateByShop(firstRecords);
+            const finalAgg = aggregateByShop(finalRecords);
+            const firstHtml = renderResultTable("⚖️ 一判", firstAgg.list, firstAgg.total, "#f97316");
+            const finalHtml = renderResultTable("✅ 终判", finalAgg.list, finalAgg.total, "#22c55e");
+            resultsArea.innerHTML = firstHtml + finalHtml;
+            currentTeamNameSpan.innerHTML = ` - ${escapeHtml(teamName)}`;
+            stepUploadCard.style.display = 'none';
+            stepTeamCard.style.display = 'none';
+            stepResultCard.style.display = 'block';
+            step1Item.classList.add('completed');
+            step2Item.classList.add('completed');
+            step3Item.classList.add('active');
+        }
+
+        function copyStatistics() {
+            if (!currentSelectedTeam) return;
+            const { firstRecords, finalRecords } = filterAndClassifyByTeam(currentSelectedTeam);
+            const firstAgg = aggregateByShop(firstRecords);
+            const finalAgg = aggregateByShop(finalRecords);
+            let text = "";
+            if (firstAgg.list.length) {
+                text += "一判未判责数据:\n";
+                firstAgg.list.forEach(i => { text += `${i.name} : ${i.count}\n`; });
+                text += `一判总计: ${firstAgg.total}\n\n`;
+            } else text += "一判未判责数据: 无\n\n";
+            if (finalAgg.list.length) {
+                text += "终判未判责数据:\n";
+                finalAgg.list.forEach(i => { text += `${i.name} : ${i.count}\n`; });
+                text += `终判总计: ${finalAgg.total}\n`;
+            } else text += "终判未判责数据: 无\n";
+            copyToClipboardSilent(text);
+        }
+
+        function backToUpload() {
+            stepUploadCard.style.display = 'block';
+            stepTeamCard.style.display = 'none';
+            stepResultCard.style.display = 'none';
+            step1Item.classList.remove('completed');
+            step2Item.classList.remove('active', 'completed');
+            step3Item.classList.remove('active');
+            step1Item.classList.add('active');
+        }
+
+        function backToTeamList() {
+            if (!isQuestionReady || !isWarzoneReady) {
+                backToUpload();
+                return;
+            }
+            stepUploadCard.style.display = 'none';
+            stepTeamCard.style.display = 'block';
+            stepResultCard.style.display = 'none';
+            step1Item.classList.add('completed');
+            step2Item.classList.add('active');
+            step3Item.classList.remove('active');
+            if (allTeamsList.length) {
+                let html = `<div class="team-grid">`;
+                allTeamsList.forEach(team => {
+                    html += `<div class="team-button" data-team="${escapeHtml(team)}">🏢 ${escapeHtml(team)}</div>`;
+                });
+                html += `</div>`;
+                teamListContainer.innerHTML = html;
+                document.querySelectorAll('.team-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const team = btn.getAttribute('data-team');
+                        if (team) selectTeamAndAnalyze(team);
+                    });
+                });
+            }
+        }
+
+        // 整个虚线区域点击触发文件选择
+        const questionArea = document.getElementById('questionUploadArea');
+        const warzoneArea = document.getElementById('warzoneUploadArea');
+        
+        questionArea.addEventListener('click', (e) => {
+            // 防止冒泡到内部元素导致重复
+            if (e.target === questionArea || questionArea.contains(e.target)) {
+                questionFileInput.click();
+            }
+        });
+        warzoneArea.addEventListener('click', (e) => {
+            if (e.target === warzoneArea || warzoneArea.contains(e.target)) {
+                warzoneFileInput.click();
+            }
+        });
+
+        // 拖拽上传逻辑
+        questionArea.addEventListener('dragover', (e) => { e.preventDefault(); questionArea.style.background = '#eef2ff'; });
+        questionArea.addEventListener('dragleave', () => { questionArea.style.background = '#fafcff'; });
+        questionArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            questionArea.style.background = '#fafcff';
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length) await onQuestionFilesUpload(files);
+        });
+
+        warzoneArea.addEventListener('dragover', (e) => { e.preventDefault(); warzoneArea.style.background = '#eef2ff'; });
+        warzoneArea.addEventListener('dragleave', () => { warzoneArea.style.background = '#fafcff'; });
+        warzoneArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            warzoneArea.style.background = '#fafcff';
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length) await onWarzoneUpload(files[0]);
+        });
+
+        questionFileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length) await onQuestionFilesUpload(files);
+            questionFileInput.value = '';
+        });
+        warzoneFileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length) await onWarzoneUpload(e.target.files[0]);
+            warzoneFileInput.value = '';
+        });
+
+        nextToTeamBtn.addEventListener('click', showTeamSelection);
+        backToUploadBtn.addEventListener('click', backToUpload);
+        backToTeamBtn.addEventListener('click', backToTeamList);
+        copyResultBtn.addEventListener('click', copyStatistics);
+
+        step1Item.classList.add('active');
+        updateGlobalReady();
+    })();
+</script>
+</body>
+</html>
