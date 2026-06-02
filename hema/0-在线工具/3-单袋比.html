@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>单袋比 · 领用分析</title>
+    <title>单袋比 · 领用分析（智能分组版）</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -140,7 +140,7 @@
         .legend-strip { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 24px; font-size: 0.75rem; color: #475569; padding: 10px 0 4px; }
         .btn-share { background: #f0fdfa; border: 1.5px solid #99f6e4; color: #0f766e; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .modal-box { background: white; border-radius: var(--radius-xl); padding: 22px 20px; width: 700px; max-width: 93vw; max-height: 85vh; overflow: auto; box-shadow: var(--shadow-lg); }
+        .modal-box { background: white; border-radius: var(--radius-xl); padding: 22px 20px; width: 750px; max-width: 93vw; max-height: 85vh; overflow: auto; box-shadow: var(--shadow-lg); }
         .modal-box textarea { width: 100%; padding: 12px; border-radius: var(--radius-md); border: 2px solid #d1d5db; font-family: monospace; font-size: 0.72rem; resize: vertical; background: #fafbfc; }
         .preview-table-wrap { max-height: 260px; overflow: auto; background: #f8fafc; border-radius: var(--radius-sm); padding: 8px; border: 1px solid #e2e8f0; }
         .mini-table { width: 100%; font-size: 0.68rem; border-collapse: collapse; background: white; }
@@ -152,7 +152,7 @@
 <body>
 <header class="global-header">
     <span class="app-title"><span class="emoji">🛵</span>骑手单袋比 · 领用分析</span>
-    <span class="version-pill">V10.1 增强解析版</span>
+    <span class="version-pill">V11.0 智能分组识别</span>
     <div class="meta-info"><span id="metaOrders">单量: —</span><span class="dot"></span><span id="metaApply">申请: —</span></div>
 </header>
 <div class="app-shell">
@@ -168,7 +168,7 @@
             <div id="warnRange" class="warn-text">⚠️ 统计范围不匹配</div><div id="infoRange" class="info-text"></div>
         </div>
         <div class="sidebar-panel"><div class="panel-title"><span class="icon-circle optional">📝</span> 当日申请数据 <span class="badge-optional">可选</span></div>
-            <button class="btn-paste" id="btnPaste">📋 粘贴数据（每组11行）</button>
+            <button class="btn-paste" id="btnPaste">📋 粘贴数据（智能分组）</button>
             <label class="checkbox-row"><input type="checkbox" id="chkExcludeRejected" checked>🚫 剔除审批「拒绝」的记录</label>
             <div id="chipToday" class="status-chip idle">⚪ 尚未粘贴</div><div id="rejectNote" class="warn-text"></div>
         </div>
@@ -200,63 +200,59 @@
     const expectedRange = d => d?.length === 8 ? `${d.slice(0,4)}${d.slice(4,6)}01~${d}` : '';
     const escapeHtml = str => { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; };
 
-    // 增强解析: 智能提取纯数组或分页数据 (每组11行) - 修复纯数组无效问题
+    // 核心：智能分组解析 —— 通过检测“配送*袋”行，上下各取5行组成完整11行数据组
     function smartParseDailyPaste(text, excludeRejected) {
         const allLines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+        if(allLines.length === 0) return { map: new Map(), total:0, rejected:0, valid:0, invalid:0, details:[] };
         
-        // 提取分页标记之间的内容 (保留原逻辑)
-        function extractPageBlocks(lines) {
-            const extracted = [];
-            let i = 0;
-            while(i < lines.length) {
-                const line = lines[i];
-                if(/^共\s*\d+\s*条$/.test(line)) {
-                    let j = i+1;
-                    let end = -1;
-                    while(j < lines.length) {
-                        if(/^\d+\s*条\s*\/\s*页$/.test(lines[j])) { end = j; break; }
-                        j++;
-                    }
-                    if(end !== -1) { 
-                        for(let k=i+1; k<end; k++) extracted.push(lines[k]); 
-                        i = end+1; 
-                        continue; 
-                    }
-                }
-                i++;
+        // 第一步：可选移除明显的分页标记行，但不是必须，保留原始行用于定位
+        // 但我们不直接移除，而是在定位配送袋行后截取组，分页标记行自然会被排除在外
+        // 扫描所有行，找出所有包含“配送”和“袋”的行（配送*袋）
+        const deliveryBagIndices = [];
+        for(let idx=0; idx<allLines.length; idx++) {
+            if(/配送.*袋/.test(allLines[idx])) {
+                deliveryBagIndices.push(idx);
             }
-            return extracted;
         }
         
-        let candidateLines = extractPageBlocks(allLines);
-        // 如果没有成功提取分页内容，或者提取内容不足11行，则直接使用全部非空行（不过滤关键词）
-        if(candidateLines.length === 0 || candidateLines.length < 11) {
-            candidateLines = allLines;   // 完全信任原始粘贴，不过滤任何“标题行”
-        }
-        
-        // 按顺序每11行一组，不要求组内行内容格式，仅取索引2,3,6,7
+        const usedIndices = new Set();
         const groups = [];
-        for(let i=0; i+11 <= candidateLines.length; i+=11) {
-            const group = candidateLines.slice(i, i+11);
-            // 确保组长度足够
-            if(group.length === 11) groups.push(group);
+        // 对每个配送袋行，尝试提取前后5行（共11行）
+        for(const centerIdx of deliveryBagIndices) {
+            const start = centerIdx - 5;
+            const end = centerIdx + 5;
+            if(start < 0 || end >= allLines.length) continue; // 边界不足则跳过（避免不完整组）
+            // 避免重复提取相同的组（如果两个配送袋行距离很近导致重叠，仅取第一次）
+            let overlapping = false;
+            for(let i=start; i<=end; i++) {
+                if(usedIndices.has(i)) { overlapping = true; break; }
+            }
+            if(overlapping) continue;
+            const group = allLines.slice(start, end+1);
+            if(group.length === 11) {
+                groups.push(group);
+                for(let i=start; i<=end; i++) usedIndices.add(i);
+            }
         }
         
-        let totalGroups = 0, rejectedCount = 0, validCount = 0;
+        let totalGroups = groups.length, rejectedCount = 0, validCount = 0;
         const tempMap = new Map();
         const details = [];
         for(const group of groups) {
-            totalGroups++;
+            // 组内索引: 0~10, 中心行(原第6行)应在索引5
             const id = group[2] || '';
             const name = group[3] || '';
             const qtyRaw = group[6];
             const status = group[7] || '';
             let qty = parseFloat(qtyRaw);
-            if(isNaN(qty) || qty <= 0) continue;  // 数量无效跳过
-            if(excludeRejected && status === '拒绝') { 
-                rejectedCount++; 
-                details.push({ id, name, qty, status, valid: false }); 
-                continue; 
+            if(isNaN(qty) || qty <= 0) {
+                details.push({ id, name, qty:0, status, valid:false, reason:'数量无效' });
+                continue;
+            }
+            if(excludeRejected && status === '拒绝') {
+                rejectedCount++;
+                details.push({ id, name, qty, status, valid:false, reason:'拒绝' });
+                continue;
             }
             if(name && id) {
                 const key = `${id}||${name}`;
@@ -264,10 +260,12 @@
                 if(exist) exist.qty += qty;
                 else tempMap.set(key, { id, name, qty });
                 validCount++;
-                details.push({ id, name, qty, status, valid: true });
+                details.push({ id, name, qty, status, valid:true });
+            } else {
+                details.push({ id, name, qty, status, valid:false, reason:'姓名或工号为空' });
             }
         }
-        return { map: tempMap, total: totalGroups, rejected: rejectedCount, valid: validCount, details };
+        return { map: tempMap, total: totalGroups, rejected: rejectedCount, valid: validCount, invalid: totalGroups - validCount - rejectedCount, details };
     }
 
     function filterApplyByRange(range) {
@@ -337,7 +335,7 @@
     btnPaste.addEventListener('click', () => {
         document.querySelector('.modal-overlay')?.remove();
         const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
-        overlay.innerHTML = `<div class="modal-box"><h3>📋 粘贴当日申请数据</h3><p style="font-size:0.7rem;">每组11行：第3行=工号 / 第4行=姓名 / 第7行=数量 / 第8行=状态<br>支持分页标记，也支持纯数组（直接复制系统导出的11行一组文本，无需额外处理）</p><textarea id="pasteTextarea" rows="10" placeholder="请粘贴数据..."></textarea><div class="modal-meta"><span>📊 <strong id="modalLineCount">0</strong>行 / <strong id="modalGroupCount">0</strong>组</span></div><label class="checkbox-row"><input type="checkbox" id="modalExcludeChk" ${chkExcludeRejected.checked?'checked':''}>🚫 剔除拒绝记录</label><label class="checkbox-row"><input type="checkbox" id="modalMergeChk">🔄 追加合并到现有数据（否则替换）</label><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost" id="modalCancel">取消</button><button class="btn btn-outline" id="modalPreview">预览</button><button class="btn btn-primary" id="modalConfirm">确认导入</button></div><div id="modalPreviewArea" style="display:none;margin-top:8px;"><div class="preview-table-wrap" id="modalPreviewContent"></div></div></div>`;
+        overlay.innerHTML = `<div class="modal-box"><h3>📋 粘贴当日申请数据（智能分组）</h3><p style="font-size:0.7rem;">🔍 自动识别包含“配送*袋”的行，以其为中心上下各取5行组成完整11行数据组<br>✅ 支持任意冗余行、分页标记、纯数组混合粘贴</p><textarea id="pasteTextarea" rows="10" placeholder="请粘贴数据..."></textarea><div class="modal-meta"><span>📊 <strong id="modalLineCount">0</strong>行 / <strong id="modalGroupCount">0</strong>组</span></div><label class="checkbox-row"><input type="checkbox" id="modalExcludeChk" ${chkExcludeRejected.checked?'checked':''}>🚫 剔除拒绝记录</label><label class="checkbox-row"><input type="checkbox" id="modalMergeChk">🔄 追加合并到现有数据（否则替换）</label><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;"><button class="btn btn-ghost" id="modalCancel">取消</button><button class="btn btn-outline" id="modalPreview">预览</button><button class="btn btn-primary" id="modalConfirm">确认导入</button></div><div id="modalPreviewArea" style="display:none;margin-top:8px;"><div class="preview-table-wrap" id="modalPreviewContent"></div></div></div>`;
         document.body.appendChild(overlay);
         const ta = document.getElementById('pasteTextarea'), lc = document.getElementById('modalLineCount'), gc = document.getElementById('modalGroupCount');
         const chkExclude = document.getElementById('modalExcludeChk'), chkMerge = document.getElementById('modalMergeChk');
@@ -350,19 +348,22 @@
         document.getElementById('modalPreview').onclick = () => {
             const parsed = smartParseDailyPaste(ta.value, chkExclude.checked);
             lastParsed = parsed;
-            let html = `<div style="font-size:0.7rem;">📊 总组数:${parsed.total} | 有效:${parsed.valid}`;
-            if(chkExclude.checked && parsed.rejected) html += ` | <span style="color:#dc2626;">已剔除拒绝:${parsed.rejected}</span>`;
-            html += `</div><table class="mini-table"><thead><tr><th>工号</th><th>姓名</th><th>数量</th><th>状态</th></tr></thead><tbody>`;
+            let html = `<div style="font-size:0.7rem;">📊 总识别组:${parsed.total} | ✅有效:${parsed.valid} | ❌无效:${parsed.invalid} | 🚫拒绝:${parsed.rejected}</div><table class="mini-table"><thead><tr><th>工号</th><th>姓名</th><th>数量</th><th>状态</th><th>备注</th></tr></thead><tbody>`;
             const grouped = new Map(); parsed.details.filter(d=>d.valid).forEach(d=>{ const key=`${d.id}||${d.name}`; grouped.set(key, (grouped.get(key)||0)+d.qty); });
-            if(grouped.size===0) html += '<tr><td colspan="4">暂无有效数据</td></tr>';
-            else for(let [key, qty] of grouped) { const [id,name] = key.split('||'); html += `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(name)}</td><td class="mono">${qty}</td><td>有效</td></tr>`; }
-            if(chkExclude.checked && parsed.rejected && parsed.details.filter(d=>!d.valid).length) { html += `<tr><td colspan="4" style="color:#dc2626;">已剔除拒绝记录:</td></tr>`; parsed.details.filter(d=>!d.valid).forEach(d=>{ html += `<tr style="color:#94a3b8;"><td>${escapeHtml(d.id||'—')}</td><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>拒绝</td></tr>`; }); }
-            html += `</tbody></table>`; prevContent.innerHTML = html; prevArea.style.display = 'block';
+            if(grouped.size===0) html += '<tr><td colspan="5">无有效数据</td></tr>';
+            else for(let [key, qty] of grouped) { const [id,name] = key.split('||'); html += `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(name)}</td><td class="mono">${qty}</td><td>有效</td><td></td></tr>`; }
+            const invalidDetails = parsed.details.filter(d=>!d.valid);
+            if(invalidDetails.length) {
+                html += `<tr><td colspan="5" style="color:#dc2626;">以下数据无效未导入：</td></tr>`;
+                invalidDetails.forEach(d=>{ html += `<tr style="color:#94a3b8;"><td>${escapeHtml(d.id||'—')}</td><td>${escapeHtml(d.name||'—')}</td><td>${d.qty||0}</td><td>${d.status||'—'}</td><td>${d.reason||'无效'}</td></tr>`; });
+            }
+            html += `</tbody></table>`;
+            prevContent.innerHTML = html; prevArea.style.display = 'block';
         };
         document.getElementById('modalConfirm').onclick = () => {
             if(!lastParsed) lastParsed = smartParseDailyPaste(ta.value, chkExclude.checked);
             const parsedMap = lastParsed.map;
-            if(parsedMap.size === 0) { alert('无有效数据，请检查格式（每组11行，第7行为数量且>0）'); return; }
+            if(parsedMap.size === 0) { alert('无有效数据，请检查粘贴内容是否包含“配送*袋”行且周围有足够行数'); return; }
             if(chkMerge.checked) {
                 for(const [key,val] of parsedMap) {
                     const existing = state.todayMap.get(key);
