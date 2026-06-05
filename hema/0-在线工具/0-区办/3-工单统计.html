@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>判责单数据分析工具</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e2e8f0;
+    --fg: #1e293b;
+    --fg-muted: #64748b;
+    --accent: #3b82f6;
+    --accent-dim: rgba(59,130,246,0.1);
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --success: #22c55e;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .app-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .app-header .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; color: #fff;
+  }
+  .app-header .logo-text {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+  }
+  .app-header .logo-text span { color: var(--accent); }
+  .header-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* MAIN */
+  .app-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+
+  /* START SCREEN */
+  .start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 80px);
+    text-align: center;
+    animation: fadeIn 0.6s ease;
+  }
+  .start-screen h1 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    color: var(--fg);
+  }
+  .start-screen p {
+    color: var(--fg-muted);
+    font-size: 16px;
+    max-width: 500px;
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+  .start-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 720px;
+    margin-bottom: 48px;
+  }
+  .start-feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 16px;
+    text-align: center;
+    transition: all 0.3s;
+    box-shadow: var(--shadow);
+  }
+  .start-feature:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+  .start-feature .icon { font-size: 28px; margin-bottom: 10px; }
+  .start-feature .label { font-size: 13px; color: var(--fg-muted); font-weight: 500; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: var(--font);
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-sm { padding: 8px 16px; font-size: 13px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* MODAL / WIZARD */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal-overlay.hidden { display: none; }
+
+  .wizard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 620px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: slideUp 0.35s ease;
+  }
+  .wizard::-webkit-scrollbar { width: 4px; }
+  .wizard::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .wizard-header { padding: 24px 28px 0; }
+  .wizard-steps { display: flex; gap: 8px; margin-bottom: 24px; }
+  .wizard-step-indicator {
+    flex: 1; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: background 0.3s;
+  }
+  .wizard-step-indicator.active { background: var(--accent); }
+  .wizard-step-indicator.done { background: var(--accent); opacity: 0.5; }
+
+  .wizard-body { padding: 0 28px 28px; }
+  .wizard-step { display: none; }
+  .wizard-step.active { display: block; animation: fadeIn 0.3s ease; }
+  .wizard-step h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; color: var(--fg); }
+  .wizard-step .desc { color: var(--fg-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    background: var(--surface-2);
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .upload-zone .upload-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.6; }
+  .upload-zone .upload-text { font-size: 14px; color: var(--fg-muted); }
+  .upload-zone .upload-text strong { color: var(--accent); }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .upload-zone .file-info {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; color: var(--success); font-weight: 600; font-size: 14px;
+  }
+  .upload-zone .file-info .check {
+    width: 20px; height: 20px;
+    background: var(--success); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: 800;
+  }
+
+  .wizard-footer {
+    padding: 0 28px 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+  }
+  .wizard-footer .footer-left {
+    position: absolute;
+    left: 28px;
+  }
+  .wizard-footer .footer-right {
+    position: absolute;
+    right: 28px;
+  }
+
+  /* Column mapping */
+  .col-map-section {
+    margin-top: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .col-map-section .title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg-muted);
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s;
+  }
+  .col-map-section .title:hover {
+    background: var(--surface);
+  }
+  .col-map-section .title::after {
+    content: '▼';
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .col-map-section.collapsed .title::after {
+    transform: rotate(-90deg);
+  }
+  .col-map-section .content {
+    padding: 0 16px 14px;
+    display: none;
+  }
+  .col-map-section:not(.collapsed) .content {
+    display: block;
+  }
+  .col-map-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .col-map-row:last-child { margin-bottom: 0; }
+  .col-map-row label {
+    font-size: 12px;
+    color: var(--fg-muted);
+    min-width: 110px;
+    flex-shrink: 0;
+  }
+  .col-map-row select {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+  .col-map-row select:focus { outline: none; border-color: var(--accent); }
+
+  /* Team selector */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .team-grid::-webkit-scrollbar { width: 4px; }
+  .team-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .team-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .team-card:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .team-card.selected {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--accent-dim);
+  }
+  .team-card.selected .count { color: rgba(255,255,255,0.8); }
+  .team-card .count { font-size: 11px; color: var(--fg-muted); margin-top: 4px; }
+
+  /* RESULTS VIEW */
+  .results-view { display: none; animation: fadeIn 0.4s ease; }
+  .results-view.active { display: block; }
+
+  .results-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .results-toolbar h2 { font-size: 24px; font-weight: 700; }
+  .results-toolbar h2 span { color: var(--fg-muted); font-size: 14px; font-weight: 400; margin-left: 8px; }
+  .results-actions { display: flex; gap: 8px; }
+
+  /* View Filter Bar */
+  .view-filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .view-filter-bar label {
+    font-size: 13px;
+    color: var(--fg-muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  
+  /* Date Bubble Styles */
+  .date-bubbles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1;
+  }
+  .date-bubble {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--fg);
+    user-select: none;
+  }
+  .date-bubble:hover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .date-bubble.selected {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+  .date-bubble .count {
+    font-size: 10px;
+    opacity: 0.8;
+    margin-left: 4px;
+  }
+  
+  /* Date Range Styles */
+  .date-range-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+  .date-range-container input[type="date"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: var(--font);
+  }
+  .date-range-container input[type="date"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .date-range-container .date-separator {
+    color: var(--fg-muted);
+    font-size: 12px;
+  }
+  
+  .view-filter-bar .filter-info {
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-left: auto;
+  }
+  .view-filter-bar .clear-filter-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--fg-muted);
+    transition: all 0.2s;
+  }
+  .view-filter-bar .clear-filter-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* Tabs */
+  .view-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .view-tab {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    border: none;
+    background: transparent;
+    color: var(--fg-muted);
+    font-family: var(--font);
+  }
+  .view-tab:hover { color: var(--fg); background: var(--surface-2); }
+  .view-tab.active { background: var(--accent); color: #fff; }
+  .view-tab .tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-left: 6px;
+    background: rgba(0,0,0,0.1);
+  }
+  .view-tab.active .tab-count { background: rgba(255,255,255,0.2); }
+
+  /* Table */
+  .data-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table thead {
+    background: var(--surface-2);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .data-table th {
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .data-table tbody tr:hover { background: var(--surface-2); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+
+  /* Abnormal input */
+  .abnormal-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--font);
+    width: 100px;
+    min-width: 80px;
+  }
+  .abnormal-input:focus { outline: none; border-color: var(--accent); }
+
+  /* No data */
+  .no-data { text-align: center; padding: 60px 20px; color: var(--fg-muted); }
+  .no-data .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
+  .no-data p { font-size: 14px; }
+
+  /* Summary cards */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    transition: all 0.2s;
+    box-shadow: var(--shadow);
+  }
+  .summary-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .summary-card .sc-label { font-size: 12px; color: var(--fg-muted); margin-bottom: 6px; font-weight: 500; }
+  .summary-card .sc-value { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+  .summary-card .sc-value.green { color: var(--success); }
+  .summary-card .sc-value.yellow { color: var(--warning); }
+  .summary-card .sc-value.red { color: var(--danger); }
+  .summary-card .sc-value.blue { color: var(--accent); }
+
+  /* Match info panel */
+  .match-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .match-panel .mp-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .match-panel .mp-row {
+    font-size: 12px;
+    color: var(--fg-muted);
+    line-height: 1.8;
+    margin-bottom: 4px;
+  }
+  .match-panel .mp-row strong { color: var(--fg); }
+  .match-panel .mp-warn { color: var(--warning); }
+  .match-panel .mp-ok { color: var(--success); }
+
+  /* Privacy notice */
+  .privacy-notice {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* Report containers */
+  .report-container {
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .report-container h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .report-container .count {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .report-container.yellow {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    color: #92400e;
+  }
+  .report-container.red {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 1px solid #f87171;
+    color: #991b1b;
+  }
+  .report-container.blue {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #60a5fa;
+    color: #1e40af;
+  }
+  .report-container.purple {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid #dc2626;
+    color: #991b1b;
+  }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+
+  .table-scroll { max-height: 60vh; overflow: auto; }
+
+  @media (max-width: 768px) {
+    .app-main { padding: 16px; }
+    .start-features { grid-template-columns: 1fr; max-width: 300px; }
+    .start-screen h1 { font-size: 28px; }
+    .team-grid { grid-template-columns: repeat(2, 1fr); }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .results-toolbar { flex-direction: column; align-items: flex-start; }
+    .view-filter-bar { flex-direction: column; align-items: flex-start; }
+    .view-filter-bar .filter-info { margin-left: 0; }
+    .date-bubbles { max-height: 120px; overflow-y: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-icon">D</div>
+    <div class="logo-text">判责单<span>分析工具</span></div>
+  </div>
+  <div class="header-badge">数据仅本地处理</div>
+</header>
+
+<main class="app-main">
+  <!-- START SCREEN -->
+  <div id="startScreen" class="start-screen">
+    <h1>判责单数据分析</h1>
+    <p>上传判责单数据与战队映射表，按战队快速筛选并生成组织有责、物流损、冷链化冻等多维度视图</p>
+    <div class="start-features">
+      <div class="start-feature"><div class="icon">📊</div><div class="label">多维度视图</div></div>
+      <div class="start-feature"><div class="icon">🔒</div><div class="label">纯本地处理</div></div>
+      <div class="start-feature"><div class="icon">📸</div><div class="label">导出报告</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="openWizard()">开始分析 →</button>
+  </div>
+
+  <!-- RESULTS VIEW -->
+  <div id="resultsView" class="results-view">
+    <div class="results-toolbar">
+      <h2 id="resultsTitle">分析结果</h2>
+      <div class="results-actions">
+        <button class="btn btn-secondary btn-sm" onclick="exportImage()">📸 导出图片</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyStatsText()">📋 复制文案</button>
+        <button class="btn btn-success btn-sm" onclick="exportReport()">📄 导出报告</button>
+        <button class="btn btn-primary btn-sm" onclick="openWizardToStep3()">🔄 重新选择</button>
+      </div>
+    </div>
+    <div class="privacy-notice">
+      <span>🔒</span>
+      <span>所有数据仅在浏览器本地处理，不会上传至任何服务器。关闭页面后数据自动清除。</span>
+    </div>
+    <div class="summary-cards" id="summaryCards"></div>
+    <div class="match-panel" id="matchPanel" style="display:none;"></div>
+    
+    <div class="view-tabs" id="viewTabs"></div>
+    <div class="data-table-wrap">
+      <div class="table-scroll" id="tableContainer"></div>
+    </div>
+  </div>
+</main>
+
+<!-- WIZARD MODAL -->
+<div id="wizardModal" class="modal-overlay hidden">
+  <div class="wizard">
+    <div class="wizard-header">
+      <div class="wizard-steps">
+        <div class="wizard-step-indicator active" id="stepInd1"></div>
+        <div class="wizard-step-indicator" id="stepInd2"></div>
+        <div class="wizard-step-indicator" id="stepInd3"></div>
+        <div class="wizard-step-indicator" id="stepInd4"></div>
+      </div>
+    </div>
+    <div class="wizard-body">
+      <!-- Step 1 -->
+      <div class="wizard-step active" id="wizardStep1">
+        <h2>上传判责单数据</h2>
+        <p class="desc">请上传包含判责单信息的 Excel 文件（.xlsx / .xls）</p>
+        <div class="upload-zone" id="uploadZone1">
+          <div class="upload-icon">📄</div>
+          <div class="upload-text" id="uploadText1">拖拽文件到此处，或 <strong>点击选择文件</strong></div>
+          <input type="file" accept=".xlsx,.xls" onchange="handleFile1(event)">
+        </div>
+        <div class="col-map-section collapsed" id="colMapSection1" style="display:none;">
+          <div class="title" onclick="toggleColMap('colMapSection1')">📋 列映射确认（自动匹配，可手动调整）</div>
+          <div class="content">
+            <div class="col-map-row"><label>门店/仓名称：</label><select id="mapStoreCol"></select></div>
+            <div class="col-map-row"><label>终判责结果：</label><select id="mapFinalResultCol"></select></div>
+            <div class="col-map-row"><label>一判二级类目：</label><select id="mapFirstCatCol"></select></div>
+            <div class="col-map-row"><label>一判判责结果：</label><select id="mapFirstResultCol"></select></div>
+            <div class="col-map-row"><label>判责单编号：</label><select id="mapCaseNoCol"></select></div>
+            <div class="col-map-row"><label>商品名称：</label><select id="mapProductCol"></select></div>
+            <div class="col-map-row"><label>配送站名称：</label><select id="mapStationCol"></select></div>
+            <div class="col-map-row"><label>外部类目：</label><select id="mapExtCatCol"></select></div>
+            <div class="col-map-row"><label>终判备注1：</label><select id="mapFinalNoteCol"></select></div>
+            <div class="col-map-row"><label>关联责任方：</label><select id="mapRespPartyCol"></select></div>
+            <div class="col-map-row"><label>状态：</label><select id="mapStatusCol"></select></div>
+            <div class="col-map-row"><label>认责单进展1：</label><select id="mapProgressCol"></select></div>
+            <div class="col-map-row"><label>终判类目名称：</label><select id="mapFinalCatCol"></select></div>
+            <div class="col-map-row"><label>判责域：</label><select id="mapDomainCol"></select></div>
+            <div class="col-map-row"><label>判责单创建时间：</label><select id="mapCreateTimeCol"></select></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="wizard-step" id="wizardStep2">
+        <h2>上传战队映射表</h2>
+        <p class="desc">请上传包含「门店」和「所属战队」列的 Excel 文件</p>
+        <div class="upload-zone" id="uploadZone2">
+          <div class="upload-icon">📋</div>
+          <div class="upload-text" id="uploadText2">拖拽文件到此处，或 <strong>点击选择文件</strong></div>
+          <input type="file" accept=".xlsx,.xls" onchange="handleFile2(event)">
+        </div>
+        <div class="col-map-section collapsed" id="colMapSection2" style="display:none;">
+          <div class="title" onclick="toggleColMap('colMapSection2')">📋 列映射确认</div>
+          <div class="content">
+            <div class="col-map-row"><label>门店列：</label><select id="mapTeamStoreCol"></select></div>
+            <div class="col-map-row"><label>所属战队列：</label><select id="mapTeamNameCol"></select></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="wizard-step" id="wizardStep3">
+        <h2>选择战队</h2>
+        <p class="desc">选择要分析的战队，将筛选该战队下所有门店的判责数据</p>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="wizard-step" id="wizardStep4">
+        <h2>选择处理问单时间</h2>
+        <p class="desc">选择要处理的日期，所有视图将筛选该日期的数据（工单超时视图自动取前一天）</p>
+        <div class="date-bubbles" id="dateBubbles" style="margin-top:12px;"></div>
+      </div>
+    </div>
+    <div class="wizard-footer">
+      <div class="footer-left">
+        <button class="btn btn-secondary btn-sm" id="wizardPrev" onclick="wizardPrev()" disabled>← 上一步</button>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="closeWizard()">✕ 关闭</button>
+      <div class="footer-right">
+        <button class="btn btn-primary btn-sm" id="wizardNext" onclick="wizardNext()" disabled>下一步 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== GLOBAL STATE =====
+let sourceHeaders = [];
+let sourceData = [];
+let teamHeaders = [];
+let teamData = [];
+let currentStep = 1;
+let selectedTeam = null;
+let selectedDate = ''; // 用户选择的处理日期
+let currentViewIndex = 0;
+let viewResults = {};
+let viewResultsRaw = {}; // 存储原始数据（未过滤）
+let reportData = {};
+
+// ===== FILE PARSING =====
+function parseFileToArray(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const binary = new Uint8Array(e.target.result);
+        const wb = XLSX.read(binary, { type: 'array', cellDates: false, defval: '' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        if (!rows || rows.length < 2) {
+          reject(new Error('文件至少需要标题行和一行数据'));
+          return;
+        }
+        const headers = rows[0].map(c => (c === undefined || c === null) ? '' : String(c).trim());
+        const dataRows = rows.slice(1).filter(row =>
+          row.some(cell => cell !== undefined && cell !== null && String(cell).trim() !== '')
+        );
+        resolve({ headers, dataRows });
+      } catch (err) {
+        reject(new Error('解析失败: ' + err.message));
+      }
+    };
+    reader.onerror = () => reject(new Error('文件读取失败'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function rowsToObjects(headers, dataRows) {
+  return dataRows.map(row => {
+    const obj = {};
+    headers.forEach((h, idx) => {
+      let val = (idx < row.length && row[idx] !== undefined && row[idx] !== null) ? row[idx] : '';
+      if (typeof val === 'number') val = String(val);
+      else val = String(val).trim();
+      obj[h] = val;
+    });
+    return obj;
+  });
+}
+
+// ===== WIZARD CONTROL =====
+function openWizard() {
+  document.getElementById('wizardModal').classList.remove('hidden');
+  currentStep = 1;
+  selectedTeam = null;
+  selectedDate = '';
+  document.getElementById('uploadText1').innerHTML = '拖拽文件到此处，或 <strong>点击选择文件</strong>';
+  document.getElementById('uploadText2').innerHTML = '拖拽文件到此处，或 <strong>点击选择文件</strong>';
+  document.getElementById('colMapSection1').style.display = 'none';
+  document.getElementById('colMapSection2').style.display = 'none';
+  document.getElementById('teamGrid').innerHTML = '';
+  updateWizardUI();
+}
+
+// 重新选择：直接跳到选择片区（第3步）和时间（第4步）
+function openWizardToStep3() {
+  document.getElementById('wizardModal').classList.remove('hidden');
+  // 保留已上传的文件和列映射，只重置选择状态
+  selectedTeam = null;
+  selectedDate = '';
+  document.getElementById('teamGrid').innerHTML = '';
+  document.getElementById('dateBubbles').innerHTML = '';
+  // 跳到第3步（选择片区）
+  currentStep = 3;
+  populateTeams();
+  updateWizardUI();
+}
+
+function closeWizard() {
+  document.getElementById('wizardModal').classList.add('hidden');
+}
+
+function updateWizardUI() {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('wizardStep' + i).classList.toggle('active', i === currentStep);
+    document.getElementById('stepInd' + i).classList.toggle('active', i === currentStep);
+    document.getElementById('stepInd' + i).classList.toggle('done', i < currentStep);
+  }
+  document.getElementById('wizardPrev').disabled = currentStep === 1;
+  const nextBtn = document.getElementById('wizardNext');
+  if (currentStep === 4) {
+    nextBtn.textContent = '✓ 开始分析';
+    nextBtn.disabled = !selectedDate;
+  } else {
+    nextBtn.textContent = '下一步 →';
+    nextBtn.disabled = (currentStep === 1 && sourceData.length === 0) ||
+                      (currentStep === 2 && teamData.length === 0) ||
+                      (currentStep === 3 && !selectedTeam);
+  }
+}
+
+function wizardNext() {
+  if (currentStep === 4) { closeWizard(); generateResults(); return; }
+  currentStep++;
+  updateWizardUI();
+}
+
+function wizardPrev() {
+  if (currentStep > 1) { currentStep--; updateWizardUI(); }
+}
+
+// ===== AUTO-MATCH COLUMNS =====
+function autoMatchColumn(headers, keywords) {
+  for (let h of headers) {
+    if (keywords.includes(h)) return h;
+  }
+  for (let kw of keywords) {
+    for (let h of headers) {
+      if (h.includes(kw) || kw.includes(h)) return h;
+    }
+  }
+  return headers[0] || '';
+}
+
+function populateColSelect(selectEl, headers, defaultVal) {
+  selectEl.innerHTML = '';
+  headers.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h;
+    opt.textContent = h;
+    if (h === defaultVal) opt.selected = true;
+    selectEl.appendChild(opt);
+  });
+}
+
+// ===== DATE FUNCTIONS =====
+function getToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function extractDate(dateTimeStr) {
+  if (!dateTimeStr || dateTimeStr.trim() === '') return '';
+  
+  const str = String(dateTimeStr).trim();
+  
+  // 尝试匹配日期部分
+  const patterns = [
+    // YYYY-MM-DD
+    /^(\d{4})-(\d{1,2})-(\d{1,2})/,
+    // YYYY/MM/DD
+    /^(\d{4})\/(\d{1,2})\/(\d{1,2})/,
+    // YYYY年MM月DD日
+    /^(\d{4})年(\d{1,2})月(\d{1,2})日/,
+    // Excel序列号（数字）
+    /^\d{5,6}(\.\d+)?$/
+  ];
+  
+  for (let pattern of patterns) {
+    const match = str.match(pattern);
+    if (match) {
+      if (pattern === patterns[3]) {
+        // Excel日期序列号转换
+        const excelDate = parseFloat(str);
+        const epoch = new Date(1899, 11, 30);
+        const date = new Date(epoch.getTime() + excelDate * 24 * 60 * 60 * 1000);
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+      }
+      const year = match[1];
+      const month = match[2].padStart(2, '0');
+      const day = match[3].padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+  }
+  
+  // 如果无法解析，返回原值
+  return str;
+}
+
+// ===== FILE HANDLING =====
+async function handleFile1(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('uploadText1').innerHTML = '⏳ 解析中...';
+  try {
+    const { headers, dataRows } = await parseFileToArray(file);
+    sourceHeaders = headers;
+    sourceData = rowsToObjects(headers, dataRows);
+    document.getElementById('uploadText1').innerHTML =
+      '<div class="file-info"><div class="check">✓</div>' + file.name + '（' + sourceData.length + ' 条记录）</div>';
+    const sec = document.getElementById('colMapSection1');
+    sec.style.display = 'block';
+    populateColSelect(document.getElementById('mapStoreCol'), headers, autoMatchColumn(headers, ['门店/仓名称', '门店', '仓名称']));
+    populateColSelect(document.getElementById('mapFinalResultCol'), headers, autoMatchColumn(headers, ['终判责结果', '终判判责结果']));
+    populateColSelect(document.getElementById('mapFirstCatCol'), headers, autoMatchColumn(headers, ['一判二级类目名称', '一判二级类目']));
+    populateColSelect(document.getElementById('mapFirstResultCol'), headers, autoMatchColumn(headers, ['一判判责结果', '一判结果']));
+    populateColSelect(document.getElementById('mapCaseNoCol'), headers, autoMatchColumn(headers, ['判责单编号']));
+    populateColSelect(document.getElementById('mapProductCol'), headers, autoMatchColumn(headers, ['商品名称']));
+    populateColSelect(document.getElementById('mapStationCol'), headers, autoMatchColumn(headers, ['配送站名称', '配送站']));
+    populateColSelect(document.getElementById('mapExtCatCol'), headers, autoMatchColumn(headers, ['外部类目']));
+    populateColSelect(document.getElementById('mapFinalNoteCol'), headers, autoMatchColumn(headers, ['终判备注1', '终判备注']));
+    populateColSelect(document.getElementById('mapRespPartyCol'), headers, autoMatchColumn(headers, ['关联责任方']));
+    populateColSelect(document.getElementById('mapStatusCol'), headers, autoMatchColumn(headers, ['状态']));
+    populateColSelect(document.getElementById('mapProgressCol'), headers, autoMatchColumn(headers, ['认责单进展1', '认责单进展']));
+    populateColSelect(document.getElementById('mapFinalCatCol'), headers, autoMatchColumn(headers, ['终判类目名称', '终判类目']));
+    populateColSelect(document.getElementById('mapDomainCol'), headers, autoMatchColumn(headers, ['判责域']));
+    populateColSelect(document.getElementById('mapCreateTimeCol'), headers, autoMatchColumn(headers, ['判责单创建时间', '创建时间']));
+    updateWizardUI();
+  } catch (err) {
+    document.getElementById('uploadText1').innerHTML = '<span style="color:#ef4444">❌ ' + err.message + '</span>';
+  }
+}
+
+async function handleFile2(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('uploadText2').innerHTML = '⏳ 解析中...';
+  try {
+    const { headers, dataRows } = await parseFileToArray(file);
+    teamHeaders = headers;
+    teamData = rowsToObjects(headers, dataRows);
+    document.getElementById('uploadText2').innerHTML =
+      '<div class="file-info"><div class="check">✓</div>' + file.name + '（' + teamData.length + ' 条记录）</div>';
+    const sec = document.getElementById('colMapSection2');
+    sec.style.display = 'block';
+    populateColSelect(document.getElementById('mapTeamStoreCol'), headers, autoMatchColumn(headers, ['门店', '门店/仓名称', '仓名称']));
+    populateColSelect(document.getElementById('mapTeamNameCol'), headers, autoMatchColumn(headers, ['所属战队', '战队']));
+    updateWizardUI();
+  } catch (err) {
+    document.getElementById('uploadText2').innerHTML = '<span style="color:#ef4444">❌ ' + err.message + '</span>';
+  }
+}
+
+// ===== TEAM SELECTION =====
+const observer = new MutationObserver(() => {
+  const step3 = document.getElementById('wizardStep3');
+  if (step3.classList.contains('active') && document.getElementById('teamGrid').children.length === 0) {
+    populateTeams();
+  }
+});
+observer.observe(document.getElementById('wizardStep3'), { attributes: true, attributeFilter: ['class'] });
+
+// 第4步：日期选择
+const dateObserver = new MutationObserver(() => {
+  const step4 = document.getElementById('wizardStep4');
+  if (step4.classList.contains('active') && document.getElementById('dateBubbles').children.length === 0) {
+    populateDates();
+  }
+});
+dateObserver.observe(document.getElementById('wizardStep4'), { attributes: true, attributeFilter: ['class'] });
+
+function populateDates() {
+  const bubblesDiv = document.getElementById('dateBubbles');
+  bubblesDiv.innerHTML = '';
+  
+  const sCreateTimeCol = document.getElementById('mapCreateTimeCol').value;
+  const sStoreCol = document.getElementById('mapStoreCol').value;
+  const stores = getTeamStores(selectedTeam);
+  
+  // 从战队门店数据中提取唯一日期
+  const dateSet = new Set();
+  const dateCounts = {};
+  sourceData.forEach(row => {
+    const store = String(row[sStoreCol] || '').trim();
+    if (!stores.has(store)) return;
+    const raw = row[sCreateTimeCol] || '';
+    const date = extractDate(raw);
+    if (date && date.trim() !== '') {
+      dateSet.add(date);
+      dateCounts[date] = (dateCounts[date] || 0) + 1;
+    }
+  });
+  
+  const dates = Array.from(dateSet).sort();
+  if (dates.length === 0) {
+    bubblesDiv.innerHTML = '<div style="color:var(--fg-muted);font-size:13px;padding:12px;">未找到日期数据，请确认列映射中"判责单创建时间"已正确匹配</div>';
+    return;
+  }
+  
+  const today = getToday();
+  
+  dates.forEach(date => {
+    const bubble = document.createElement('div');
+    bubble.className = 'date-bubble';
+    const displayDate = date.length >= 10 ? date.substring(5) : date;
+    bubble.innerHTML = displayDate + '<span class="count">' + (dateCounts[date] || 0) + '</span>';
+    // 默认选中当天
+    if (date === today) {
+      bubble.classList.add('selected');
+      selectedDate = date;
+    }
+    bubble.onclick = () => {
+      document.querySelectorAll('#dateBubbles .date-bubble').forEach(b => b.classList.remove('selected'));
+      bubble.classList.add('selected');
+      selectedDate = date;
+      updateWizardUI();
+    };
+    bubblesDiv.appendChild(bubble);
+  });
+  
+  // 如果当天不在列表中，默认选最后一个日期
+  if (!selectedDate && dates.length > 0) {
+    selectedDate = dates[dates.length - 1];
+    const lastBubble = bubblesDiv.lastElementChild;
+    if (lastBubble) lastBubble.classList.add('selected');
+  }
+  
+  updateWizardUI();
+}
+
+function populateTeams() {
+  const grid = document.getElementById('teamGrid');
+  grid.innerHTML = '';
+  const tStoreCol = document.getElementById('mapTeamStoreCol').value;
+  const tNameCol = document.getElementById('mapTeamNameCol').value;
+  const teamSet = new Set();
+  const teamStoreMap = {};
+  teamData.forEach(row => {
+    const team = String(row[tNameCol] || '').trim();
+    const store = String(row[tStoreCol] || '').trim();
+    if (team) {
+      teamSet.add(team);
+      if (!teamStoreMap[team]) teamStoreMap[team] = [];
+      if (store) teamStoreMap[team].push(store);
+    }
+  });
+  const teams = Array.from(teamSet).sort();
+  teams.forEach(team => {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    card.innerHTML = team + '<div class="count">' + (teamStoreMap[team] || []).length + ' 个门店</div>';
+    card.onclick = () => {
+      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedTeam = team;
+      updateWizardUI();
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ===== DATA PROCESSING =====
+function getTeamStores(team) {
+  const tStoreCol = document.getElementById('mapTeamStoreCol').value;
+  const tNameCol = document.getElementById('mapTeamNameCol').value;
+  const stores = new Set();
+  teamData.forEach(row => {
+    if (String(row[tNameCol] || '').trim() === team) {
+      const store = String(row[tStoreCol] || '').trim();
+      if (store) stores.add(store);
+    }
+  });
+  return stores;
+}
+
+function filterByTeam(data, team) {
+  const stores = getTeamStores(team);
+  const sStoreCol = document.getElementById('mapStoreCol').value;
+  return data.filter(row => stores.has(String(row[sStoreCol] || '').trim()));
+}
+
+// ===== DATE HELPER: 获取前一天的日期 =====
+function getPrevDay(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// 切换视图
+function switchView(idx) {
+  currentViewIndex = idx;
+  const viewNames = Object.keys(viewResultsRaw);
+  const viewName = viewNames[idx];
+  document.querySelectorAll('.view-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  renderTable(viewName);
+}
+
+function generateResults() {
+  const sStoreCol = document.getElementById('mapStoreCol').value;
+  const sFinalCol = document.getElementById('mapFinalResultCol').value;
+  const sFirstCatCol = document.getElementById('mapFirstCatCol').value;
+  const sFirstResultCol = document.getElementById('mapFirstResultCol').value;
+  const sCaseNoCol = document.getElementById('mapCaseNoCol').value;
+  const sProductCol = document.getElementById('mapProductCol').value;
+  const sStationCol = document.getElementById('mapStationCol').value;
+  const sExtCatCol = document.getElementById('mapExtCatCol').value;
+  const sFinalNoteCol = document.getElementById('mapFinalNoteCol').value;
+  const sRespPartyCol = document.getElementById('mapRespPartyCol').value;
+  const sStatusCol = document.getElementById('mapStatusCol').value;
+  const sProgressCol = document.getElementById('mapProgressCol').value;
+  const sFinalCatCol = document.getElementById('mapFinalCatCol').value;
+  const sDomainCol = document.getElementById('mapDomainCol').value;
+  const sCreateTimeCol = document.getElementById('mapCreateTimeCol').value;
+
+  const team = selectedTeam;
+  const stores = getTeamStores(team);
+  const filtered = filterByTeam(sourceData, team);
+  const yesterday = getYesterday();
+  const selDate = selectedDate;
+  const selDatePrev = getPrevDay(selDate); // 工单超时用的前一天
+
+  const sourceStores = new Set(sourceData.map(r => String(r[sStoreCol] || '').trim()).filter(s => s));
+  const matchedStores = [...stores].filter(s => sourceStores.has(s));
+  const unmatchedStores = [...stores].filter(s => !sourceStores.has(s));
+
+  // 保存报告数据
+  reportData = {
+    team: team,
+    storeCount: stores.size,
+    matchedStoreCount: matchedStores.length,
+    totalRecords: filtered.length,
+    date: yesterday
+  };
+
+  // === 全部数据（按选中日期筛选） ===
+  const allData = filtered.filter(row => extractDate(row[sCreateTimeCol] || '') === selDate).map(row => ({
+    '日期': selDate,
+    '判责单编号': row[sCaseNoCol] || '',
+    '门店/仓名称': row[sStoreCol] || '',
+    '商品名称': row[sProductCol] || '',
+    '终判责结果': row[sFinalCol] || '',
+    '一判二级类目名称': row[sFirstCatCol] || '',
+    '判责单创建时间': extractDate(row[sCreateTimeCol] || ''),
+    '是否异常': '无异常'
+  }));
+
+  // === 组织有责（按选中日期筛选） ===
+  const orgResponsible = filtered.filter(row =>
+    extractDate(row[sCreateTimeCol] || '') === selDate &&
+    String(row[sFinalCol] || '').trim() === '组织有责' &&
+    String(row[sDomainCol] || '').trim() === '盒马O2O配送域'
+  ).map(row => ({
+    '判责单编号': row[sCaseNoCol] || '',
+    '配送站名称': row[sStationCol] || '',
+    '商品名称': row[sProductCol] || '',
+    '外部类目': row[sExtCatCol] || '',
+    '终判备注1': row[sFinalNoteCol] || '',
+    '判责单创建时间': extractDate(row[sCreateTimeCol] || ''),
+    '是否异常': '无异常'
+  }));
+
+  // === 物流损（按选中日期筛选） ===
+  const logisticsLoss = filtered.filter(row =>
+    extractDate(row[sCreateTimeCol] || '') === selDate &&
+    String(row[sExtCatCol] || '').trim() === '物流损' &&
+    String(row[sDomainCol] || '').trim() === '盒马O2O配送域'
+  ).map(row => ({
+    '外部类目': row[sExtCatCol] || '',
+    '判责单编号': row[sCaseNoCol] || '',
+    '配送站名称': row[sStationCol] || '',
+    '商品名称': row[sProductCol] || '',
+    '一判判责结果': row[sFirstResultCol] || '',
+    '判责单创建时间': extractDate(row[sCreateTimeCol] || ''),
+    '是否异常': String(row[sFirstResultCol] || '').trim() === '' ? '一判未判责' : '无异常'
+  }));
+
+  // === 冷链化冻（按选中日期筛选） ===
+  const coldChain = filtered.filter(row =>
+    extractDate(row[sCreateTimeCol] || '') === selDate &&
+    String(row[sFirstCatCol] || '').trim() === '冷链商品化冻'
+  ).map(row => {
+    const domain = String(row[sDomainCol] || '').trim();
+    const isHemaDomain = domain === '盒马O2O配送域';
+    const abnormalValue = isHemaDomain ? '无异常' : '落责' + domain.slice(-3);
+    return {
+      '判责单编号': row[sCaseNoCol] || '',
+      '配送站名称': row[sStationCol] || '',
+      '商品名称': row[sProductCol] || '',
+      '关联责任方': row[sRespPartyCol] || '',
+      '外部类目': row[sExtCatCol] || '',
+      '判责单创建时间': extractDate(row[sCreateTimeCol] || ''),
+      '是否异常': abnormalValue
+    };
+  });
+
+  // 保存报告数据
+  reportData.orgResponsible = orgResponsible;
+  reportData.logisticsLoss = logisticsLoss;
+  reportData.coldChain = coldChain;
+
+  // === 工单超时（按选中日期的前一天筛选，剔除外部类目=配送送错货） ===
+  const timeoutOrders = filtered.filter(row =>
+    extractDate(row[sCreateTimeCol] || '') === selDatePrev &&
+    String(row[sStatusCol] || '').trim() === '超时完成' &&
+    String(row[sProgressCol] || '').trim() === '' &&
+    String(row[sDomainCol] || '').trim() === '盒马O2O配送域' &&
+    String(row[sExtCatCol] || '').trim() !== '配送送错货'
+  ).map(row => ({
+    '判责单编号': row[sCaseNoCol] || '',
+    '外部类目': row[sExtCatCol] || '',
+    '配送站名称': row[sStationCol] || '',
+    '商品名称': row[sProductCol] || '',
+    '判责单创建时间': extractDate(row[sCreateTimeCol] || ''),
+    '超时类型': String(row[sFinalCatCol] || '').trim() === '' ? '一判超时' : '终判超时'
+  }));
+
+  reportData.timeoutOrders = timeoutOrders;
+
+  // 存储原始数据（包含判责单创建时间）
+  viewResultsRaw = {
+    '全部数据': allData,
+    '组织有责': orgResponsible,
+    '物流损': logisticsLoss,
+    '冷链化冻': coldChain,
+    '工单超时': timeoutOrders
+  };
+
+  // 初始显示（不过滤）
+  viewResults = {
+    '全部数据': [...allData],
+    '组织有责': [...orgResponsible],
+    '物流损': [...logisticsLoss],
+    '冷链化冻': [...coldChain],
+    '工单超时': [...timeoutOrders]
+  };
+
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('resultsView').classList.add('active');
+  document.getElementById('resultsTitle').innerHTML =
+    '分析结果 <span>' + team + ' · ' + stores.size + ' 个门店 · 处理日期 ' + selDate + '（工单超时: ' + selDatePrev + '）</span>';
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="summary-card"><div class="sc-label">总记录数</div><div class="sc-value blue">${filtered.length}</div></div>
+    <div class="summary-card"><div class="sc-label">匹配门店</div><div class="sc-value green">${matchedStores.length} / ${stores.size}</div></div>
+    <div class="summary-card"><div class="sc-label">组织有责</div><div class="sc-value red">${orgResponsible.length}</div></div>
+    <div class="summary-card"><div class="sc-label">物流损</div><div class="sc-value yellow">${logisticsLoss.length}</div></div>
+    <div class="summary-card"><div class="sc-label">冷链化冻</div><div class="sc-value" style="color:#3b82f6;">${coldChain.length}</div></div>
+    <div class="summary-card"><div class="sc-label">工单超时</div><div class="sc-value" style="color:#8b5cf6;">${timeoutOrders.length}</div></div>
+  `;
+
+  const mp = document.getElementById('matchPanel');
+  mp.style.display = 'block';
+  let mpHtml = '<div class="mp-title">🔍 门店匹配详情</div>';
+  mpHtml += '<div class="mp-row"><strong>判责单门店列：</strong>' + escapeHtml(sStoreCol) + '（共 ' + sourceStores.size + ' 个不同值）</div>';
+  mpHtml += '<div class="mp-row"><strong>战队表门店列：</strong>' + escapeHtml(document.getElementById('mapTeamStoreCol').value) + '（共 ' + stores.size + ' 个）</div>';
+  if (matchedStores.length > 0) {
+    mpHtml += '<div class="mp-row mp-ok"><strong>✓ 已匹配门店（' + matchedStores.length + '个）：</strong>' + matchedStores.slice(0, 15).join('、') + (matchedStores.length > 15 ? '...' : '') + '</div>';
+  }
+  if (unmatchedStores.length > 0) {
+    mpHtml += '<div class="mp-row mp-warn"><strong>⚠️ 未匹配门店（' + unmatchedStores.length + '个）：</strong>' + unmatchedStores.slice(0, 15).join('、') + (unmatchedStores.length > 15 ? '...' : '') + '</div>';
+  }
+  mp.innerHTML = mpHtml;
+
+  const tabs = document.getElementById('viewTabs');
+  tabs.innerHTML = '';
+  const viewNames = Object.keys(viewResults);
+  viewNames.forEach((name, idx) => {
+    const tab = document.createElement('button');
+    tab.className = 'view-tab' + (idx === 0 ? ' active' : '');
+    tab.innerHTML = name + '<span class="tab-count">' + viewResults[name].length + '</span>';
+    tab.onclick = () => switchView(idx);
+    tabs.appendChild(tab);
+  });
+
+  // 初始化
+  currentViewIndex = 0;
+  renderTable(viewNames[0]);
+}
+
+function renderTable(viewName) {
+  const data = viewResults[viewName] || [];
+  const container = document.getElementById('tableContainer');
+  if (data.length === 0) {
+    container.innerHTML = '<div class="no-data"><div class="icon">📭</div><p>该视图下暂无数据</p></div>';
+    return;
+  }
+  
+  // 根据视图名称决定要显示的列
+  let displayData = data;
+  
+  // 如果不是工单超时视图，移除"判责单创建时间"列
+  if (viewName !== '工单超时') {
+    displayData = data.map(row => {
+      const newRow = { ...row };
+      delete newRow['判责单创建时间'];
+      return newRow;
+    });
+  }
+  
+  const columns = Object.keys(displayData[0]);
+  let html = '<table class="data-table"><thead><tr><th style="width:40px">#</th>';
+  columns.forEach(col => { html += '<th>' + escapeHtml(col) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  displayData.forEach((row, idx) => {
+    html += '<tr><td style="color:var(--fg-muted)">' + (idx + 1) + '</td>';
+    columns.forEach(col => {
+      if (col === '是否异常') {
+        const val = row[col] || '无异常';
+        html += '<td><input type="text" class="abnormal-input" value="' + escapeHtml(val) + '" data-view="' + escapeHtml(viewName) + '" data-row="' + idx + '" onchange="updateAbnormal(this)" placeholder="无异常"></td>';
+      } else {
+        const val = row[col] || '';
+        html += '<td title="' + escapeHtml(val) + '">' + escapeHtml(val) + '</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function updateAbnormal(select) {
+  const viewName = select.getAttribute('data-view');
+  const rowIdx = parseInt(select.getAttribute('data-row'));
+  viewResults[viewName][rowIdx]['是否异常'] = select.value;
+  // 同步更新报告数据
+  if (viewName === '组织有责') reportData.orgResponsible[rowIdx]['是否异常'] = select.value;
+  if (viewName === '物流损') reportData.logisticsLoss[rowIdx]['是否异常'] = select.value;
+  if (viewName === '冷链化冻') reportData.coldChain[rowIdx]['是否异常'] = select.value;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function toggleColMap(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('collapsed');
+}
+
+// ===== EXPORT IMAGE（每个模块单独输出图片） =====
+function exportImage() {
+  const modules = [];
+  
+  // 各数据模块（仅当有数据时）
+  if (reportData.logisticsLoss.length > 0) {
+    modules.push({
+      name: '物流损',
+      html: generateModuleHtml('logisticsLoss', '🚚 物流损', 'yellow')
+    });
+  }
+  if (reportData.orgResponsible.length > 0) {
+    modules.push({
+      name: '组织有责',
+      html: generateModuleHtml('orgResponsible', '⚠️ 组织有责', 'red')
+    });
+  }
+  if (reportData.coldChain.length > 0) {
+    modules.push({
+      name: '冷链化冻',
+      html: generateModuleHtml('coldChain', '❄️ 冷链化冻', 'blue')
+    });
+  }
+  if (reportData.timeoutOrders.length > 0) {
+    modules.push({
+      name: '工单超时',
+      html: generateModuleHtml('timeoutOrders', '⏰ 工单超时', 'purple')
+    });
+  }
+  
+  // 依次导出每个模块
+  let index = 0;
+  function exportNext() {
+    if (index >= modules.length) {
+      console.log('已导出 ' + modules.length + ' 张图片');
+      // 导出完成后自动复制文案
+      copyStatsText();
+      return;
+    }
+    const mod = modules[index];
+    exportModuleImage(mod.name, mod.html, () => {
+      index++;
+      setTimeout(exportNext, 300);
+    });
+  }
+  exportNext();
+}
+
+// ===== 生成并复制统计文案 =====
+function copyStatsText() {
+  const team = reportData.team || '';
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  
+  // 获取工单超时数据
+  const timeoutOrders = reportData.timeoutOrders || [];
+  const timeoutFirst = timeoutOrders.filter(r => r['超时类型'] === '一判超时');
+  const timeoutFinal = timeoutOrders.filter(r => r['超时类型'] === '终判超时');
+  
+  // 获取一判超时的配送站列表（去重）
+  const firstStations = [...new Set(timeoutFirst.map(r => r['配送站名称']).filter(s => s))];
+  // 获取终判超时的配送站列表（去重）
+  const finalStations = [...new Set(timeoutFinal.map(r => r['配送站名称']).filter(s => s))];
+  
+  // 获取物流损数据
+  const logisticsLoss = reportData.logisticsLoss || [];
+  const logisticsNoJudge = logisticsLoss.filter(r => r['是否异常'] === '一判未判责');
+  
+  // 获取冷链化冻数据
+  const coldChain = reportData.coldChain || [];
+  const coldChainQuality = coldChain.filter(r => r['是否异常'] && r['是否异常'].includes('质控域'));
+  
+  // 组织有责
+  const orgResponsible = reportData.orgResponsible || [];
+  
+  // 构建文案
+  let text = `${team} ${month}月${day}日 判责单统计\n`;
+  text += `工单超时${timeoutOrders.length}条\n`;
+  
+  if (timeoutFirst.length > 0) {
+    text += `       一判超时${timeoutFirst.length}条\n`;
+    firstStations.forEach(station => {
+      const count = timeoutFirst.filter(r => r['配送站名称'] === station).length;
+      text += `              ${station}${count}条\n`;
+    });
+  }
+  
+  if (timeoutFinal.length > 0) {
+    text += `       终判超时${timeoutFinal.length}条\n`;
+    finalStations.forEach(station => {
+      const count = timeoutFinal.filter(r => r['配送站名称'] === station).length;
+      text += `              ${station}${count}条\n`;
+    });
+  }
+  
+  text += `组织有责${orgResponsible.length}条\n`;
+  text += `物流损${logisticsLoss.length}条\n`;
+  
+  if (logisticsNoJudge.length > 0) {
+    text += `       其中一判未判责${logisticsNoJudge.length}条\n`;
+  }
+  
+  text += `冷链化冻${coldChain.length}条\n`;
+  
+  if (coldChainQuality.length > 0) {
+    text += `       其中落责质控域${coldChainQuality.length}条\n`;
+  }
+  
+  // 复制到剪贴板（静默，不弹窗）
+  navigator.clipboard.writeText(text).catch(err => {
+    console.error('复制失败:', err);
+    // 降级方案
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  });
+}
+
+function exportModuleImage(moduleName, moduleHtml, callback) {
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:100%;height:100%;border:none;';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(moduleHtml);
+  doc.close();
+  
+  iframe.onload = () => {
+    setTimeout(() => {
+      const body = doc.body;
+      const bodyWidth = body.scrollWidth;
+      const bodyHeight = body.scrollHeight;
+      html2canvas(body, {
+        backgroundColor: '#f5f7fa',
+        scale: 2,
+        useCORS: true,
+        width: bodyWidth,
+        height: bodyHeight,
+        windowWidth: bodyWidth,
+        windowHeight: bodyHeight
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = reportData.team + '_' + moduleName + '_' + reportData.date + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        document.body.removeChild(iframe);
+        callback();
+      }).catch(err => {
+        console.error('导出' + moduleName + '失败:', err);
+        document.body.removeChild(iframe);
+        callback();
+      });
+    }, 300);
+  };
+}
+
+function generateSummaryHtml() {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f5f7fa;
+    color: #1e293b;
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: calc(100vw - 10px);
+    margin: 0 auto;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 8px;
+  }
+  .header .meta {
+    color: #64748b;
+    font-size: 14px;
+  }
+  .summary-section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .summary-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #1e293b;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .summary-item {
+    text-align: center;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+  }
+  .summary-item .label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+  .summary-item .value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #3b82f6;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📊 判责单分析报告</h1>
+    <div class="meta">战队：${reportData.team} | 分析日期：${reportData.date} | 门店数：${reportData.storeCount} | 匹配门店：${reportData.matchedStoreCount}</div>
+  </div>
+  <div class="summary-section">
+    <h2>📈 汇总信息</h2>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="label">总记录数</div>
+        <div class="value">${reportData.totalRecords}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">组织有责</div>
+        <div class="value" style="color:#ef4444">${reportData.orgResponsible.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">物流损</div>
+        <div class="value" style="color:#f59e0b">${reportData.logisticsLoss.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">冷链化冻</div>
+        <div class="value" style="color:#3b82f6">${reportData.coldChain.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">工单超时</div>
+        <div class="value" style="color:#8b5cf6">${reportData.timeoutOrders.length}</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function generateModuleHtml(dataKey, title, colorClass) {
+  const data = reportData[dataKey];
+  let tableHtml = '';
+  
+  if (dataKey === 'logisticsLoss') {
+    tableHtml = `<table class="data-table">
+      <thead><tr><th>外部类目</th><th>判责单编号</th><th>配送站名称</th><th>商品名称</th><th>一判判责结果</th><th>是否异常</th></tr></thead>
+      <tbody>${data.map(row => `<tr>
+        <td>${escapeHtml(row['外部类目'])}</td>
+        <td>${escapeHtml(row['判责单编号'])}</td>
+        <td>${escapeHtml(row['配送站名称'])}</td>
+        <td>${escapeHtml(row['商品名称'])}</td>
+        <td>${escapeHtml(row['一判判责结果'])}</td>
+        <td><span class="badge ${row['是否异常'] === '异常' ? 'badge-abnormal' : 'badge-normal'}">${row['是否异常']}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } else if (dataKey === 'orgResponsible') {
+    tableHtml = `<table class="data-table">
+      <thead><tr><th>判责单编号</th><th>配送站名称</th><th>商品名称</th><th>外部类目</th><th>终判备注1</th><th>是否异常</th></tr></thead>
+      <tbody>${data.map(row => `<tr>
+        <td>${escapeHtml(row['判责单编号'])}</td>
+        <td>${escapeHtml(row['配送站名称'])}</td>
+        <td>${escapeHtml(row['商品名称'])}</td>
+        <td>${escapeHtml(row['外部类目'])}</td>
+        <td style="max-width:30em;word-break:break-all;">${escapeHtml(row['终判备注1'])}</td>
+        <td><span class="badge ${row['是否异常'] === '异常' ? 'badge-abnormal' : 'badge-normal'}">${row['是否异常']}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } else if (dataKey === 'coldChain') {
+    tableHtml = `<table class="data-table">
+      <thead><tr><th>判责单编号</th><th>配送站名称</th><th>商品名称</th><th>关联责任方</th><th>外部类目</th><th>是否异常</th></tr></thead>
+      <tbody>${data.map(row => `<tr>
+        <td>${escapeHtml(row['判责单编号'])}</td>
+        <td>${escapeHtml(row['配送站名称'])}</td>
+        <td>${escapeHtml(row['商品名称'])}</td>
+        <td>${escapeHtml(row['关联责任方'])}</td>
+        <td>${escapeHtml(row['外部类目'])}</td>
+        <td><span class="badge ${row['是否异常'] === '异常' ? 'badge-abnormal' : 'badge-normal'}">${row['是否异常']}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } else if (dataKey === 'timeoutOrders') {
+    tableHtml = `<table class="data-table">
+      <thead><tr><th>判责单编号</th><th>外部类目</th><th>配送站名称</th><th>商品名称</th><th>判责单创建时间</th><th>超时类型</th></tr></thead>
+      <tbody>${data.map(row => `<tr>
+        <td>${escapeHtml(row['判责单编号'])}</td>
+        <td>${escapeHtml(row['外部类目'])}</td>
+        <td>${escapeHtml(row['配送站名称'])}</td>
+        <td>${escapeHtml(row['商品名称'])}</td>
+        <td>${escapeHtml(row['判责单创建时间'])}</td>
+        <td><span class="badge ${row['超时类型'] === '一判超时' ? 'badge-timeout1' : 'badge-timeout2'}">${row['超时类型']}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+  
+  const colorStyles = {
+    yellow: { bg: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: '#fbbf24', text: '#92400e' },
+    red: { bg: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', border: '#dc2626', text: '#991b1b' },
+    blue: { bg: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)', border: '#60a5fa', text: '#1e40af' },
+    purple: { bg: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', border: '#dc2626', text: '#991b1b' }
+  };
+  const style = colorStyles[colorClass];
+  
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f5f7fa;
+    color: #1e293b;
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: calc(100vw - 10px);
+    margin: 0 auto;
+  }
+  .report-container {
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    background: ${style.bg};
+    border: 2px solid ${style.border};
+    color: ${style.text};
+  }
+  .report-container h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .report-container .count {
+    font-size: 36px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 16px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .data-table th {
+    background: rgba(0,0,0,0.05);
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+  .data-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-normal {
+    background: rgba(34,197,94,0.2);
+    color: #166534;
+  }
+  .badge-abnormal {
+    background: rgba(239,68,68,0.2);
+    color: #991b1b;
+  }
+  .badge-timeout1 {
+    background: rgba(245,158,11,0.2);
+    color: #92400e;
+  }
+  .badge-timeout2 {
+    background: rgba(220,38,38,0.2);
+    color: #991b1b;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="report-container">
+    <h3>${title}</h3>
+    <div class="count">${data.length} 条记录</div>
+    ${tableHtml}
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+// ===== 生成报告HTML（供导出报告和导出图片共用） =====
+function generateReportHtml() {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>判责单分析报告 - ${reportData.team}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f5f7fa;
+    color: #1e293b;
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: calc(100vw - 10px);
+    margin: 0 auto;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 8px;
+  }
+  .header .meta {
+    color: #64748b;
+    font-size: 14px;
+  }
+  .summary-section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .summary-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #1e293b;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .summary-item {
+    text-align: center;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+  }
+  .summary-item .label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+  .summary-item .value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #3b82f6;
+  }
+  .report-container {
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .report-container h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .report-container .count {
+    font-size: 36px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  .report-container.yellow {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    color: #92400e;
+  }
+  .report-container.red {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 1px solid #f87171;
+    color: #991b1b;
+  }
+  .report-container.blue {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #60a5fa;
+    color: #1e40af;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 16px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .data-table th {
+    background: rgba(0,0,0,0.05);
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+  .data-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .data-table tr:last-child td {
+    border-bottom: none;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-normal {
+    background: rgba(34,197,94,0.2);
+    color: #166534;
+  }
+  .badge-abnormal {
+    background: rgba(239,68,68,0.2);
+    color: #991b1b;
+  }
+  .badge-timeout1 {
+    background: rgba(245,158,11,0.2);
+    color: #92400e;
+  }
+  .badge-timeout2 {
+    background: rgba(220,38,38,0.2);
+    color: #991b1b;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  @media print {
+    body { background: #fff; }
+    .report-container { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📊 判责单分析报告</h1>
+    <div class="meta">战队：${reportData.team} | 分析日期：${reportData.date} | 门店数：${reportData.storeCount} | 匹配门店：${reportData.matchedStoreCount}</div>
+  </div>
+
+  <div class="summary-section">
+    <h2>📈 汇总信息</h2>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="label">总记录数</div>
+        <div class="value">${reportData.totalRecords}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">组织有责</div>
+        <div class="value" style="color:#ef4444">${reportData.orgResponsible.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">物流损</div>
+        <div class="value" style="color:#f59e0b">${reportData.logisticsLoss.length}</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">冷链化冻</div>
+        <div class="value" style="color:#3b82f6">${reportData.coldChain.length}</div>
+      </div>
+    </div>
+  </div>
+
+  ${reportData.logisticsLoss.length > 0 ? `
+  <div class="report-container yellow">
+    <h3>🚚 物流损</h3>
+    <div class="count">${reportData.logisticsLoss.length} 条记录</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>外部类目</th>
+          <th>判责单编号</th>
+          <th>配送站名称</th>
+          <th>商品名称</th>
+          <th>关联责任方</th>
+          <th>是否异常</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${reportData.logisticsLoss.map(row => `
+        <tr>
+          <td>${escapeHtml(row['外部类目'])}</td>
+          <td>${escapeHtml(row['判责单编号'])}</td>
+          <td>${escapeHtml(row['配送站名称'])}</td>
+          <td>${escapeHtml(row['商品名称'])}</td>
+          <td>${escapeHtml(row['关联责任方'])}</td>
+          <td><span class="badge ${row['是否异常'] === '异常' ? 'badge-abnormal' : 'badge-normal'}">${row['是否异常']}</span></td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  ${reportData.orgResponsible.length > 0 ? `
+  <div class="report-container red">
+    <h3>⚠️ 组织有责</h3>
+    <div class="count">${reportData.orgResponsible.length} 条记录</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>判责单编号</th>
+          <th>配送站名称</th>
+          <th>商品名称</th>
+          <th>外部类目</th>
+          <th>终判备注1</th>
+          <th>是否异常</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${reportData.orgResponsible.map(row => `
+        <tr>
+          <td>${escapeHtml(row['判责单编号'])}</td>
+          <td>${escapeHtml(row['配送站名称'])}</td>
+          <td>${escapeHtml(row['商品名称'])}</td>
+          <td>${escapeHtml(row['外部类目'])}</td>
+          <td style="max-width:30em;word-break:break-all;">${escapeHtml(row['终判备注1'])}</td>
+          <td><span class="badge ${row['是否异常'] === '异常' ? 'badge-abnormal' : 'badge-normal'}">${row['是否异常']}</span></td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  ${reportData.coldChain.length > 0 ? `
+  <div class="report-container blue">
+    <h3>❄️ 冷链化冻</h3>
+    <div class="count">${reportData.coldChain.length} 条记录</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>判责单编号</th>
+          <th>配送站名称</th>
+          <th>商品名称</th>
+          <th>关联责任方</th>
+          <th>外部类目</th>
+          <th>是否异常</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${reportData.coldChain.map(row => `
+        <tr>
+          <td>${escapeHtml(row['判责单编号'])}</td>
+          <td>${escapeHtml(row['配送站名称'])}</td>
+          <td>${escapeHtml(row['商品名称'])}</td>
+          <td>${escapeHtml(row['关联责任方'])}</td>
+          <td>${escapeHtml(row['外部类目'])}</td>
+          <td><span class="badge ${row['是否异常'] === '异常' ? 'badge-abnormal' : 'badge-normal'}">${row['是否异常']}</span></td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
+
+  ${reportData.timeoutOrders.length > 0 ? `
+  <div class="report-container purple">
+    <h3>⏰ 工单超时</h3>
+    <div class="count">${reportData.timeoutOrders.length} 条记录</div>
+    <table class="data-table">
+      <thead><tr><th>判责单编号</th><th>外部类目</th><th>配送站名称</th><th>商品名称</th><th>判责单创建时间</th><th>超时类型</th></tr></thead>
+      <tbody>
+        ${reportData.timeoutOrders.map(row => `<tr>
+          <td>${escapeHtml(row['判责单编号'])}</td>
+          <td>${escapeHtml(row['外部类目'])}</td>
+          <td>${escapeHtml(row['配送站名称'])}</td>
+          <td>${escapeHtml(row['商品名称'])}</td>
+          <td>${escapeHtml(row['判责单创建时间'])}</td>
+          <td><span class="badge ${row['超时类型'] === '一判超时' ? 'badge-timeout1' : 'badge-timeout2'}">${row['超时类型']}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="footer">
+    <p>本报告由判责单分析工具生成 | 数据仅本地处理</p>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+// ===== EXPORT REPORT =====
+function exportReport() {
+  const reportHtml = generateReportHtml();
+
+  const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '判责单分析报告_' + reportData.team + '_' + reportData.date + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== DRAG & DROP =====
+['uploadZone1', 'uploadZone2'].forEach(id => {
+  const zone = document.getElementById(id);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => { zone.classList.remove('dragover'); });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const input = zone.querySelector('input[type="file"]');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+  });
+});
+</script>
+</body>
+</html>

@@ -182,7 +182,6 @@
         .active-default { background: var(--primary); color: #fff; border-color: var(--primary); pointer-events: none; }
         .active-bad { background: var(--warning); color: #fff; border-color: var(--warning); pointer-events: none; }
         .active-cold { background: var(--cold); color: #fff; border-color: var(--cold); pointer-events: none; }
-        .active-logistics { background: #8b5cf6; color: #fff; border-color: #8b5cf6; pointer-events: none; }
         .view-badge { font-size: 0.62rem; background: rgba(255,255,255,0.28); padding: 2px 8px; border-radius: 10px; font-weight: 650; }
 
         .table-wrapper {
@@ -356,7 +355,6 @@
             </div>
             <div class="filter-right">
                 <span class="view-switch-bubble active-default" id="viewBubbleDefault">📋 问单 <span class="view-badge" id="defaultBadge">0</span></span>
-                <span class="view-switch-bubble" id="viewBubbleLogistics" style="display:none;">🚚 物流损 <span class="view-badge" id="logisticsBadge">0</span></span>
                 <span class="view-switch-bubble" id="viewBubbleColdThaw" style="display:none;">❄️ 冷链 <span class="view-badge" id="coldThawBadge">0</span></span>
                 <span class="view-switch-bubble" id="viewBubbleBadReview" style="display:none;">💬 差评 <span class="view-badge" id="badReviewBadge">0</span></span>
             </div>
@@ -386,13 +384,13 @@
             const guideCard = $('#guideCard');
             const hiddenFileInput = $('#hiddenFileInput');
 
-            let allData = [], badReviewData = [], coldThawData = [], logisticsData = [];
-            let filteredData = [], filteredBadReviewData = [], filteredColdThawData = [], filteredLogisticsData = [];
+            let allData = [], badReviewData = [], coldThawData = [];
+            let filteredData = [], filteredBadReviewData = [], filteredColdThawData = [];
             let selectedStore = null;
             let selectedReasons = new Set();
             let currentView = 'default';
             let pageSize = 20;
-            let viewCurrentPages = { default: 1, badReview: 1, coldThaw: 1, logistics: 1 };
+            let viewCurrentPages = { default: 1, badReview: 1, coldThaw: 1 };
             let allStores = [];
             let selectedArea = null; // 当前选中的片区
             let areaStoreMap = {}; // 片区→门店列表映射
@@ -1157,8 +1155,6 @@
                         coldThawManualMap.clear();
                         coldThawData.forEach(r => coldThawManualMap.set(r._rowId, { isThawIssue:'是', deliveryStandard:'规范', verifyReason:'' }));
 
-                        logisticsData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() === '物流损');
-
                         badReviewData = []; badReviewManualMap.clear();
                         if (badReviewSheetName) {
                             const brRows = XLSX.utils.sheet_to_json(wb.Sheets[badReviewSheetName], { defval:'', raw:false });
@@ -1194,7 +1190,7 @@
 
             function initializeMainUI() {
                 currentView = 'default';
-                viewCurrentPages = { default:1, badReview:1, coldThaw:1, logistics:1 };
+                viewCurrentPages = { default:1, badReview:1, coldThaw:1 };
                 duplicateBatchSet.clear();
                 updateBubbles();
                 applyFilters();
@@ -1232,17 +1228,8 @@
 
             function updateBubbles() {
                 if (currentView !== 'default') { $('#bubbleContainer').innerHTML = '<span class="no-bubbles">当前视图不支持筛选</span>'; return; }
-                // 问单视图：排除冷链商品化冻和物流损
-                let data = allData.filter(r => r && (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻' && (getColValue(r,'问题原因名称')||'').trim() !== '物流损');
-                // 门店筛选
-                if (selectedStore) {
-                    data = data.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore);
-                } else if (selectedArea) {
-                    // 片区筛选：获取当前片区对应的门店集合
-                    const areaStores = getAreaStores(selectedArea);
-                    const areaStoreSet = new Set(areaStores);
-                    data = data.filter(r => areaStoreSet.has(String(getColValue(r,'门店名称')).trim()));
-                }
+                let data = allData.filter(r => r && (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻');
+                if (selectedStore) data = data.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore);
                 const counts = new Map();
                 data.forEach(r => { const k = (getColValue(r,'问题原因名称')||'').trim(); if (k) counts.set(k, (counts.get(k)||0)+1); });
                 const reasons = [...counts.keys()].sort((a,b) => (counts.get(b)||0) - (counts.get(a)||0));
@@ -1264,16 +1251,7 @@
             }
 
             function applyFilters() {
-                let data;
-                if (currentView === 'default') {
-                    data = [...allData];
-                } else if (currentView === 'badReview') {
-                    data = [...badReviewData];
-                } else if (currentView === 'logistics') {
-                    data = [...logisticsData];
-                } else {
-                    data = [...coldThawData];
-                }
+                let data = currentView === 'default' ? [...allData] : (currentView === 'badReview' ? [...badReviewData] : [...coldThawData]);
 
                 // 片区筛选：获取当前片区对应的门店集合
                 let areaStoreSet = null;
@@ -1292,11 +1270,7 @@
                     });
                 }
                 if (currentView === 'default') {
-                    // 问单视图：排除冷链商品化冻和物流损
-                    data = data.filter(r => {
-                        const reason = (getColValue(r,'问题原因名称')||'').trim();
-                        return reason !== '冷链商品化冻' && reason !== '物流损';
-                    });
+                    data = data.filter(r => (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻');
                     if (selectedReasons.size) data = data.filter(r => selectedReasons.has((getColValue(r,'问题原因名称')||'').trim()));
                 }
 
@@ -1309,7 +1283,13 @@
                     const bIsQZC = bStoreName.includes('前置仓') ? 1 : 0;
                     if (aIsQZC !== bIsQZC) return aIsQZC - bIsQZC;
 
-                    if (currentView === 'default' || currentView === 'coldThaw' || currentView === 'logistics') {
+                    if (currentView === 'default' || currentView === 'coldThaw') {
+                        // 物流损置顶
+                        const aIsLogistics = (getColValue(a, '问题原因名称') || '').trim() === '物流损';
+                        const bIsLogistics = (getColValue(b, '问题原因名称') || '').trim() === '物流损';
+                        if (aIsLogistics && !bIsLogistics) return -1;
+                        if (!aIsLogistics && bIsLogistics) return 1;
+
                         const aReason = (getColValue(a, 'app退款原因') || getColValue(a, 'APP退款原因') || '').trim();
                         const bReason = (getColValue(b, 'app退款原因') || getColValue(b, 'APP退款原因') || '').trim();
                         const aDesc = (getColValue(a, 'app退款描述') || getColValue(a, 'APP退款描述') || '').trim();
@@ -1328,8 +1308,8 @@
                         if (aDash && !bDash) return 1;
                         if (!aDash && bDash) return -1;
                     }
-                    // 默认按批次号排序（仅限问单视图和物流损视图）
-                    if (currentView === 'default' || currentView === 'logistics') {
+                    // 默认按批次号排序（仅限问单视图）
+                    if (currentView === 'default') {
                         const aBatch = String(getColValue(a, '批次号') || '').trim();
                         const bBatch = String(getColValue(b, '批次号') || '').trim();
                         return aBatch.localeCompare(bBatch);
@@ -1337,8 +1317,8 @@
                     return 0;
                 });
 
-                // 计算重复批次（仅问单视图和物流损视图）
-                if (currentView === 'default' || currentView === 'logistics') {
+                // 计算重复批次（仅问单视图）
+                if (currentView === 'default') {
                     duplicateBatchSet.clear();
                     const batchCounts = new Map();
                     data.forEach(r => { const b = String(getColValue(r,'批次号')||'').trim(); if (b) batchCounts.set(b, (batchCounts.get(b)||0)+1); });
@@ -1347,10 +1327,9 @@
 
                 if (currentView === 'default') filteredData = data;
                 else if (currentView === 'badReview') filteredBadReviewData = data;
-                else if (currentView === 'logistics') filteredLogisticsData = data;
                 else filteredColdThawData = data;
 
-                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : (currentView === 'logistics' ? filteredLogisticsData : filteredColdThawData));
+                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : filteredColdThawData);
                 const totalPages = Math.ceil(cfd.length / pageSize) || 1;
                 if (getCurrentPage() > totalPages) setCurrentPage(totalPages);
                 renderTable();
@@ -1367,7 +1346,7 @@
                     return;
                 }
                 if (!selectedStore) {
-                    el.textContent = '📍 当前片区：全部片区';
+                    el.textContent = '📍 当前门店：全部门店';
                     return;
                 }
                 
@@ -1380,12 +1359,12 @@
             }
 
             function renderTable() {
-                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : (currentView === 'logistics' ? filteredLogisticsData : filteredColdThawData));
+                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : filteredColdThawData);
                 const start = (getCurrentPage()-1) * pageSize, end = Math.min(start + pageSize, cfd.length);
                 const pageData = cfd.slice(start, end);
                 const thead = $('#tableHead'), tbody = $('#tableBody');
 
-                if (currentView === 'default' || currentView === 'logistics')
+                if (currentView === 'default')
                     thead.innerHTML = '<tr><th>门店</th><th>问题原因名称</th><th>SKU名称</th><th>APP退款原因</th><th>APP退款描述</th><th>退款凭证</th><th>单号</th><th>责任人</th></tr>';
                 else if (currentView === 'badReview')
                     thead.innerHTML = '<tr><th>交易日期</th><th>门店</th><th>配送员名称</th><th>单号</th><th>评价文本</th><th>评价标签</th><th>评价星级</th></tr>';
@@ -1399,8 +1378,8 @@
                 const fragment = document.createDocumentFragment();
                 pageData.forEach(row => {
                     const tr = document.createElement('tr');
-                    if ((currentView === 'default' || currentView === 'logistics') && duplicateBatchSet.has(String(getColValue(row,'批次号')||'').trim())) tr.classList.add('duplicate-batch');
-                    if (currentView === 'default' || currentView === 'logistics') {
+                    if (currentView === 'default' && duplicateBatchSet.has(String(getColValue(row,'批次号')||'').trim())) tr.classList.add('duplicate-batch');
+                    if (currentView === 'default') {
                         tr.appendChild(createCell(getColValue(row,'门店名称')));
                         tr.appendChild(createClickableCell(getColValue(row,'问题原因名称')));
                         tr.appendChild(createClickableCell(getColValue(row,'sku名称')||getColValue(row,'SKU名称')));
@@ -1731,14 +1710,7 @@
                 const showCold = coldThawData.length && coldThawData.some(r => storeFilter(r, '门店名称'));
                 $('#viewBubbleColdThaw').style.display = showCold ? 'inline-flex' : 'none';
                 if (showCold) $('#coldThawBadge').textContent = coldThawData.filter(r => storeFilter(r, '门店名称')).length;
-                const showLogistics = logisticsData.length && logisticsData.some(r => storeFilter(r, '门店名称'));
-                $('#viewBubbleLogistics').style.display = showLogistics ? 'inline-flex' : 'none';
-                if (showLogistics) $('#logisticsBadge').textContent = logisticsData.filter(r => storeFilter(r, '门店名称')).length;
-                // 问单视图badge：排除冷链商品化冻和物流损
-                const defaultData = allData.filter(r => {
-                    const reason = (getColValue(r,'问题原因名称')||'').trim();
-                    return reason !== '冷链商品化冻' && reason !== '物流损';
-                });
+                const defaultData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻');
                 $('#defaultBadge').textContent = defaultData.filter(r => storeFilter(r, '门店名称')).length;
                 updateViewBubbleActiveState();
                 if (currentView !== 'default') $('#bubbleContainer').innerHTML = '<span class="no-bubbles">当前视图不支持筛选</span>';
@@ -1746,13 +1718,11 @@
 
             function updateViewBubbleActiveState() {
                 $('#viewBubbleDefault').className = 'view-switch-bubble' + (currentView==='default'?' active-default':'');
-                $('#viewBubbleLogistics').className = 'view-switch-bubble' + (currentView==='logistics'?' active-logistics':'');
                 $('#viewBubbleBadReview').className = 'view-switch-bubble' + (currentView==='badReview'?' active-bad':'');
                 $('#viewBubbleColdThaw').className = 'view-switch-bubble' + (currentView==='coldThaw'?' active-cold':'');
             }
 
             $('#viewBubbleDefault').addEventListener('click', () => switchView('default'));
-            $('#viewBubbleLogistics').addEventListener('click', () => switchView('logistics'));
             $('#viewBubbleBadReview').addEventListener('click', () => switchView('badReview'));
             $('#viewBubbleColdThaw').addEventListener('click', () => switchView('coldThaw'));
 
@@ -1790,15 +1760,11 @@
                             <button class="guide-btn primary" id="exportImageBtn" style="flex:1;background:#10b981;">🖼️ 导出图片</button>
                             <button class="guide-btn primary" id="exportTableBtn" style="flex:1;background:#3b82f6;">📋 导出表格</button>
                         </div>
-                        <div style="display:flex;gap:10px;justify-content:center;">
-                            <button class="guide-btn primary" id="exportCopyBtn" style="flex:1;background:#f59e0b;">📋 复制文案</button>
-                        </div>
                     </div>
                 `;
                 openGuideView('📥 导出报告', '选择导出格式', html, '<button class="guide-btn secondary" id="closeExportBtn">取消</button>');
                 document.getElementById('exportImageBtn').addEventListener('click', () => { exportReport(); });
                 document.getElementById('exportTableBtn').addEventListener('click', () => { exportTable(); });
-                document.getElementById('exportCopyBtn').addEventListener('click', () => { exportCopyText(); });
                 document.getElementById('closeExportBtn').addEventListener('click', () => { guideOverlay.style.display = 'none'; });
             }
 
@@ -1806,111 +1772,6 @@
                 guideOverlay.style.display = 'none';
                 toast('⏳ 正在生成报告图片...');
                 setTimeout(() => { generateModuleImages(); }, 300);
-            }
-
-            // 复制文案功能
-            function exportCopyText() {
-                guideOverlay.style.display = 'none';
-                const text = buildCopyText();
-                navigator.clipboard.writeText(text).then(() => {
-                    toast('✅ 文案已复制到剪贴板');
-                }).catch(() => {
-                    toast('❌ 复制失败，请手动复制');
-                });
-            }
-
-            // 构建复制文案
-            function buildCopyText() {
-                const areaName = selectedArea || '全部片区';
-                const dateStr = getExportDateStr();
-
-                // 不达标门店列表
-                let nonCompliantStores = [];
-                let stores = [];
-                if (selectedArea) {
-                    stores = getAreaStores(selectedArea);
-                } else if (selectedStore) {
-                    stores = [selectedStore];
-                } else {
-                    stores = Object.keys(storeAchievements);
-                }
-
-                if (achievementCategories.length && stores.length) {
-                    const firstCatKey = achievementCategories[0];
-                    stores.forEach(sn => {
-                        const sd = storeAchievements[sn];
-                        if (!sd) return;
-                        const val = sd.achievements[firstCatKey] || 0;
-                        const isQzc = sn.includes('前置仓');
-                        const lim = isQzc ? (qianzhicangLimits[firstCatKey] || 0) : (shengxianLimits[firstCatKey] || 0);
-                        if (lim > 0 && val > lim) {
-                            nonCompliantStores.push(sn);
-                        }
-                    });
-                }
-
-                // 各类数据条数
-                let filterStoreSet = null;
-                if (selectedStore) {
-                    filterStoreSet = new Set([selectedStore]);
-                } else if (selectedArea) {
-                    filterStoreSet = new Set(getAreaStores(selectedArea));
-                }
-
-                const storeFilter = (r, colName) => {
-                    if (!filterStoreSet) return true;
-                    return filterStoreSet.has(String(getColValue(r, colName) || '').trim());
-                };
-
-                const logisticsCount = logisticsData.filter(r => storeFilter(r, '门店名称')).length;
-                const coldThawCount = coldThawData.filter(r => storeFilter(r, '门店名称')).length;
-                const badReviewCount = badReviewData.filter(r => storeFilter(r, '门店')).length;
-
-                // 统计各门店物流损条数
-                const logisticsStoreCounts = {};
-                logisticsData.filter(r => storeFilter(r, '门店名称')).forEach(r => {
-                    const sn = String(getColValue(r, '门店名称') || '').trim();
-                    logisticsStoreCounts[sn] = (logisticsStoreCounts[sn] || 0) + 1;
-                });
-                const logisticsStoreList = Object.entries(logisticsStoreCounts)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([sn, cnt]) => `        ${sn}${cnt}条`)
-                    .join('\n');
-
-                // 统计各门店冷链条数
-                const coldThawStoreCounts = {};
-                coldThawData.filter(r => storeFilter(r, '门店名称')).forEach(r => {
-                    const sn = String(getColValue(r, '门店名称') || '').trim();
-                    coldThawStoreCounts[sn] = (coldThawStoreCounts[sn] || 0) + 1;
-                });
-                const coldThawStoreList = Object.entries(coldThawStoreCounts)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([sn, cnt]) => `        ${sn}${cnt}条`)
-                    .join('\n');
-
-                // 统计各门店差评条数
-                const badReviewStoreCounts = {};
-                badReviewData.filter(r => storeFilter(r, '门店')).forEach(r => {
-                    const sn = String(getColValue(r, '门店') || '').trim();
-                    badReviewStoreCounts[sn] = (badReviewStoreCounts[sn] || 0) + 1;
-                });
-                const badReviewStoreList = Object.entries(badReviewStoreCounts)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([sn, cnt]) => `        ${sn}${cnt}条`)
-                    .join('\n');
-
-                let text = `${areaName} ${dateStr} 问单达成明细\n\n`;
-                text += `不达标门店\n`;
-                if (nonCompliantStores.length) {
-                    text += nonCompliantStores.join('\n') + '\n';
-                }
-                text += `\n物流损${logisticsCount}条\n\n`;
-                text += `冷链商品化冻${coldThawCount}条\n`;
-                if (coldThawStoreList) text += coldThawStoreList + '\n';
-                text += `\n差评${badReviewCount}条\n`;
-                if (badReviewStoreList) text += badReviewStoreList + '\n';
-
-                return text;
             }
 
             // 导出表格功能（xlsx格式）
@@ -1965,173 +1826,76 @@
                 }
             }
 
-            // 构建差评数据（按门店名称排序）
+            // 构建差评数据（生鲜店/前置仓排序）
             function buildBadReviewSheetData() {
-                if (!badReviewData.length) return [];
+                let stores = [];
+                if (selectedArea) stores = getAreaStores(selectedArea);
+                else if (selectedStore) stores = [selectedStore];
+                else return [];
+                if (!stores.length || !badReviewData.length) return [];
 
-                // 构建门店→片区映射
-                const storeAreaMap = {};
-                for (const [area, stores] of Object.entries(areaStoreMap)) {
-                    stores.forEach(s => { storeAreaMap[s] = area; });
-                }
-
-                const isAllAreas = !selectedArea && !selectedStore;
-                let filtered;
-                if (selectedStore) {
-                    filtered = badReviewData.filter(r => String(getColValue(r,'门店')||'').trim() === selectedStore);
-                } else if (selectedArea) {
-                    const stores = getAreaStores(selectedArea);
-                    filtered = badReviewData.filter(r => stores.includes(String(getColValue(r,'门店')||'').trim()));
-                } else {
-                    filtered = [...badReviewData];
-                }
+                const filtered = badReviewData.filter(r => stores.includes(String(getColValue(r,'门店')||'').trim()));
                 if (!filtered.length) return [];
 
-                // 按门店名称排序（全部片区时按片区+门店名称排序）
-                filtered.sort((a, b) => {
-                    const sa = String(getColValue(a,'门店')||'').trim();
-                    const sb = String(getColValue(b,'门店')||'').trim();
-                    if (isAllAreas) {
-                        const areaA = storeAreaMap[sa] || '';
-                        const areaB = storeAreaMap[sb] || '';
-                        const cmp = areaA.localeCompare(areaB, 'zh-CN');
-                        if (cmp !== 0) return cmp;
-                    }
-                    return sa.localeCompare(sb, 'zh-CN');
-                });
+                const getCount = (sn) => filtered.filter(r => String(getColValue(r,'门店')||'').trim()===sn).length;
+                const sxData = filtered.filter(r => !String(getColValue(r,'门店')||'').includes('前置仓'));
+                const qzcData = filtered.filter(r => String(getColValue(r,'门店')||'').includes('前置仓'));
+                const sxS = [...new Set(sxData.map(r=>String(getColValue(r,'门店')||'').trim()).filter(Boolean))].sort((a,b)=>getCount(b)-getCount(a));
+                const qzcS = [...new Set(qzcData.map(r=>String(getColValue(r,'门店')||'').trim()).filter(Boolean))].sort((a,b)=>getCount(b)-getCount(a));
 
-                const hasAreaCol = isAllAreas;
-                const headerRow = hasAreaCol
-                    ? ['归属片区', '评价日期', '门店名称', '配送员id', '配送员名', '履约单号', '评价文本', '评价标签']
-                    : ['评价日期', '门店名称', '配送员id', '配送员名', '履约单号', '评价文本', '评价标签'];
-                const rows = [headerRow];
+                let allSorted = [];
+                sxS.forEach(sn => { allSorted = allSorted.concat(sxData.filter(r=>String(getColValue(r,'门店')||'').trim()===sn)); });
+                qzcS.forEach(sn => { allSorted = allSorted.concat(qzcData.filter(r=>String(getColValue(r,'门店')||'').trim()===sn)); });
+                if (!allSorted.length) return [];
 
-                filtered.forEach(row => {
+                const rows = [['交易日期', '门店', '配送员名称', '单号', '评价文本', '评价标签', '评价星级']];
+                allSorted.forEach(row => {
                     const sn = String(getColValue(row,'门店')||'').trim();
-                    const rowData = [];
-                    if (hasAreaCol) rowData.push(storeAreaMap[sn] || '');
-                    rowData.push(
-                        getColValue(row,'交易日期')||getColValue(row,'评价日期')||'',
+                    const orderFields = ['评价父订单'];
+                    const orderVals = orderFields.map(f => getColValue(row,f)||'').filter(v=>String(v).trim()).join(' / ');
+                    const starVal = parseInt(getColValue(row,'评价星级'));
+                    rows.push([
+                        getColValue(row,'交易日期')||'',
                         sn,
-                        getColValue(row,'配送员')||getColValue(row,'配送员id')||'',
-                        getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'',
-                        getColValue(row,'配送单号')||getColValue(row,'履约单号')||getColValue(row,'评价父订单')||'',
+                        getColValue(row,'配送员名称')||'',
+                        orderVals || '-',
                         getColValue(row,'评价文本')||'',
-                        getColValue(row,'评价标签')||''
-                    );
-                    rows.push(rowData);
+                        getColValue(row,'评价标签')||'',
+                        isNaN(starVal)?'':starVal
+                    ]);
                 });
                 return rows;
             }
 
-            // 构建冷链化冻数据（按门店名称排序）
+            // 构建冷链化冻数据（生鲜店/前置仓排序）
             function buildColdThawSheetData() {
-                if (!coldThawData.length) return [];
+                let stores = [];
+                if (selectedArea) stores = getAreaStores(selectedArea);
+                else if (selectedStore) stores = [selectedStore];
+                else return [];
+                if (!stores.length || !coldThawData.length) return [];
 
-                // 构建门店→片区映射
-                const storeAreaMap = {};
-                for (const [area, stores] of Object.entries(areaStoreMap)) {
-                    stores.forEach(s => { storeAreaMap[s] = area; });
-                }
-
-                const isAllAreas = !selectedArea && !selectedStore;
-                let filtered;
-                if (selectedStore) {
-                    filtered = coldThawData.filter(r => String(getColValue(r,'门店名称')||'').trim() === selectedStore);
-                } else if (selectedArea) {
-                    const stores = getAreaStores(selectedArea);
-                    filtered = coldThawData.filter(r => stores.includes(String(getColValue(r,'门店名称')||'').trim()));
-                } else {
-                    filtered = [...coldThawData];
-                }
+                const filtered = coldThawData.filter(r => stores.includes(String(getColValue(r,'门店名称')||'').trim()));
                 if (!filtered.length) return [];
 
-                // 按门店名称排序（全部片区时按片区+门店名称排序）
-                filtered.sort((a, b) => {
-                    const sa = String(getColValue(a,'门店名称')||'').trim();
-                    const sb = String(getColValue(b,'门店名称')||'').trim();
-                    if (isAllAreas) {
-                        const areaA = storeAreaMap[sa] || '';
-                        const areaB = storeAreaMap[sb] || '';
-                        const cmp = areaA.localeCompare(areaB, 'zh-CN');
-                        if (cmp !== 0) return cmp;
-                    }
-                    return sa.localeCompare(sb, 'zh-CN');
-                });
+                const getCount = (sn) => filtered.filter(r => String(getColValue(r,'门店名称')||'').trim()===sn).length;
+                const sxData = filtered.filter(r => !String(getColValue(r,'门店名称')||'').includes('前置仓'));
+                const qzcData = filtered.filter(r => String(getColValue(r,'门店名称')||'').includes('前置仓'));
+                const sxS = [...new Set(sxData.map(r=>String(getColValue(r,'门店名称')||'').trim()).filter(Boolean))].sort((a,b)=>getCount(b)-getCount(a));
+                const qzcS = [...new Set(qzcData.map(r=>String(getColValue(r,'门店名称')||'').trim()).filter(Boolean))].sort((a,b)=>getCount(b)-getCount(a));
 
-                const hasAreaCol = isAllAreas;
-                const headerRow = hasAreaCol
-                    ? ['归属片区', '日期', 'SKU名称', '门店名称', '配送单号', '配送员名', 'APP退款原因', 'APP退款描述']
-                    : ['日期', 'SKU名称', '门店名称', '配送单号', '配送员名', 'APP退款原因', 'APP退款描述'];
-                const rows = [headerRow];
+                let allSorted = [];
+                sxS.forEach(sn => { allSorted = allSorted.concat(sxData.filter(r=>String(getColValue(r,'门店名称')||'').trim()===sn)); });
+                qzcS.forEach(sn => { allSorted = allSorted.concat(qzcData.filter(r=>String(getColValue(r,'门店名称')||'').trim()===sn)); });
+                if (!allSorted.length) return [];
 
-                filtered.forEach(row => {
-                    const sn = String(getColValue(row,'门店名称')||'').trim();
-                    const rowData = [];
-                    if (hasAreaCol) rowData.push(storeAreaMap[sn] || '');
-                    rowData.push(
-                        getColValue(row,'日期')||'',
-                        getColValue(row,'sku名称')||getColValue(row,'SKU名称')||'',
-                        sn,
-                        getColValue(row,'配送单号')||getColValue(row,'淘系主订单id')||'',
-                        getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'',
-                        getColValue(row,'app退款原因')||getColValue(row,'APP退款原因')||'',
-                        getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')||''
-                    );
-                    rows.push(rowData);
-                });
-                return rows;
-            }
-
-            // 构建物流损数据（按门店名称排序）
-            function buildWuliusunSheetData() {
-                if (!logisticsData.length) return [];
-
-                // 构建门店→片区映射
-                const storeAreaMap = {};
-                for (const [area, stores] of Object.entries(areaStoreMap)) {
-                    stores.forEach(s => { storeAreaMap[s] = area; });
-                }
-
-                const isAllAreas = !selectedArea && !selectedStore;
-                let filtered;
-                if (selectedStore) {
-                    filtered = logisticsData.filter(r => String(getColValue(r,'门店名称')||'').trim() === selectedStore);
-                } else if (selectedArea) {
-                    const stores = getAreaStores(selectedArea);
-                    filtered = logisticsData.filter(r => stores.includes(String(getColValue(r,'门店名称')||'').trim()));
-                } else {
-                    filtered = [...logisticsData];
-                }
-                if (!filtered.length) return [];
-
-                // 按门店名称排序（全部片区时按片区+门店名称排序）
-                filtered.sort((a, b) => {
-                    const sa = String(getColValue(a,'门店名称')||'').trim();
-                    const sb = String(getColValue(b,'门店名称')||'').trim();
-                    if (isAllAreas) {
-                        const areaA = storeAreaMap[sa] || '';
-                        const areaB = storeAreaMap[sb] || '';
-                        const cmp = areaA.localeCompare(areaB, 'zh-CN');
-                        if (cmp !== 0) return cmp;
-                    }
-                    return sa.localeCompare(sb, 'zh-CN');
-                });
-
-                const hasAreaCol = isAllAreas;
-                const headerRow = hasAreaCol
-                    ? ['归属片区', '门店', '问题原因名称', 'SKU名称', 'APP退款原因', 'APP退款描述', '单号', '责任人']
-                    : ['门店', '问题原因名称', 'SKU名称', 'APP退款原因', 'APP退款描述', '单号', '责任人'];
-                const rows = [headerRow];
-
-                filtered.forEach(row => {
+                const rows = [['门店', '问题原因名称', 'SKU名称', 'APP退款原因', 'APP退款描述', '单号', '责任人']];
+                allSorted.forEach(row => {
                     const sn = String(getColValue(row,'门店名称')||'').trim();
                     const orderFields = ['淘系主订单id'];
                     const orderVals = orderFields.map(f => getColValue(row,f)||'').filter(v=>String(v).trim()).join(' / ');
                     const delivery = String(getColValue(row,'配送员名')||'').trim();
-                    const rowData = [];
-                    if (hasAreaCol) rowData.push(storeAreaMap[sn] || '');
-                    rowData.push(
+                    rows.push([
                         sn,
                         getColValue(row,'问题原因名称')||'',
                         getColValue(row,'sku名称')||getColValue(row,'SKU名称')||'',
@@ -2139,53 +1903,76 @@
                         getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')||'',
                         orderVals || '-',
                         delivery && delivery!=='-' ? delivery : '-'
-                    );
-                    rows.push(rowData);
+                    ]);
+                });
+                return rows;
+            }
+
+            // 构建物流损数据（生鲜店/前置仓排序）
+            function buildWuliusunSheetData() {
+                let stores = [];
+                if (selectedArea) stores = getAreaStores(selectedArea);
+                else if (selectedStore) stores = [selectedStore];
+                else return [];
+                if (!stores.length) return [];
+
+                const getCount = (sn) => allData.filter(r => {
+                    return String(getColValue(r,'门店名称')||'').trim() === sn && String(getColValue(r,'问题原因名称')||'').trim() === '物流损';
+                }).length;
+
+                const sx = stores.filter(s => !s.includes('前置仓')).sort((a,b) => getCount(b) - getCount(a));
+                const qzc = stores.filter(s => s.includes('前置仓')).sort((a,b) => getCount(b) - getCount(a));
+
+                let allRows = [];
+                [...sx, ...qzc].forEach(sn => {
+                    let rows = allData.filter(r => {
+                        return String(getColValue(r,'门店名称')||'').trim() === sn && String(getColValue(r,'问题原因名称')||'').trim() === '物流损';
+                    });
+                    rows.sort((a,b) => {
+                        const aR = String(getColValue(a,'app退款原因')||getColValue(a,'APP退款原因')||'').trim();
+                        const aD = String(getColValue(a,'app退款描述')||getColValue(a,'APP退款描述')||'').trim();
+                        const bR = String(getColValue(b,'app退款原因')||getColValue(b,'APP退款原因')||'').trim();
+                        const bD = String(getColValue(b,'app退款描述')||getColValue(b,'APP退款描述')||'').trim();
+                        const aDash = aR==='-'&&aD==='-', bDash = bR==='-'&&bD==='-';
+                        return (aDash?1:0)-(bDash?1:0);
+                    });
+                    allRows = allRows.concat(rows);
+                });
+                if (!allRows.length) return [];
+
+                const rows = [['门店', '问题原因名称', 'SKU名称', 'APP退款原因', 'APP退款描述', '单号', '责任人']];
+                allRows.forEach(row => {
+                    const sn = String(getColValue(row,'门店名称')||'').trim();
+                    const orderFields = ['淘系主订单id'];
+                    const orderVals = orderFields.map(f => getColValue(row,f)||'').filter(v=>String(v).trim()).join(' / ');
+                    const delivery = String(getColValue(row,'配送员名')||'').trim();
+                    rows.push([
+                        sn,
+                        getColValue(row,'问题原因名称')||'',
+                        getColValue(row,'sku名称')||getColValue(row,'SKU名称')||'',
+                        getColValue(row,'app退款原因')||getColValue(row,'APP退款原因')||'',
+                        getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')||'',
+                        orderVals || '-',
+                        delivery && delivery!=='-' ? delivery : '-'
+                    ]);
                 });
                 return rows;
             }
 
             // 构建问单达成情况数据（仅输出指定类目列：1,2,3,13-26，即索引0,1,2,12-25）
             function buildAchievementSheetData() {
-                if (!achievementCategories.length) return [];
-
-                // 构建门店→片区映射
-                const storeAreaMap = {};
-                for (const [area, stores] of Object.entries(areaStoreMap)) {
-                    stores.forEach(s => { storeAreaMap[s] = area; });
-                }
-
-                const isAllAreas = !selectedArea && !selectedStore;
                 let stores = [];
-                if (selectedStore) {
-                    stores = [selectedStore];
-                } else if (selectedArea) {
-                    stores = getAreaStores(selectedArea);
-                } else {
-                    // 全部片区：收集所有门店
-                    stores = Object.keys(storeAchievements);
-                }
-                if (!stores.length) return [];
+                if (selectedArea) stores = getAreaStores(selectedArea);
+                else if (selectedStore) stores = [selectedStore];
+                else return [];
+                if (!stores.length || !achievementCategories.length) return [];
 
                 const getFirstVal = (sn) => {
                     const sd = storeAchievements[sn];
                     if (!sd || !achievementCategories.length) return 0;
                     return sd.achievements[achievementCategories[0]] || 0;
                 };
-
-                // 按片区+门店名称排序（全部片区时）
-                let sorted;
-                if (isAllAreas) {
-                    sorted = [...stores].sort((a, b) => {
-                        const areaA = storeAreaMap[a] || '';
-                        const areaB = storeAreaMap[b] || '';
-                        const cmp = areaA.localeCompare(areaB, 'zh-CN');
-                        if (cmp !== 0) return cmp;
-                        return a.localeCompare(b, 'zh-CN');
-                    });
-                } else {
-                    sorted = [...stores].sort((a,b) => getFirstVal(b) - getFirstVal(a));
-                }
+                const sorted = [...stores].sort((a,b) => getFirstVal(b) - getFirstVal(a));
                 const sx = sorted.filter(s => !s.includes('前置仓'));
                 const qzc = sorted.filter(s => s.includes('前置仓'));
 
@@ -2194,8 +1981,7 @@
                 const targetCategories = targetIndices.filter(i => i < achievementCategories.length).map(i => achievementCategories[i]);
 
                 // 表头：门店 + 达成情况 + 类目名
-                const hasAreaCol = isAllAreas;
-                const headerRow = hasAreaCol ? ['归属片区', '门店', '达成情况'] : ['门店', '达成情况'];
+                const headerRow = ['门店', '达成情况'];
                 targetCategories.forEach(ck => {
                     const dn = categoryKeyToDisplay.get(ck) || ck;
                     const short = dn.includes('｜') ? dn.split('｜')[0] : dn;
@@ -2220,9 +2006,7 @@
                     const sd = storeAchievements[sn];
                     if (!sd) return;
                     const ach = sd.achievements;
-                    const dataRow = [];
-                    if (hasAreaCol) dataRow.push(storeAreaMap[sn] || '');
-                    dataRow.push(sn, isCompliant(sn, false));
+                    const dataRow = [sn, isCompliant(sn, false)];
                     targetCategories.forEach(ck => {
                         const val = ach[ck] || 0;
                         dataRow.push(val);
@@ -2235,9 +2019,7 @@
                     const sd = storeAchievements[sn];
                     if (!sd) return;
                     const ach = sd.achievements;
-                    const dataRow = [];
-                    if (hasAreaCol) dataRow.push(storeAreaMap[sn] || '');
-                    dataRow.push(sn, isCompliant(sn, true));
+                    const dataRow = [sn, isCompliant(sn, true)];
                     targetCategories.forEach(ck => {
                         const val = ach[ck] || 0;
                         dataRow.push(val);
@@ -2252,7 +2034,7 @@
             function getExportStoreName() {
                 if (selectedStore) return selectedStore;
                 if (selectedArea) return selectedArea;
-                return '全部片区';
+                return '全部门店';
             }
 
             // 获取报告日期
@@ -2655,9 +2437,6 @@
                         toast('⚠️ 当前无数据可导出，请先选择片区或门店');
                     } else {
                         toast('✅ 已导出 ' + exportedCount + ' 张图片');
-                        // 导出图片后自动复制文案
-                        const text = buildCopyText();
-                        navigator.clipboard.writeText(text).catch(() => {});
                     }
                 } catch(err) {
                     console.error(err);
