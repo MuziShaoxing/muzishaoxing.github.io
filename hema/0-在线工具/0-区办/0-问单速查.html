@@ -1,0 +1,2677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, viewport-fit=cover">
+    <title>问单速查 · 数据分析</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
+    <style>
+        :root {
+            --bg: #f0f2f7;
+            --card-bg: #ffffff;
+            --primary: #5568f5;
+            --primary-hover: #4052d9;
+            --primary-light: #eef0ff;
+            --text: #1e1e2e;
+            --text-secondary: #5c5c78;
+            --text-muted: #8b8ba8;
+            --border: #e6e8f0;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.18);
+            --radius-lg: 14px;
+            --radius: 10px;
+            --radius-xs: 5px;
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            --tag-bg: #eef1ff;
+            --tag-active-bg: #5568f5;
+            --warning: #e67e22;
+            --cold: #0ea5b9;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { font-size:15px; -webkit-text-size-adjust:100%; }
+        body {
+            font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-container { max-width: 1700px; margin: 0 auto; padding: 16px 20px 32px; }
+
+        .page-header {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            flex-wrap: wrap; padding: 12px 0 6px; margin-bottom: 14px; position: relative;
+        }
+        .page-header h1 { font-size: 1.5rem; font-weight: 750; color: #1a1a2e; }
+
+        .header-menu-btn {
+            background: #fff; border: 1.5px solid #d8dce8; border-radius: 22px;
+            padding: 7px 16px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+            color: #4a4a65; transition: all var(--transition);
+        }
+        .header-menu-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+        .header-menu-dropdown {
+            position: absolute; top: calc(100% + 10px); right: 0; background: #fff;
+            border: 1px solid var(--border); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl); z-index: 200; display: none; min-width: 170px; padding: 6px 0;
+        }
+        .header-menu-dropdown.show { display: block; animation: fadeInDown 0.18s ease; }
+        @keyframes fadeInDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .header-menu-dropdown button {
+            display: block; width: 100%; padding: 11px 20px; border: none; background: none;
+            text-align: left; font-size: 0.85rem; cursor: pointer; font-weight: 500; color: var(--text-secondary);
+        }
+        .header-menu-dropdown button:hover { background: #f5f6fc; color: var(--primary); }
+
+        /* 统计面板 - 新布局 */
+        .stats-panel {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: stretch;
+            box-shadow: var(--shadow-sm);
+        }
+        .stats-left, .stats-right {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 6px; background: #fafbfd; border-radius: var(--radius); border: 1px solid #eef0f6;
+            padding: 12px 8px; min-width: 80px;
+        }
+        .stats-label { font-size: 0.62rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stats-value { font-weight: 750; font-size: 1.9rem; color: #1a1a2e; }
+        .store-type-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 12px; font-size: 0.65rem;
+            font-weight: 600; margin-left: 6px; vertical-align: middle;
+        }
+        .store-type-tag.shengxian { background: #e0f2fe; color: #0369a1; }
+        .store-type-tag.qianzhicang { background: #fef3c7; color: #92400e; }
+
+        /* 问单达成展示区 */
+        .achievement-panel {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 14px 18px; margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        .achievement-title {
+            font-size: 0.75rem; font-weight: 700; color: #1a1a2e;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+        }
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+        @media (max-width: 1200px) {
+            .achievement-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .achievement-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .achievement-item {
+            background: #fafbfd; border: 1px solid #eef0f6; border-radius: var(--radius);
+            padding: 10px 8px; text-align: center;
+            transition: all var(--transition);
+        }
+        .achievement-item:hover { background: #f5f7ff; border-color: #dde3ff; }
+        .achievement-item-name {
+            font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 6px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .achievement-item-value {
+            font-size: 0.9rem; font-weight: 700;
+        }
+        .achievement-item-value.normal { color: var(--success); }
+        .achievement-item-value.warning { color: var(--warning); }
+        .achievement-item-value.danger { color: var(--danger); }
+        .achievement-item-value.zero { color: #b0b0c0; }
+        .achievement-item-limit {
+            font-size: 0.6rem; color: var(--text-muted); margin-top: 4px;
+        }
+
+        /* ========== 责任分析面板 ========== */
+        .responsibility-panel {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 14px 18px; margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow-x: visible;
+        }
+
+        /* 表格外层容器 - 限制宽度防止溢出 */
+        .table-fit-container {
+            width: 100%;
+            max-width: 100%;
+            overflow: visible;
+        }
+
+        .responsibility-table {
+            width: 100% !important;
+            min-width: 0 !important;
+            table-layout: fixed;              /* 关键：固定布局，严格按百分比分配列宽 */
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        /* 列宽严格按照百分比分配（6列） */
+        .responsibility-table th:nth-child(1),
+        .responsibility-table td:nth-child(1) { width: 30%; }  /* 问题原因名称 */
+
+        .responsibility-table th:nth-child(2),
+        .responsibility-table td:nth-child(2) { width: 10%; }  /* 总计 */
+
+        .responsibility-table th:nth-child(3),
+        .responsibility-table td:nth-child(3) { width: 10%; }  /* 无责 */
+
+        .responsibility-table th:nth-child(4),
+        .responsibility-table td:nth-child(4) { width: 10%; }  /* 有责 */
+
+        .responsibility-table th:nth-child(5),
+        .responsibility-table td:nth-child(5) { width: 10%; }  /* 有责率 */
+
+        .responsibility-table th:nth-child(6),
+        .responsibility-table td:nth-child(6) { width: 30%; }  /* 核实原因 */
+
+        /* 表头样式微调 */
+        .responsibility-table th {
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #6b6b88;
+            border-bottom: 2px solid #e2e5ee;
+            background: #f8f9fd;
+            word-break: break-word;
+        }
+
+        /* 单元格样式 */
+        .responsibility-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f2f7;
+            text-align: center;
+            color: #3a3a58;
+            font-size: 0.85rem;
+            vertical-align: middle;
+            word-break: break-word;
+        }
+
+        /* 核实原因输入框宽度自适应单元格，不溢出 */
+        .responsibility-input {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1.5px solid #d8dce8;
+            font-size: 0.8rem;
+            background: #fff;
+            color: #3a3a55;
+            box-sizing: border-box;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .responsibility-input:focus {
+            border-color: #5568f5;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(85, 104, 245, 0.1);
+        }
+        .responsibility-input.placeholder-default {
+            color: #a0a0b8;
+            font-style: italic;
+        }
+        .responsibility-input.user-value {
+            color: #1a1a2e;
+            font-weight: 700;
+        }
+
+        /* 移动端适配：适当缩小内边距，但列宽比例不变 */
+        @media (max-width: 780px) {
+            .responsibility-panel {
+                padding: 12px;
+            }
+            .responsibility-table th,
+            .responsibility-table td {
+                padding: 6px 5px;
+                font-size: 0.75rem;
+            }
+            .responsibility-input {
+                padding: 5px 4px;
+                font-size: 0.7rem;
+            }
+        }
+
+        .cell-textarea {
+            padding: 4px 6px; border-radius: var(--radius-xs); border: 1.5px solid #d8dce8;
+            font-size: 0.82rem; background: #fff; color: #3a3a55; font-family: inherit; line-height: 1.4;
+        }
+        .cell-textarea:focus { border-color: var(--primary); outline: none; }
+
+        /* 筛选栏 - 新布局 */
+        .filter-bar {
+            position: relative;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+            background: var(--card-bg); border-radius: var(--radius-lg); padding: 14px 18px;
+            box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+        }
+        .filter-left { flex: 1; min-width: 240px; }
+        .filter-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; }
+        .filter-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .filter-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .filter-label-row label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+
+        .bubble-container { display: flex; flex-wrap: wrap; gap: 7px; }
+        .bubble-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            background: var(--tag-bg);
+            color: #4f6ef7;
+            border: 1.5px solid transparent;
+            transition: all var(--transition);
+            font-weight: 550;
+        }
+        .bubble-tag:hover { background: #dde3ff; border-color: #c5ceff; }
+        .bubble-tag.active { background: var(--tag-active-bg); color: #fff; border-color: var(--tag-active-bg); box-shadow: 0 3px 12px rgba(85,104,245,0.28); }
+        .bubble-all { background: #f5f5f8; color: #666; border: 1.5px dashed #d0d5e5; }
+        .bubble-all.active { background: #5c5c78; color: #fff; border-color: #5c5c78; }
+        .bubble-all.has-selection { background: var(--warning); color: #fff; border-color: var(--warning); border-style: solid; }
+        .bubble-count-inline { font-size: 0.65rem; opacity: 0.78; }
+
+        /* 移动端气泡两列 */
+        @media (max-width: 768px) {
+            .bubble-tag {
+                flex: 0 0 calc(50% - 7px);
+                justify-content: center;
+            }
+        }
+
+        .view-switch-bubble {
+            display: inline-flex; align-items: center; gap: 5px; padding: 9px 16px; border-radius: 22px;
+            font-size: 0.75rem; cursor: pointer; background: #f5f5f8; color: #5c5c78;
+            border: 1.5px solid #d8dce8; font-weight: 600; transition: all var(--transition);
+        }
+        .view-switch-bubble:hover { border-color: #b0b8d0; background: #eef0f8; }
+        .active-default { background: var(--primary); color: #fff; border-color: var(--primary); pointer-events: none; }
+        .active-bad { background: var(--warning); color: #fff; border-color: var(--warning); pointer-events: none; }
+        .active-cold { background: var(--cold); color: #fff; border-color: var(--cold); pointer-events: none; }
+        .active-logistics { background: #8b5cf6; color: #fff; border-color: #8b5cf6; pointer-events: none; }
+        .view-badge { font-size: 0.62rem; background: rgba(255,255,255,0.28); padding: 2px 8px; border-radius: 10px; font-weight: 650; }
+
+        .copy-all-btn {
+            display: inline-flex; align-items: center; gap: 5px; padding: 9px 16px; border-radius: 22px;
+            font-size: 0.75rem; cursor: pointer; background: #10b981; color: #fff;
+            border: 1.5px solid #10b981; font-weight: 600; transition: all var(--transition);
+        }
+        .copy-all-btn:hover { background: #059669; border-color: #059669; }
+
+        /* 导出选择面板 */
+        .export-select-panel {
+            background: #fff; border-radius: 16px; padding: 24px; max-width: 480px; width: 92%;
+            box-shadow: 0 26px 70px rgba(0,0,0,0.28); animation: slideUp 0.3s ease;
+        }
+        .export-select-title {
+            font-size: 1.1rem; font-weight: 750; color: #1a1a2e; margin-bottom: 16px; text-align: center;
+        }
+        .export-checkbox-list {
+            display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
+        }
+        .export-checkbox-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            border-radius: 10px; border: 1.5px solid #e6e8f0; cursor: pointer;
+            transition: all var(--transition); font-size: 0.85rem; font-weight: 550; color: #3a3a58;
+        }
+        .export-checkbox-item:hover { border-color: var(--primary); background: #f5f7ff; }
+        .export-checkbox-item.checked { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+        .export-checkbox-item input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;
+        }
+        .export-select-footer {
+            display: flex; justify-content: flex-end; gap: 10px; padding-top: 14px; border-top: 1px solid #f0f2f7;
+        }
+
+        .table-wrapper {
+            background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+            border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column;
+        }
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 1200px; table-layout: auto; }
+        table thead { background: #f8f9fd; position: sticky; top: 0; z-index: 10; }
+        table thead th {
+            padding: 10px 7px; text-align: center; font-weight: 700; font-size: 0.65rem;
+            text-transform: uppercase; color: #6b6b88; border-bottom: 2px solid #e2e5ee;
+            white-space: nowrap; background: #f8f9fd;
+        }
+        table tbody td {
+            padding: 8px 7px; border-bottom: 1px solid #f0f2f7; vertical-align: middle;
+            color: #3a3a58; text-align: center; word-break: break-word; font-size: 0.73rem;
+        }
+        table tbody tr { background: #fff; }
+        table tbody tr:hover { background: #f3f5fb !important; }
+        tr.duplicate-batch { background: #f2f2f8 !important; border-left: 3px solid #d0d5e5; }
+        .cell-clickable { cursor: pointer; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; max-height: 4.2em; overflow: hidden; text-overflow: ellipsis; padding: 2px 4px; border-radius: 3px; font-size: 0.73rem; line-height: 1.4; word-break: break-all; }
+        .cell-clickable:hover { background: #eef1ff; color: var(--primary); }
+        .cell-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 14px; cursor: pointer; font-size: 0.68rem; border: 1.5px solid #d5dcff; background: #f0f3ff; color: #4f6ef7; font-weight: 550; transition: all var(--transition); }
+        .cell-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
+        .cell-btn.no-data { background: #f5f5f8; color: #bbb; pointer-events: none; border-color: #e8e8ed; }
+        .cell-btn.alert { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
+        .cell-btn.alert:hover { background: #ef4444; color: #fff; }
+        .cell-view-btn { background: #fff8f1; color: var(--warning); border: 1.5px solid #ffe0c0; padding: 5px 12px; border-radius: 14px; cursor: pointer; font-size: 0.68rem; font-weight: 550; transition: all var(--transition); display: inline-flex; align-items: center; gap: 4px; }
+        .cell-view-btn:hover { background: var(--warning); color: #fff; border-color: var(--warning); }
+        .cell-view-btn.no-image { background: #f5f5f8; color: #bbb; pointer-events: none; border-color: #e8e8ed; }
+        .cell-select { padding: 5px 7px; border-radius: var(--radius-xs); border: 1.5px solid #d8dce8; font-size: 0.68rem; background: #fff; min-width: 65px; color: #3a3a55; cursor: pointer; }
+        .cell-select:focus { border-color: var(--primary); outline: none; }
+        .cell-toggle-btn { display: inline-flex; align-items: center; gap: 3px; padding: 4px 10px; border-radius: 14px; cursor: pointer; font-size: 0.72rem; border: 1.5px solid #d5dcff; background: #f0f3ff; color: #4f6ef7; font-weight: 550; transition: all var(--transition); user-select: none; position: relative; }
+        .cell-toggle-btn:hover { background: #e0e5ff; border-color: var(--primary); }
+        .cell-toggle-btn:active { transform: scale(0.95); }
+        .cell-toggle-btn .toggle-hint { font-size: 0.6rem; opacity: 0.5; margin-left: 2px; }
+        .cell-toggle-btn[data-type="responsible"] { border-color: #f5a6a6; background: #fff0f0; color: #e74c3c; }
+        .cell-toggle-btn[data-type="responsible"]:hover { background: #ffe0e0; }
+        .cell-toggle-btn[data-type="irresponsible"] { border-color: #a6d5b8; background: #f0fff4; color: #27ae60; }
+        .cell-toggle-btn[data-type="irresponsible"]:hover { background: #e0ffe8; }
+        .cell-toggle-btn[data-type="nonstandard"] { border-color: #f5c6a6; background: #fff8f0; color: #e67e22; }
+        .cell-toggle-btn[data-type="nonstandard"]:hover { background: #ffe8d0; }
+        .cell-toggle-btn[data-type="standard"] { border-color: #a6c5f5; background: #f0f6ff; color: #3498db; }
+        .cell-toggle-btn[data-type="standard"]:hover { background: #e0ecff; }
+        .cell-toggle-btn[data-type="yes"] { border-color: #f5a6a6; background: #fff0f0; color: #e74c3c; }
+        .cell-toggle-btn[data-type="yes"]:hover { background: #ffe0e0; }
+        .cell-toggle-btn[data-type="no"] { border-color: #a6d5b8; background: #f0fff4; color: #27ae60; }
+        .cell-toggle-btn[data-type="no"]:hover { background: #e0ffe8; }
+        @keyframes togglePulse { 0%,100% { box-shadow: 0 0 0 0 rgba(79,110,247,0.3); } 50% { box-shadow: 0 0 0 4px rgba(79,110,247,0.1); } }
+        .cell-toggle-btn.pulse { animation: togglePulse 2s ease-in-out 3; }
+        .cell-input { padding: 5px 7px; border-radius: var(--radius-xs); border: 1.5px solid #d8dce8; font-size: 0.68rem; background: #fff; width: 100px; color: #3a3a55; }
+        .cell-input:focus { border-color: var(--primary); outline: none; }
+
+        .preview-bubble {
+            position: fixed; z-index: 500; background: #fff; border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.26); padding: 12px; display: none;
+            max-width: 50vw; max-height: 50vh; text-align: center; animation: fadeIn 0.2s; border: 1px solid var(--border);
+        }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        .preview-bubble img { max-width: 46vw; max-height: 38vh; object-fit: contain; border-radius: 8px; }
+        .preview-bubble .preview-controls { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 8px; }
+        .preview-bubble .preview-controls button { padding: 5px 12px; border-radius: 14px; border: 1.5px solid #e6e8f0; background: #fafbfd; cursor: pointer; font-size: 0.68rem; font-weight: 600; color: #5c5c78; }
+        .preview-bubble .preview-controls button:hover { background: #f0f3ff; border-color: var(--primary); color: var(--primary); }
+        .preview-bubble .preview-controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+        .preview-bubble .preview-counter { font-size: 0.68rem; color: var(--text-muted); min-width: 45px; }
+        .preview-bubble .preview-close { position: absolute; top: 8px; right: 12px; background: rgba(0,0,0,0.06); border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 0.95rem; color: #888; display: flex; align-items: center; justify-content: center; }
+        .preview-bubble .preview-close:hover { background: rgba(0,0,0,0.14); color: #333; }
+
+        .fullscreen-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.94); z-index: 600; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .fullscreen-overlay img { max-width: 96vw; max-height: 96vh; border-radius: 8px; }
+        .btn-close-fs { position: fixed; top: 20px; right: 26px; background: rgba(255,255,255,0.12); color: #fff; border-radius: 50%; width: 40px; height: 40px; font-size: 1.15rem; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; }
+        .btn-close-fs:hover { background: rgba(255,255,255,0.25); }
+
+        .pagination-bar {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 14px 10px; border-top: 1px solid #f0f2f7; flex-wrap: wrap;
+            background: #fafbfd; border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+        .pagination-bar button {
+            padding: 6px 12px; border: 1.5px solid #e6e8f0; border-radius: var(--radius-xs);
+            background: #fff; cursor: pointer; font-size: 0.72rem; transition: all var(--transition);
+            font-weight: 500; color: #5c5c78; min-width: 34px;
+        }
+        .pagination-bar button:hover:not(:disabled) { background: #f0f3ff; border-color: #c5ceff; color: var(--primary); }
+        .pagination-bar button:disabled { opacity: 0.35; cursor: not-allowed; background: #f5f5f8; }
+        .pagination-bar button.active-page {
+            background: var(--primary); color: #fff; border-color: var(--primary);
+            pointer-events: none; box-shadow: 0 2px 10px rgba(85,104,245,0.28);
+        }
+        .pagination-bar select {
+            padding: 6px 9px; border: 1.5px solid #e6e8f0; border-radius: var(--radius-xs);
+            font-size: 0.7rem; background: #fff; color: #3a3a55; cursor: pointer;
+        }
+        .pagination-bar .page-info { font-size: 0.68rem; color: var(--text-muted); margin-left: 5px; }
+
+        .guide-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(3px); }
+        .guide-card { background: #fff; border-radius: 20px; padding: 28px 24px 20px; max-width: 500px; width: 92%; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 26px 70px rgba(0,0,0,0.28); animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+        .guide-title { font-size: 1.25rem; font-weight: 750; margin-bottom: 5px; text-align: center; color: #1a1a2e; }
+        .guide-subtitle { font-size: 0.78rem; color: #999; text-align: center; margin-bottom: 18px; }
+        .file-upload-area { border: 2.5px dashed #cbd5e1; border-radius: 16px; padding: 32px 22px; text-align: center; cursor: pointer; background: #fafbfc; margin: 8px 0; transition: all var(--transition); }
+        .file-upload-area:hover { border-color: var(--primary); background: #f5f7ff; }
+        .upload-text-lg { font-size: 0.95rem; font-weight: 600; color: #5c5c78; }
+        .upload-hint { font-size: 0.68rem; color: #a0a3b1; text-align: center; margin-top: 8px; line-height: 1.6; }
+        .upload-hint b { color: #e67e22; font-weight: 600; }
+        .upload-progress-wrap { display:none; margin-top: 14px; text-align: center; }
+        .upload-progress-bar { width: 100%; height: 6px; background: #eef0f6; border-radius: 3px; overflow: hidden; }
+        .upload-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #5568f5, #7c8cf8); border-radius: 3px; transition: width 0.3s ease; }
+        .upload-progress-text { font-size: 0.7rem; color: #8b8ba8; margin-top: 6px; }
+        .guide-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f2f7; }
+        .guide-btn { padding: 9px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: 650; font-size: 0.82rem; transition: all var(--transition); }
+        .guide-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 3px 14px rgba(85,104,245,0.28); }
+        .guide-btn.primary:hover { background: var(--primary-hover); }
+        .guide-btn.secondary { background: #f0f2f8; color: #555; }
+        .guide-btn.secondary:hover { background: #e4e6f0; }
+        .guide-close-btn { position: absolute; top: 10px; right: 14px; width: 30px; height: 30px; border-radius: 50%; background: transparent; font-size: 1.05rem; cursor: pointer; color: #999; border: none; display: flex; align-items: center; justify-content: center; }
+        .guide-close-btn:hover { background: #f0f0f5; color: #555; }
+
+        .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: #1e1e30; color: #fff; padding: 10px 24px; border-radius: 22px; z-index: 800; pointer-events: none; font-weight: 550; font-size: 0.82rem; box-shadow: 0 8px 28px rgba(0,0,0,0.30); animation: toastIn 0.4s ease, toastOut 0.4s ease 1.8s forwards; }
+        @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(18px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateX(-50%) translateY(-10px); } }
+
+        .star-rating { color: #f59e0b; letter-spacing: 2px; font-size: 0.8rem; }
+        .detail-popup { position: fixed; z-index: 900; background: #fff; border: 1px solid #e6e8f0; border-radius: 14px; box-shadow: 0 14px 40px rgba(0,0,0,0.16); padding: 14px 16px; max-width: 48vw; max-height: 48vh; text-align: left; animation: fadeIn 0.16s ease; font-size: 0.75rem; overflow-y: auto; }
+        .detail-popup .info-row { display: flex; gap: 12px; padding: 5px 0; border-bottom: 1px solid #f4f5f9; align-items: center; }
+        .detail-popup .info-row:last-child { border-bottom: none; }
+        .detail-popup .info-label { font-weight: 650; color: #5a5a78; min-width: 70px; flex-shrink: 0; font-size: 0.68rem; }
+        .detail-popup .info-value { word-break: break-all; flex: 1; font-size: 0.73rem; color: #2a2a40; }
+        .info-copy-btn { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 12px; border: 1.5px solid #d5dcff; background: #f0f3ff; color: #4f6ef7; cursor: pointer; font-size: 0.63rem; font-weight: 550; flex-shrink: 0; }
+        .info-copy-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
+        .info-copy-btn.copied { background: #10b981; color: #fff; border-color: #10b981; pointer-events: none; }
+        .detail-table { border-collapse: collapse; font-size: 0.65rem; margin-top: 8px; width: 100%; min-width: 450px; }
+        .detail-table th,.detail-table td { border: 1px solid #e6e8f0; padding: 6px 5px; text-align: center; white-space: nowrap; }
+        .detail-table th { background: #f8f9fd; font-weight: 700; color: #6b6b88; font-size: 0.6rem; }
+        .detail-table .total-row { font-weight: 750; background: #fef9e3; }
+
+        .empty-state { text-align: center; padding: 55px 18px; color: #b0b0c0; font-size: 0.85rem; }
+        .no-bubbles { color: #b0b0c0; font-size: 0.75rem; font-style: italic; }
+        .footer-note { text-align: center; color: #b8b8c8; font-size: 0.68rem; padding: 10px 0 0; margin-top: 8px; }
+
+        @media (max-width: 768px) {
+            .app-container { padding: 10px 8px 20px; }
+            .page-header h1 { font-size: 1.2rem; }
+            .stats-panel { flex-direction: column; gap: 8px; }
+            .stats-left, .stats-right { flex: none; width: 100%; }
+            table { font-size: 0.68rem; min-width: 950px; }
+            table thead th { padding: 8px 5px; font-size: 0.58rem; }
+            table tbody td { padding: 6px 5px; font-size: 0.63rem; }
+            .detail-popup { max-width: 90vw; max-height: 50vh; }
+            .preview-bubble { max-width: 90vw; max-height: 55vh; }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-right { justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="page-header">
+            <h1>📋 <span id="pageTitle"></span> <span id="pageVersion" style="font-size:12px;color:#8b8ba8;font-weight:400;">WD1.0</span></h1>
+            <div style="position:relative;">
+                <button class="header-menu-btn" id="headerMenuBtn">⚙️ 菜单</button>
+                <div class="header-menu-dropdown" id="headerMenuDropdown">
+                    <button id="menuReupload">📂 重新导入</button>
+                    <button id="menuSelectStore">🏪 选择门店</button>
+                    <button id="menuExportImage">🖼️ 导出报告(图片)</button>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:center;font-size:12px;color:#8b8ba8;margin-top:-8px;margin-bottom:12px;">使用异常答疑或指导请联系「少星」</div>
+
+        <!-- 统计面板 - 新布局 -->
+        <div class="stats-panel" id="statsPanel" style="display:none;">
+            <div class="stats-left">
+                <span class="stats-value" id="currentStoreName">📍 门店：全部门店</span>
+            </div>
+            <div class="stats-right">
+                <span class="stats-value" id="dataSourceText">时间：--</span>
+            </div>
+        </div>
+
+        <!-- 问单达成展示区 -->
+        <div class="achievement-panel" id="achievementPanel" style="display:none;">
+            <div class="achievement-title">📊 问单达成情况</div>
+            <div class="achievement-grid" id="achievementGrid"></div>
+        </div>
+
+        <!-- 责任分析面板 -->
+        <div class="responsibility-panel" id="responsibilityPanel" style="display:none;">
+            <div class="responsibility-title">📊 责任分析</div>
+            <div id="responsibilityContent"></div>
+        </div>
+
+        <!-- 筛选栏 - 新布局 -->
+        <div class="filter-bar" id="filterBar" style="display:none;">
+            <div class="filter-left">
+                <div class="filter-label-row"><label>🔍 问题原因筛选</label></div>
+                <div class="bubble-container" id="bubbleContainer"><span class="no-bubbles">请先上传数据</span></div>
+            </div>
+            <div class="filter-center">
+                <button class="copy-all-btn" id="copyAllBtn" style="display:none;">📋 一键复制</button>
+            </div>
+            <div class="filter-right">
+                <span class="view-switch-bubble active-default" id="viewBubbleDefault">📋 问单 <span class="view-badge" id="defaultBadge">0</span></span>
+                <span class="view-switch-bubble" id="viewBubbleColdThaw" style="display:none;">❄️ 冷链 <span class="view-badge" id="coldThawBadge">0</span></span>
+                <span class="view-switch-bubble" id="viewBubbleLogistics" style="display:none;">📦 物流损 <span class="view-badge" id="logisticsBadge">0</span></span>
+                <span class="view-switch-bubble" id="viewBubbleBadReview" style="display:none;">💬 差评 <span class="view-badge" id="badReviewBadge">0</span></span>
+            </div>
+        </div>
+
+        <div class="table-wrapper" id="tableWrapper" style="display:none;">
+            <div class="table-scroll"><table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+            <div class="pagination-bar" id="paginationBar"></div>
+            <div class="empty-state" id="emptyState" style="display:none;"><p>📭 没有匹配的数据</p></div>
+        </div>
+        <div class="footer-note">💡 点击单元格查看完整内容 &nbsp;|&nbsp; 灰色背景为同批次号 &nbsp;|&nbsp; 可编辑是否有责与原因</div>
+    </div>
+
+    <div class="guide-overlay" id="guideOverlay"><div class="guide-card" id="guideCard"></div></div>
+    <input type="file" id="hiddenFileInput" accept=".xlsx,.xls" style="display:none;">
+    <div class="preview-bubble" id="previewBubble"></div>
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <button class="btn-close-fs" id="btnCloseFullscreen">✕</button>
+        <img id="fullscreenImage" alt="全屏图片">
+    </div>
+    <div class="toast" id="toast" style="display:none;"></div>
+
+    <script>
+        (function() {
+            const $ = (sel) => document.querySelector(sel);
+            const guideOverlay = $('#guideOverlay');
+            const guideCard = $('#guideCard');
+            const hiddenFileInput = $('#hiddenFileInput');
+
+            let allData = [], badReviewData = [], coldThawData = [], logisticsDamageData = [];
+            let filteredData = [], filteredBadReviewData = [], filteredColdThawData = [], filteredLogisticsDamageData = [];
+            let selectedStore = null;
+            let selectedReasons = new Set();
+            let currentView = 'default';
+            let pageSize = 20;
+            let viewCurrentPages = { default: 1, badReview: 1, coldThaw: 1, logistics: 1 };
+            let allStores = [];
+            let manualDataMap = new Map();
+            let badReviewManualMap = new Map();
+            let coldThawManualMap = new Map();
+            let logisticsManualMap = new Map();
+            let responsibilityReasonMap = new Map();
+            let rowIdCounter = 0;
+            let duplicateBatchSet = new Set();
+            let currentPopup = null;
+            let toastTimer;
+            let previewUrls = [], previewIdx = 0;
+
+            // 数据展示工作簿相关数据
+            let dataDisplayWorkbook = null; // 存储"数据展示"工作簿
+            let achievementCategories = []; // 问单类目名列表
+            let shengxianLimits = {}; // 生鲜店标准上限
+            let qianzhicangLimits = {}; // 前置仓标准上限
+            let storeAchievements = {}; // 门店达成数据
+
+            const TARGET_SHEET_KEYWORDS = ['问单速查','问单'];
+            const TOOL_DISPLAY_NAME = '问单速查'; // 工具显示名称，用于页面标题和导出报告
+            const TOOL_VERSION = 'WD1.0'; // 工具版本号
+            const DATA_DISPLAY_KEYWORDS = ['数据展示'];
+            const BAD_REVIEW_KEYWORDS = ['差评'];
+            const IGNORE_KEYWORDS = ['sheet','数据源','汇总','模板','参数','配置','说明','备份','临时','测试'];
+
+            // 初始化页面标题
+            document.getElementById('pageTitle').textContent = TOOL_DISPLAY_NAME;
+            document.getElementById('pageVersion').textContent = TOOL_VERSION;
+
+            function findSheet(sheets, keywords) {
+                for (let kw of keywords) {
+                    const exact = sheets.find(s => s.trim() === kw);
+                    if (exact) return exact;
+                }
+                for (let kw of keywords) {
+                    const fuzzy = sheets.find(s => s.trim().includes(kw));
+                    if (fuzzy) return fuzzy;
+                }
+                return null;
+            }
+
+            function shouldIgnore(sheetName) {
+                const name = sheetName.trim().toLowerCase();
+                for (let kw of IGNORE_KEYWORDS) if (name.includes(kw.toLowerCase())) return true;
+                return false;
+            }
+
+            function getColValue(row, col) {
+                if (row.hasOwnProperty(col)) return row[col];
+                for (let k of Object.keys(row)) if (k.trim() === col.trim()) return row[k];
+                return '';
+            }
+
+            function toast(msg) {
+                const t = $('#toast');
+                clearTimeout(toastTimer);
+                t.textContent = msg; t.style.display = 'block'; t.style.animation = 'none';
+                void t.offsetWidth;
+                t.style.animation = 'toastIn 0.4s ease, toastOut 0.4s ease 1.8s forwards';
+                toastTimer = setTimeout(() => t.style.display = 'none', 2300);
+            }
+
+            // 居中确认弹窗
+            function showConfirmDialog(message) {
+                return new Promise((resolve) => {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:10000;display:flex;align-items:center;justify-content:center;';
+                    const dialog = document.createElement('div');
+                    dialog.style.cssText = 'background:#fff;border-radius:16px;padding:28px 32px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.18);text-align:center;';
+                    dialog.innerHTML = `
+                        <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:18px;line-height:1.6;">${message}</div>
+                        <div style="display:flex;gap:12px;justify-content:center;">
+                            <button id="confirmNo" style="padding:8px 24px;border-radius:10px;border:1.5px solid #d5dcff;background:#f0f3ff;color:#4f6ef7;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">否</button>
+                            <button id="confirmYes" style="padding:8px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#4f6ef7,#6c5ce7);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;">是</button>
+                        </div>
+                    `;
+                    overlay.appendChild(dialog);
+                    document.body.appendChild(overlay);
+                    dialog.querySelector('#confirmYes').addEventListener('click', () => { document.body.removeChild(overlay); resolve(true); });
+                    dialog.querySelector('#confirmNo').addEventListener('click', () => { document.body.removeChild(overlay); resolve(false); });
+                    overlay.addEventListener('click', (e) => { if (e.target === overlay) { document.body.removeChild(overlay); resolve(false); } });
+                });
+            }
+
+            function escapeHTML(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+            // 判断门店类型
+            function getStoreType(storeName) {
+                if (!storeName) return 'shengxian';
+                return storeName.includes('前置仓') ? 'qianzhicang' : 'shengxian';
+            }
+
+            function getStoreTypeLabel(storeType) {
+                return storeType === 'qianzhicang' ? '前置仓' : '生鲜店';
+            }
+
+            function getStoreTypeClass(storeType) {
+                return storeType === 'qianzhicang' ? 'qianzhicang' : 'shengxian';
+            }
+
+            // parseDateTime 辅助函数
+            function parseDateTime(str) {
+                if (!str) return null;
+                const s = String(str).trim();
+                // 支持整数和小数Excel序列号（如46183.74715）
+                if (/^\d+(\.\d+)?$/.test(s)) {
+                    const num = parseFloat(s);
+                    if (num > 40000 && num < 60000) {
+                        return new Date((num - 25569) * 86400 * 1000);
+                    }
+                }
+                const m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[\sT]?(\d{1,2})?:(\d{1,2})?:(\d{1,2})?/);
+                if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]), parseInt(m[4]||0), parseInt(m[5]||0), parseInt(m[6]||0));
+                const d = new Date(s);
+                if (!isNaN(d)) return d;
+                return null;
+            }
+
+            // 解析数据展示工作簿
+            function parseDataDisplaySheet(wb) {
+                const sheetName = findSheet(wb.SheetNames, DATA_DISPLAY_KEYWORDS);
+                if (!sheetName) {
+                    console.log('未找到数据展示工作簿');
+                    return false;
+                }
+
+                const sheet = wb.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
+                
+                if (!jsonData || jsonData.length < 44) {
+                    console.log('数据展示工作簿数据不足');
+                    return false;
+                }
+
+                // 解析结构
+                // 第4行(index=3)从B列开始是问单类目名
+                // 第5行(index=4)是生鲜店标准上限百分比
+                // 第44行(index=43)是前置仓标准上限百分比
+                // 类目读取到"虚假拒收"为止
+                // B列(index=1)从第6行开始是门店名
+                // 每个门店行中各列是对应类目的达成百分比
+
+                achievementCategories = [];
+                shengxianLimits = {};
+                qianzhicangLimits = {};
+                storeAchievements = {};
+
+                const row4 = jsonData[3] || []; // 类目名行
+                const row5 = jsonData[4] || []; // 生鲜店上限行
+                const row44 = jsonData[43] || []; // 前置仓上限行
+
+                // 读取类目名（从B列index=1开始，到"虚假拒收"为止）
+                for (let colIdx = 1; colIdx < row4.length; colIdx++) {
+                    const categoryName = String(row4[colIdx] || '').trim();
+                    if (!categoryName) continue;
+                    const catIndex = achievementCategories.length; // 当前类目的索引（0-based）
+                    let sxLimit = parseFloat(row5[colIdx]) || 0;
+                    let qzcLimit = parseFloat(row44[colIdx]) || 0;
+                    // 百分比列（第1、4~12列，即index 0, 3~11）上限值×100
+                    if (catIndex === 0 || (catIndex >= 3 && catIndex <= 11)) {
+                        sxLimit = sxLimit * 100;
+                        qzcLimit = qzcLimit * 100;
+                    }
+                    if (categoryName === '虚假拒收') {
+                        achievementCategories.push(categoryName);
+                        shengxianLimits[categoryName] = sxLimit;
+                        qianzhicangLimits[categoryName] = qzcLimit;
+                        break; // 读取到"虚假拒收"为止
+                    }
+                    achievementCategories.push(categoryName);
+                    shengxianLimits[categoryName] = sxLimit;
+                    qianzhicangLimits[categoryName] = qzcLimit;
+                }
+
+                // 读取门店数据（从第6行index=5开始，B列index=1）
+                for (let rowIdx = 5; rowIdx < jsonData.length; rowIdx++) {
+                    const row = jsonData[rowIdx];
+                    if (!row || row.length < 2) continue;
+                    
+                    const storeName = String(row[1] || '').trim();
+                    if (!storeName) continue;
+
+                    const storeType = getStoreType(storeName);
+                    const achievements = {};
+
+                    for (let i = 0; i < achievementCategories.length; i++) {
+                        const colIdx = i + 2; // B列(index=1)是门店名，C列(index=2)开始才是达成数据
+                        const category = achievementCategories[i];
+                        let value = parseFloat(row[colIdx]) || 0;
+                        // 百分比列（第1、4~12列，即index 0, 3~11）数值×100
+                        if (i === 0 || (i >= 3 && i <= 11)) {
+                            value = value * 100;
+                        }
+                        achievements[category] = value;
+                    }
+
+                    storeAchievements[storeName] = {
+                        type: storeType,
+                        achievements: achievements
+                    };
+                }
+
+                console.log('数据展示工作簿解析完成:', {
+                    categories: achievementCategories,
+                    storeCount: Object.keys(storeAchievements).length
+                });
+
+                return true;
+            }
+
+            // 格式化达成值：第2、3列(index 1,2)显示小数2位，其他列显示百分比3位小数
+            function formatAchievementValue(value, category, catIndex) {
+                if (catIndex === 1 || catIndex === 2) {
+                    return value.toFixed(2);
+                }
+                return value.toFixed(3) + '%';
+            }
+            // 格式化上限值：第2、3列(index 1,2)显示小数2位，其他列显示百分比3位小数
+            function formatLimitValue(value, category, catIndex) {
+                if (catIndex === 1 || catIndex === 2) {
+                    return value.toFixed(2);
+                }
+                return value.toFixed(3) + '%';
+            }
+
+            // 渲染问单达成展示区
+            function renderAchievementPanel() {
+                const panel = $('#achievementPanel');
+                const grid = $('#achievementGrid');
+
+                if (!selectedStore || !storeAchievements[selectedStore]) {
+                    panel.style.display = 'none';
+                    return;
+                }
+
+                const storeData = storeAchievements[selectedStore];
+                const storeType = storeData.type;
+                const limits = storeType === 'qianzhicang' ? qianzhicangLimits : shengxianLimits;
+                const achievements = storeData.achievements;
+
+                let html = '';
+                achievementCategories.forEach((category, catIndex) => {
+                    const actualValue = achievements[category] || 0;
+                    const limitValue = limits[category] || 0;
+                    const displayValue = formatAchievementValue(actualValue, category, catIndex);
+                    const displayLimit = formatLimitValue(limitValue, category, catIndex);
+
+                    // 颜色调度逻辑：超标红色，=0灰色，其他绿色
+                    let statusClass = 'normal';
+                    
+                    if (limitValue > 0 && actualValue > limitValue) {
+                        // 超标：红色
+                        statusClass = 'danger';
+                    } else if (actualValue === 0) {
+                        // 等于0：灰色
+                        statusClass = 'zero';
+                    } else {
+                        // 其他：绿色
+                        statusClass = 'normal';
+                    }
+
+                    html += `
+                        <div class="achievement-item">
+                            <div class="achievement-item-name" title="${escapeHTML(category)}">${escapeHTML(category)}</div>
+                            <div class="achievement-item-value ${statusClass}">${displayValue}</div>
+                            <div class="achievement-item-limit">上限: ${displayLimit}</div>
+                        </div>
+                    `;
+                });
+
+                grid.innerHTML = html;
+                panel.style.display = 'block';
+            }
+
+            // 渲染责任分析面板
+            function renderResponsibilityPanel() {
+                const panel = $('#responsibilityPanel');
+                const content = $('#responsibilityContent');
+
+                // 收集当前门店的所有数据
+                const allViewData = [];
+
+                // 问单数据（排除冷链商品化冻和物流损）
+                const defaultData = allData.filter(r => {
+                    const reason = (getColValue(r,'问题原因名称')||'').trim();
+                    return reason !== '冷链商品化冻' && reason !== '物流损';
+                });
+                if (selectedStore) {
+                    defaultData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore).forEach(r => allViewData.push(r));
+                } else {
+                    defaultData.forEach(r => allViewData.push(r));
+                }
+
+                // 冷链数据
+                if (selectedStore) {
+                    coldThawData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore).forEach(r => allViewData.push(r));
+                } else {
+                    coldThawData.forEach(r => allViewData.push(r));
+                }
+
+                // 物流损数据
+                if (selectedStore) {
+                    logisticsDamageData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore).forEach(r => allViewData.push(r));
+                } else {
+                    logisticsDamageData.forEach(r => allViewData.push(r));
+                }
+
+                // 差评数据
+                if (selectedStore) {
+                    badReviewData.filter(r => String(getColValue(r,'门店')||'').trim() === selectedStore).forEach(r => allViewData.push(r));
+                } else {
+                    badReviewData.forEach(r => allViewData.push(r));
+                }
+
+                if (!allViewData.length) {
+                    panel.style.display = 'none';
+                    return;
+                }
+
+                // 统计各类数据
+                let totalNoResp = 0, totalResp = 0;
+                let coldNoResp = 0, coldResp = 0;
+                let logisticsNoResp = 0, logisticsResp = 0;
+                let badReviewNoResp = 0, badReviewResp = 0;
+
+                allViewData.forEach(row => {
+                    const map = badReviewData.includes(row) ? badReviewManualMap :
+                                coldThawData.includes(row) ? coldThawManualMap :
+                                logisticsDamageData.includes(row) ? logisticsManualMap : manualDataMap;
+                    const saved = map.get(row._rowId) || {};
+                    const isResponsible = saved.isResponsible || '有责';
+                    const isResp = isResponsible === '有责';
+
+                    if (isResp) totalResp++; else totalNoResp++;
+
+                    if (badReviewData.includes(row)) {
+                        if (isResp) badReviewResp++; else badReviewNoResp++;
+                    } else if (coldThawData.includes(row)) {
+                        if (isResp) coldResp++; else coldNoResp++;
+                    } else if (logisticsDamageData.includes(row)) {
+                        if (isResp) logisticsResp++; else logisticsNoResp++;
+                    }
+                });
+
+                // 计算有责率及颜色
+                const calcRate = (noResp, resp) => {
+                    const total = noResp + resp;
+                    const rate = total > 0 ? (resp / total * 100) : 0;
+                    const rateStr = rate.toFixed(1) + '%';
+                    let color = '#27ae60';
+                    if (rate >= 50) color = '#e74c3c';
+                    else if (rate >= 30) color = '#f39c12';
+                    return { rateStr, color };
+                };
+
+                // 构建汇总行HTML
+                let summaryHTML = '<div style="background:#f0f2f7;border-radius:8px;padding:10px;margin-bottom:10px;border:1px solid #e6e8f0;">';
+                summaryHTML += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+                const totalAll = totalNoResp + totalResp;
+                const totalRate = calcRate(totalNoResp, totalResp);
+                summaryHTML += `<div style="flex:1;text-align:center;padding:6px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:11px;color:#5c5c78;">整体有责率</div><div style="font-size:16px;font-weight:700;color:${totalRate.color};">${totalRate.rateStr}</div><div style="font-size:10px;color:#8b8ba8;">(${totalResp}/${totalAll})</div></div>`;
+                const coldTotal = coldNoResp + coldResp;
+                const coldRate = calcRate(coldNoResp, coldResp);
+                summaryHTML += `<div style="flex:1;text-align:center;padding:6px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:11px;color:#5c5c78;">冷链化冻</div><div style="font-size:16px;font-weight:700;color:${coldRate.color};">${coldRate.rateStr}</div><div style="font-size:10px;color:#8b8ba8;">(${coldResp}/${coldTotal})</div></div>`;
+                const logisticsTotal = logisticsNoResp + logisticsResp;
+                const logisticsRate = calcRate(logisticsNoResp, logisticsResp);
+                summaryHTML += `<div style="flex:1;text-align:center;padding:6px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:11px;color:#5c5c78;">物流损</div><div style="font-size:16px;font-weight:700;color:${logisticsRate.color};">${logisticsRate.rateStr}</div><div style="font-size:10px;color:#8b8ba8;">(${logisticsResp}/${logisticsTotal})</div></div>`;
+                const badReviewTotal = badReviewNoResp + badReviewResp;
+                const badReviewRate = calcRate(badReviewNoResp, badReviewResp);
+                summaryHTML += `<div style="flex:1;text-align:center;padding:6px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:11px;color:#5c5c78;">差评</div><div style="font-size:16px;font-weight:700;color:${badReviewRate.color};">${badReviewRate.rateStr}</div><div style="font-size:10px;color:#8b8ba8;">(${badReviewResp}/${badReviewTotal})</div></div>`;
+                summaryHTML += '</div></div>';
+
+                // 按问题原因名称统计
+                const stats = new Map();
+                // 收集每个问题原因下各条目的核实原因（用于动态默认值）
+                const reasonTextMap = new Map(); // reasonName -> Map<核实原因文本, 出现次数>
+                allViewData.forEach(row => {
+                    let reason = '';
+                    if (badReviewData.includes(row)) {
+                        const tag = (getColValue(row, '评价标签') || '').trim().replace(/^\d+[:：]/, '') || '';
+                        reason = tag ? '差评-' + tag : '差评';
+                    } else {
+                        reason = (getColValue(row, '问题原因名称') || '').trim() || '未知';
+                    }
+                    const map = badReviewData.includes(row) ? badReviewManualMap :
+                                coldThawData.includes(row) ? coldThawManualMap :
+                                logisticsDamageData.includes(row) ? logisticsManualMap : manualDataMap;
+                    const saved = map.get(row._rowId) || {};
+                    const isResponsible = saved.isResponsible || '有责';
+                    if (!stats.has(reason)) stats.set(reason, { name: reason, noResponsible: 0, responsible: 0 });
+                    const s = stats.get(reason);
+                    if (isResponsible === '有责') s.responsible++; else s.noResponsible++;
+
+                    // 收集该条目的核实原因文本
+                    const reasonKey = badReviewData.includes(row) ? 'verify' :
+                                      coldThawData.includes(row) ? 'verifyReason' : 'reason';
+                    const reasonText = (saved[reasonKey] || '').trim();
+                    if (reasonText) {
+                        if (!reasonTextMap.has(reason)) reasonTextMap.set(reason, new Map());
+                        const rMap = reasonTextMap.get(reason);
+                        rMap.set(reasonText, (rMap.get(reasonText) || 0) + 1);
+                    }
+                });
+
+                // 排序
+                const sortOrder = { '冷链商品化冻': 0, '物流损': 1 };
+                const sortedStats = [...stats.values()].sort((a, b) => {
+                    const aOrder = sortOrder[a.name] !== undefined ? sortOrder[a.name] : (a.name.startsWith('差评') ? 999 : 2);
+                    const bOrder = sortOrder[b.name] !== undefined ? sortOrder[b.name] : (b.name.startsWith('差评') ? 999 : 2);
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+                    const aTotal = a.noResponsible + a.responsible;
+                    const bTotal = b.noResponsible + b.responsible;
+                    return bTotal - aTotal;
+                });
+
+                // 构建表格HTML - 使用table-fit-container容器
+                let tableHTML = '<div class="table-fit-container"><table class="responsibility-table"><thead><tr><th>问题原因名称</th><th>总计</th><th>无责</th><th>有责</th><th>有责率</th><th>核实原因</th></tr></thead><tbody>';
+                sortedStats.forEach(s => {
+                    const total = s.noResponsible + s.responsible;
+                    const rate = total > 0 ? (s.responsible / total * 100) : 0;
+                    const rateStr = rate.toFixed(1) + '%';
+                    let rateColor = '#27ae60';
+                    if (rate >= 50) rateColor = '#e74c3c';
+                    else if (rate >= 30) rateColor = '#f39c12';
+                    // 动态生成核实原因默认值：统计问单明细中各条目的核实原因
+                    let savedReason = responsibilityReasonMap.get(s.name) || '';
+                    if (!savedReason) {
+                        const rTextMap = reasonTextMap.get(s.name);
+                        if (rTextMap && rTextMap.size > 0) {
+                            // 按出现次数降序排列
+                            const sortedReasons = [...rTextMap.entries()].sort((a, b) => b[1] - a[1]);
+                            savedReason = sortedReasons.map(([text, count]) => text + '*' + count).join('，');
+                        }
+                    }
+                    const isBadReview = s.name.startsWith('差评');
+                    const nameStyle = isBadReview ? 'color:#e74c3c;font-weight:700;' : '';
+                    // 判断是用户手动值还是动态默认值
+                    const isUserSaved = responsibilityReasonMap.has(s.name);
+                    const inputClass = isUserSaved ? 'responsibility-input user-value' : 'responsibility-input placeholder-default';
+                    const inputValue = isUserSaved ? savedReason : (savedReason || '');
+                    // 动态默认值始终存入 data-default-value，用于清空恢复和导出
+                    const dynamicDefault = savedReason || '';
+                    tableHTML += `<tr><td style="${nameStyle}">${escapeHTML(s.name)}</td><td>${total}</td><td>${s.noResponsible}</td><td>${s.responsible}</td><td style="color:${rateColor};font-weight:700;">${rateStr}</td><td><input class="${inputClass}" data-reason="${escapeHTML(s.name)}" data-default-value="${escapeHTML(dynamicDefault)}" value="${escapeHTML(inputValue)}" placeholder="输入核实原因" /></td></tr>`;
+                });
+                tableHTML += '</tbody></table></div>';
+
+                content.innerHTML = summaryHTML + tableHTML;
+
+                // 监听输入框变化
+                content.querySelectorAll('.responsibility-input').forEach(inp => {
+                    // 聚焦时如果是placeholder默认值，自动清空并切换为正常输入模式
+                    inp.addEventListener('focus', function() {
+                        if (this.classList.contains('placeholder-default')) {
+                            this.classList.remove('placeholder-default');
+                            this.value = '';
+                        }
+                    });
+                    inp.addEventListener('input', function() {
+                        if (this.value.trim()) {
+                            this.classList.add('user-value');
+                            this.classList.remove('placeholder-default');
+                            responsibilityReasonMap.set(this.dataset.reason, this.value);
+                        } else {
+                            this.classList.remove('user-value');
+                            responsibilityReasonMap.delete(this.dataset.reason);
+                        }
+                    });
+                    // 失焦时如果为空，从 data-default-value 恢复默认值
+                    inp.addEventListener('blur', function() {
+                        if (!this.value.trim() && this.dataset.defaultValue) {
+                            this.value = this.dataset.defaultValue;
+                            this.classList.add('placeholder-default');
+                            this.classList.remove('user-value');
+                        }
+                    });
+                });
+                panel.style.display = 'block';
+            }
+
+            function openGuideView(title, subtitle, bodyHTML, footerHTML) {
+                guideCard.innerHTML = `
+                    <button class="guide-close-btn" id="guideCloseBtn">✕</button>
+                    <div class="guide-title">${title}</div>
+                    <div class="guide-subtitle">${subtitle}</div>
+                    <div class="guide-body">${bodyHTML}</div>
+                    <div class="guide-footer">${footerHTML}</div>
+                `;
+                guideOverlay.style.display = 'flex';
+                document.getElementById('guideCloseBtn').addEventListener('click', () => guideOverlay.style.display = 'none');
+            }
+
+            function showStoreSelection() {
+                let html = `<input type="text" id="storeSearch" placeholder="🔍 搜索门店..." style="width:100%;padding:10px;border:1.5px solid #e6e8f0;border-radius:8px;margin-bottom:12px;font-size:0.82rem;"><div id="storeList" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;">`;
+                html += `<label style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-radius:8px;" id="storeOptionAll"><input type="radio" name="storeRadio" value="__ALL__" ${selectedStore===null?'checked':''}> 🌐 全部门店</label>`;
+                allStores.forEach(s => {
+                    const storeType = getStoreType(s);
+                    const typeLabel = getStoreTypeLabel(storeType);
+                    const typeClass = getStoreTypeClass(storeType);
+                    html += `<label style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-radius:8px;"><input type="radio" name="storeRadio" value="${escapeHTML(s)}" ${selectedStore===s?'checked':''}> ${escapeHTML(s)}<span class="store-type-tag ${typeClass}">${typeLabel}</span></label>`;
+                });
+                html += `</div>`;
+                openGuideView('选择门店', '请选择要分析的门店', html, '<button class="guide-btn primary" id="confirmStore">✓ 确认</button>');
+                document.getElementById('confirmStore').addEventListener('click', () => {
+                    const radio = document.querySelector('input[name="storeRadio"]:checked');
+                    selectedStore = radio && radio.value !== '__ALL__' ? radio.value : null;
+                    guideOverlay.style.display = 'none';
+                    initializeMainUI();
+                });
+                document.getElementById('storeSearch').addEventListener('input', function() {
+                    const term = this.value.toLowerCase();
+                    document.querySelectorAll('#storeList label').forEach(l => l.style.display = l.textContent.toLowerCase().includes(term) ? 'flex' : 'none');
+                });
+            }
+
+            async function handleFileUpload(file) {
+                if (!file) return;
+
+                // 显示进度条
+                const progressWrap = document.getElementById('guideProgressWrap') || document.getElementById('initProgressWrap');
+                const progressFill = document.getElementById('guideProgressFill') || document.getElementById('initProgressFill');
+                const progressText = document.getElementById('guideProgressText') || document.getElementById('initProgressText');
+                if (progressWrap) { progressWrap.style.display = 'block'; }
+                if (progressFill) { progressFill.style.width = '5%'; }
+                if (progressText) { progressText.textContent = '正在读取文件...'; }
+
+                toast('⏳ 正在解析文件...');
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        if (progressFill) progressFill.width = '15%';
+                        if (progressText) progressText.textContent = '正在解析Excel...';
+
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+                        const targetSheets = wb.SheetNames.filter(s => !shouldIgnore(s));
+                        const mainSheetName = findSheet(targetSheets, TARGET_SHEET_KEYWORDS);
+                        const badReviewSheetName = findSheet(targetSheets, BAD_REVIEW_KEYWORDS);
+                        if (!mainSheetName) { toast('❌ 未找到「问单速查」工作簿'); if (progressWrap) progressWrap.style.display = 'none'; return; }
+
+                        if (progressFill) progressFill.style.width = '30%';
+                        if (progressText) progressText.textContent = '正在解析数据展示...';
+
+                        // 解析数据展示工作簿
+                        parseDataDisplaySheet(wb);
+
+                        if (progressFill) progressFill.style.width = '40%';
+                        if (progressText) progressText.textContent = '正在加载问单速查...';
+
+                        const rows = XLSX.utils.sheet_to_json(wb.Sheets[mainSheetName], { defval:'', raw:false });
+                        if (!rows.length) { toast('❌ 工作簿为空'); if (progressWrap) progressWrap.style.display = 'none'; return; }
+
+                        allData = []; manualDataMap.clear();
+                        const batchSize = 5000;
+                        const totalRows = rows.length;
+                        for (let i = 0; i < rows.length; i += batchSize) {
+                            const batch = rows.slice(i, i + batchSize);
+                            batch.forEach(r => {
+                                const nr = {};
+                                for (let k in r) nr[k.trim()] = r[k];
+                                nr._rowId = rowIdCounter++;
+                                allData.push(nr);
+                                manualDataMap.set(nr._rowId, { isResponsible:'有责', reason:'' });
+                            });
+                            // 更新进度
+                            const pct = 40 + Math.round(((i + batch.length) / totalRows) * 35);
+                            if (progressFill) progressFill.style.width = pct + '%';
+                            if (progressText) progressText.textContent = `正在处理数据... ${Math.min(100, pct)}%`;
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+
+                        if (progressFill) progressFill.style.width = '80%';
+                        if (progressText) progressText.textContent = '正在分类数据...';
+
+                        coldThawData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() === '冷链商品化冻');
+                        coldThawManualMap.clear();
+                        coldThawData.forEach(r => coldThawManualMap.set(r._rowId, { isThawIssue:'是', storeStandard:'不规范', deliveryStandard:'不规范', orderAttr:'内环', isResponsible:'有责', verifyReason:'' }));
+
+                        // 物流损数据
+                        logisticsDamageData = allData.filter(r => (getColValue(r,'问题原因名称')||'').trim() === '物流损');
+                        logisticsManualMap.clear();
+                        logisticsDamageData.forEach(r => logisticsManualMap.set(r._rowId, { isResponsible:'有责', reason:'' }));
+
+                        badReviewData = []; badReviewManualMap.clear();
+                        if (badReviewSheetName) {
+                            const brRows = XLSX.utils.sheet_to_json(wb.Sheets[badReviewSheetName], { defval:'', raw:false });
+                            brRows.forEach(r => {
+                                const nr = {};
+                                for (let k in r) nr[k.trim()] = r[k];
+                                nr._rowId = rowIdCounter++;
+                                badReviewData.push(nr);
+                                badReviewManualMap.set(nr._rowId, { isResponsible:'有责', verify:'' });
+                            });
+                        }
+
+                        if (progressFill) progressFill.style.width = '95%';
+                        if (progressText) progressText.textContent = '正在初始化界面...';
+
+                        allStores = [...new Set(allData.map(r => String(getColValue(r,'门店名称')).trim()).filter(Boolean))].sort();
+                        selectedReasons.clear();
+
+                        if (progressFill) progressFill.style.width = '100%';
+                        if (progressText) progressText.textContent = '加载完成！';
+
+                        toast('✅ 成功加载 ' + allData.length + ' 条记录');
+
+                        // 短暂延迟后隐藏进度条并弹出门店选择
+                        setTimeout(() => {
+                            if (progressWrap) progressWrap.style.display = 'none';
+                            showStoreSelection();
+                        }, 400);
+                    } catch(err) { toast('❌ 解析文件失败'); console.error(err); if (progressWrap) progressWrap.style.display = 'none'; }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            function initializeMainUI() {
+                currentView = 'default';
+                viewCurrentPages = { default:1, badReview:1, coldThaw:1, logistics:1 };
+                duplicateBatchSet.clear();
+                // 切换门店时清除用户输入的数据，避免数据冗余
+                manualDataMap.clear();
+                badReviewManualMap.clear();
+                coldThawManualMap.clear();
+                logisticsManualMap.clear();
+                responsibilityReasonMap.clear();
+                // 重新初始化默认数据
+                allData.forEach(r => manualDataMap.set(r._rowId, { isResponsible:'有责', reason:'' }));
+                coldThawData.forEach(r => coldThawManualMap.set(r._rowId, { isThawIssue:'是', storeStandard:'不规范', deliveryStandard:'不规范', orderAttr:'内环', isResponsible:'有责', verifyReason:'' }));
+                logisticsDamageData.forEach(r => logisticsManualMap.set(r._rowId, { isResponsible:'有责', reason:'' }));
+                badReviewData.forEach(r => badReviewManualMap.set(r._rowId, { isResponsible:'有责', verify:'' }));
+                updateBubbles();
+                applyFilters();
+                ['filterBar','tableWrapper','statsPanel','achievementPanel'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'flex';
+                });
+                // achievementPanel是block显示
+                $('#achievementPanel').style.display = 'block';
+                updateViewBubblesVisibility();
+                updateViewBubbleActiveState();
+                updateCurrentStoreLabel();
+                updateDataSourceText();
+                renderAchievementPanel();
+                renderResponsibilityPanel();
+            }
+
+            function updateDataSourceText() {
+                const el = $('#dataSourceText');
+                if (!allData.length) { el.textContent = '时间：--'; return; }
+                
+                // 获取问单速查中日期列第一个非空数值
+                let firstDate = '';
+                for (const row of allData) {
+                    const d = getColValue(row,'日期');
+                    if (d) {
+                        firstDate = String(d).trim();
+                        break;
+                    }
+                }
+                
+                // 格式：当前时间：20260516
+                el.textContent = '时间：' + (firstDate || '--');
+            }
+
+            function updateBubbles() {
+                if (currentView !== 'default') { $('#bubbleContainer').innerHTML = '<span class="no-bubbles">当前视图不支持筛选</span>'; return; }
+                let data = allData.filter(r => r && (getColValue(r,'问题原因名称')||'').trim() !== '冷链商品化冻' && (getColValue(r,'问题原因名称')||'').trim() !== '物流损');
+                if (selectedStore) data = data.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore);
+                const counts = new Map();
+                data.forEach(r => { const k = (getColValue(r,'问题原因名称')||'').trim(); if (k) counts.set(k, (counts.get(k)||0)+1); });
+                const reasons = [...counts.keys()].sort((a,b) => (counts.get(b)||0) - (counts.get(a)||0));
+                
+                const hasSelection = selectedReasons.size > 0;
+                const allLabel = hasSelection ? '✕ 清空筛选' : '📋 全部';
+                const allClass = hasSelection ? 'bubble-all has-selection' : 'bubble-all';
+                
+                let html = `<span class="bubble-tag ${allClass} ${!hasSelection?'active':''}" id="bubbleAll">${allLabel} <span class="bubble-count-inline">${data.length}条</span></span>`;
+                reasons.forEach(r => html += `<span class="bubble-tag ${selectedReasons.has(r)?'active':''}" data-reason="${escapeHTML(r)}">${escapeHTML(r)} <span class="bubble-count-inline">${counts.get(r)}|${data.length?((counts.get(r)/data.length)*100).toFixed(1):0}%</span></span>`);
+                $('#bubbleContainer').innerHTML = html;
+                const ba = $('#bubbleAll');
+                if (ba) ba.addEventListener('click', () => { selectedReasons.clear(); setCurrentPage(1); updateBubbles(); applyFilters(); });
+                document.querySelectorAll('.bubble-tag[data-reason]').forEach(b => b.addEventListener('click', function() {
+                    const r = this.dataset.reason;
+                    selectedReasons.has(r) ? selectedReasons.delete(r) : selectedReasons.add(r);
+                    setCurrentPage(1); updateBubbles(); applyFilters();
+                }));
+            }
+
+            function applyFilters() {
+                let data;
+                if (currentView === 'default') {
+                    data = [...allData];
+                } else if (currentView === 'badReview') {
+                    data = [...badReviewData];
+                } else if (currentView === 'coldThaw') {
+                    data = [...coldThawData];
+                } else if (currentView === 'logistics') {
+                    data = [...logisticsDamageData];
+                } else {
+                    data = [...allData];
+                }
+
+                if (selectedStore) {
+                    const storeCol = currentView === 'badReview' ? '门店' : '门店名称';
+                    data = data.filter(r => String(getColValue(r, storeCol)).trim() === selectedStore);
+                }
+
+                if (currentView === 'default') {
+                    // 问单视图排除冷链和物流损
+                    data = data.filter(r => {
+                        const reason = (getColValue(r,'问题原因名称')||'').trim();
+                        return reason !== '冷链商品化冻' && reason !== '物流损';
+                    });
+                    if (selectedReasons.size) data = data.filter(r => selectedReasons.has((getColValue(r,'问题原因名称')||'').trim()));
+                }
+
+                // 问单明细排序（default / logistics 共用逻辑）
+                if (currentView === 'default' || currentView === 'logistics') {
+                    // 第一步：统计每个问题原因名称的总数量
+                    const reasonCounts = new Map();
+                    data.forEach(r => {
+                        const reason = (getColValue(r, '问题原因名称') || '').trim();
+                        if (reason) reasonCounts.set(reason, (reasonCounts.get(reason) || 0) + 1);
+                    });
+                    // 第二步：统计每个批次号的总数量
+                    const batchCounts = new Map();
+                    data.forEach(r => {
+                        const batch = String(getColValue(r, '批次号') || '').trim();
+                        if (batch) batchCounts.set(batch, (batchCounts.get(batch) || 0) + 1);
+                    });
+                    // 第三步：排序
+                    data.sort((a, b) => {
+                        // 优先级1：按问题原因名称数量升序（少的在前）
+                        const aReason = (getColValue(a, '问题原因名称') || '').trim();
+                        const bReason = (getColValue(b, '问题原因名称') || '').trim();
+                        const aReasonCount = reasonCounts.get(aReason) || 0;
+                        const bReasonCount = reasonCounts.get(bReason) || 0;
+                        if (aReasonCount !== bReasonCount) return aReasonCount - bReasonCount;
+                        // 优先级2：同问题原因名称组内，按批次号数量降序（多的在前）
+                        const aBatch = String(getColValue(a, '批次号') || '').trim();
+                        const bBatch = String(getColValue(b, '批次号') || '').trim();
+                        const aBatchCount = batchCounts.get(aBatch) || 0;
+                        const bBatchCount = batchCounts.get(bBatch) || 0;
+                        if (aBatchCount !== bBatchCount) return bBatchCount - aBatchCount;
+                        // 优先级3：同批次号组内，APP退款原因和APP退款描述都为'-'的排后面
+                        const aAppReason = (getColValue(a, 'app退款原因') || getColValue(a, 'APP退款原因') || '').trim();
+                        const aAppDesc = (getColValue(a, 'app退款描述') || getColValue(a, 'APP退款描述') || '').trim();
+                        const bAppReason = (getColValue(b, 'app退款原因') || getColValue(b, 'APP退款原因') || '').trim();
+                        const bAppDesc = (getColValue(b, 'app退款描述') || getColValue(b, 'APP退款描述') || '').trim();
+                        const aIsDash = (aAppReason === '-' || aAppReason === '') && (aAppDesc === '-' || aAppDesc === '');
+                        const bIsDash = (bAppReason === '-' || bAppReason === '') && (bAppDesc === '-' || bAppDesc === '');
+                        if (aIsDash !== bIsDash) return aIsDash ? 1 : -1;
+                        return 0;
+                    });
+                } else if (currentView === 'badReview') {
+                    data.sort((a, b) => {
+                        const aDash = (getColValue(a, '评价文本') || '').trim() === '-';
+                        const bDash = (getColValue(b, '评价文本') || '').trim() === '-';
+                        if (aDash && !bDash) return 1;
+                        if (!aDash && bDash) return -1;
+                        return 0;
+                    });
+                }
+
+                // 计算重复批次（所有问单明细视图）
+                duplicateBatchSet.clear();
+                const batchCounts = new Map();
+                data.forEach(r => { const b = String(getColValue(r,'批次号')||'').trim(); if (b) batchCounts.set(b, (batchCounts.get(b)||0)+1); });
+                batchCounts.forEach((v,k) => { if (v > 1) duplicateBatchSet.add(k); });
+
+                if (currentView === 'default') filteredData = data;
+                else if (currentView === 'badReview') filteredBadReviewData = data;
+                else if (currentView === 'coldThaw') filteredColdThawData = data;
+                else if (currentView === 'logistics') {
+                    filteredLogisticsDamageData = data;
+                }
+
+                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : (currentView === 'coldThaw' ? filteredColdThawData : filteredLogisticsDamageData));
+                const totalPages = Math.ceil(cfd.length / pageSize) || 1;
+                if (getCurrentPage() > totalPages) setCurrentPage(totalPages);
+                renderTable();
+                renderResponsibilityPanel();
+            }
+
+            function getCurrentPage() { return viewCurrentPages[currentView] || 1; }
+            function setCurrentPage(p) { viewCurrentPages[currentView] = p; }
+
+            function updateCurrentStoreLabel() {
+                const el = $('#currentStoreName');
+                if (!selectedStore) {
+                    el.textContent = '📍 门店：全部门店';
+                    return;
+                }
+                
+                const storeType = getStoreType(selectedStore);
+                const typeLabel = getStoreTypeLabel(storeType);
+                const typeClass = getStoreTypeClass(storeType);
+                
+                // 单行结构：📍 当前门店：店名 [类型标签]
+                el.innerHTML = `📍 门店：${escapeHTML(selectedStore)}<span class="store-type-tag ${typeClass}">${typeLabel}</span>`;
+            }
+
+            function renderTable() {
+                const cfd = currentView === 'default' ? filteredData : (currentView === 'badReview' ? filteredBadReviewData : (currentView === 'coldThaw' ? filteredColdThawData : filteredLogisticsDamageData));
+                const start = (getCurrentPage()-1) * pageSize, end = Math.min(start + pageSize, cfd.length);
+                const pageData = cfd.slice(start, end);
+                const thead = $('#tableHead'), tbody = $('#tableBody');
+
+                if (currentView === 'default')
+                    thead.innerHTML = '<tr><th style="width:10%">问题原因名称</th><th style="width:15%">SKU名称</th><th style="width:10%">APP退款原因</th><th style="width:20%">APP退款描述</th><th style="width:10%">退款凭证</th><th style="width:5%">单号</th><th style="width:5%">配送员名</th><th style="width:5%">是否有责</th><th style="width:20%">核实原因</th></tr>';
+                else if (currentView === 'badReview')
+                    thead.innerHTML = '<tr><th style="width:5%">交易日期</th><th style="width:15%">门店</th><th style="width:5%">配送员名称</th><th style="width:10%">单号</th><th style="width:25%">评价文本</th><th style="width:10%">评价标签</th><th style="width:10%">评价星级</th><th style="width:5%">是否有责</th><th style="width:15%">核实原因</th></tr>';
+                else if (currentView === 'coldThaw')
+                    thead.innerHTML = '<tr><th style="width:10%">门店</th><th style="width:5%">配送员</th><th style="width:10%">商品名称</th><th style="width:5%">订单属性</th><th style="width:5%">是否化冻问题</th><th style="width:10%">店仓规范</th><th style="width:10%">配送规范</th><th style="width:15%">顾客原声</th><th style="width:5%">退款凭证</th><th style="width:5%">单号</th><th style="width:5%">时间戳</th><th style="width:10%">核实原因</th><th style="width:5%">是否有责</th></tr>';
+                else if (currentView === 'logistics')
+                    thead.innerHTML = '<tr><th style="width:10%">问题原因名称</th><th style="width:15%">SKU名称</th><th style="width:10%">APP退款原因</th><th style="width:20%">APP退款描述</th><th style="width:10%">退款凭证</th><th style="width:5%">单号</th><th style="width:5%">配送员名</th><th style="width:5%">是否有责</th><th style="width:20%">核实原因</th></tr>';
+
+                tbody.innerHTML = '';
+                $('#emptyState').style.display = pageData.length ? 'none' : 'block';
+                if (!pageData.length) { $('#paginationBar').innerHTML = ''; return; }
+
+                const fragment = document.createDocumentFragment();
+                pageData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    if (duplicateBatchSet.has(String(getColValue(row,'批次号')||'').trim())) tr.classList.add('duplicate-batch');
+                    if (currentView === 'default') {
+                        tr.appendChild(createClickableCell(getColValue(row,'问题原因名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'sku名称')||getColValue(row,'SKU名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因')));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')));
+                        tr.appendChild(createVoucherCell(row));
+                        tr.appendChild(createOrderCell(row, ['淘系主订单id','批次号','配送单号']));
+                        tr.appendChild(createPersonCell(row));
+                        tr.appendChild(createSelectCell(row, 'isResponsible', ['无责','有责'], manualDataMap, 1));
+                        tr.appendChild(createInputCell(row, 'reason', manualDataMap));
+                    } else if (currentView === 'badReview') {
+                        tr.appendChild(createCell(getColValue(row,'交易日期')));
+                        tr.appendChild(createCell(getColValue(row,'门店')));
+                        tr.appendChild(createCell(getColValue(row,'配送员名称')));
+                        tr.appendChild(createOrderCell(row, ['评价父订单','盒马主订单','外部主订单','履约单号']));
+                        tr.appendChild(createClickableCell(getColValue(row,'评价文本')));
+                        tr.appendChild(createCell(getColValue(row,'评价标签')));
+                        tr.appendChild(createStarCell(row));
+                        tr.appendChild(createSelectCell(row, 'isResponsible', ['无责','有责'], badReviewManualMap, 1));
+                        tr.appendChild(createInputCell(row, 'verify', badReviewManualMap));
+                    } else if (currentView === 'coldThaw') {
+                        tr.appendChild(createCell(getColValue(row,'门店名称')));
+                        tr.appendChild(createCell(getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-'));
+                        tr.appendChild(createClickableCell(getColValue(row,'sku名称')||getColValue(row,'SKU名称')));
+                        tr.appendChild(createSelectCell(row, 'orderAttr', ['内环','外环','环外'], coldThawManualMap, 0));
+                        tr.appendChild(createSelectCell(row, 'isThawIssue', ['是','否'], coldThawManualMap));
+                        tr.appendChild(createSelectCell(row, 'storeStandard', ['不规范','规范'], coldThawManualMap, 0));
+                        tr.appendChild(createSelectCell(row, 'deliveryStandard', ['不规范','规范'], coldThawManualMap, 0));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')));
+                        tr.appendChild(createVoucherCell(row));
+                        tr.appendChild(createOrderCell(row, ['淘系主订单id','批次号','配送单号']));
+                        tr.appendChild(createTimeCellWithInterval(row));
+                        tr.appendChild(createInputCell(row, 'verifyReason', coldThawManualMap));
+                        tr.appendChild(createSelectCell(row, 'isResponsible', ['无责','有责'], coldThawManualMap, 1));
+                    } else if (currentView === 'logistics') {
+                        tr.appendChild(createClickableCell(getColValue(row,'问题原因名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'sku名称')||getColValue(row,'SKU名称')));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因')));
+                        tr.appendChild(createClickableCell(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述')));
+                        tr.appendChild(createVoucherCell(row));
+                        tr.appendChild(createOrderCell(row, ['淘系主订单id','批次号','配送单号']));
+                        tr.appendChild(createPersonCell(row));
+                        tr.appendChild(createSelectCell(row, 'isResponsible', ['无责','有责'], logisticsManualMap, 1));
+                        tr.appendChild(createInputCell(row, 'reason', logisticsManualMap));
+                    }
+                    fragment.appendChild(tr);
+                });
+                tbody.appendChild(fragment);
+                renderPagination(cfd);
+            }
+
+            function createCell(text) { const td = document.createElement('td'); td.textContent = text || '-'; return td; }
+            function createClickableCell(fullText) {
+                const td = document.createElement('td');
+                const span = document.createElement('span'); span.className = 'cell-clickable'; span.textContent = fullText || '-';
+                span.addEventListener('click', function(e) { e.stopPropagation(); showDetailPopup(span, fullText || '-', true); });
+                td.appendChild(span); return td;
+            }
+            function createVoucherCell(row) {
+                const td = document.createElement('td');
+                const urls = parseImageUrls(getColValue(row,'退款凭证')||'');
+                if (urls.length) {
+                    const img = document.createElement('img');
+                    img.src = urls[0];
+                    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid #e6e8f0;';
+                    img.title = '点击全屏查看' + urls.length + '张图片';
+                    img.addEventListener('click', function(e) { e.stopPropagation(); openFullscreen(urls[0]); });
+                    td.appendChild(img);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-view-btn no-image'; btn.textContent='无凭证'; td.appendChild(btn);
+                }
+                return td;
+            }
+            function createOrderCell(row, fields) {
+                const td = document.createElement('td');
+                const values = fields.map(f => getColValue(row,f)||'');
+                if (values.some(v => String(v).trim())) {
+                    const btn = document.createElement('span'); btn.className='cell-btn'; btn.textContent='📋 查看';
+                    btn.addEventListener('click', e => { e.stopPropagation(); showDetailPopup(btn, fields.map((f,i) => makePopupRow(f, values[i])).join('')); });
+                    td.appendChild(btn);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-btn no-data'; btn.textContent='无数据'; td.appendChild(btn);
+                }
+                return td;
+            }
+            function createPersonCell(row) {
+                const td = document.createElement('td');
+                const delivery = String(getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'').trim();
+                td.textContent = delivery || '-';
+                return td;
+            }
+
+            // 带时间间隔的时间戳单元格
+            function createIntervalCell(row) {
+                const td = document.createElement('td');
+                const signTime = parseDateTime(getColValue(row,'签收时间'));
+                const pickupTime = parseDateTime(getColValue(row,'揽收时间'));
+                let intervalText = '-';
+                let isAlert = false;
+                if (signTime && pickupTime) {
+                    const diffMin = Math.round((signTime - pickupTime) / 60000);
+                    intervalText = diffMin + '分钟';
+                    isAlert = diffMin > 18;
+                }
+                const span = document.createElement('span');
+                span.style.cssText = isAlert ? 'color:#e74c3c;font-weight:700;' : 'color:#3a3a58;';
+                span.textContent = intervalText;
+                td.appendChild(span);
+                return td;
+            }
+
+            function createTimeCellWithInterval(row) {
+                const td = document.createElement('td');
+                const fields = ['批次生成时间','拣货完成时间','打包完成时间','揽收时间','签收时间','最晚送达时间'];
+                const isColdThaw = currentView === 'coldThaw';
+                const values = fields.map(f => formatTime(getColValue(row,f)||'', isColdThaw));
+                if (values.some(v => String(v).trim())) {
+                    // 计算签收-揽收时间差（分钟）
+                    const signTime = parseDateTime(getColValue(row,'签收时间'));
+                    const pickupTime = parseDateTime(getColValue(row,'揽收时间'));
+                    let signPickupDiff = null;
+                    if (signTime && pickupTime) {
+                        signPickupDiff = Math.round((signTime - pickupTime) / 60000);
+                    }
+
+                    const isAlert = signPickupDiff !== null && signPickupDiff > 18;
+                    const btn = document.createElement('span');
+                    btn.className = 'cell-btn' + (isAlert ? ' alert' : '');
+                    btn.textContent = isAlert ? '⚠️ 查看' : '🕐 查看';
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        let popupContent = '';
+                        for (let i = 0; i < fields.length; i++) {
+                            const val = values[i] || '-';
+                            let intervalStr = '-';
+                            let intervalColor = '#b0b0c0';
+                            let intervalBold = false;
+                            if (i > 0) {
+                                const prevTime = parseDateTime(getColValue(row, fields[i-1]));
+                                const currTime = parseDateTime(getColValue(row, fields[i]));
+                                if (prevTime && currTime) {
+                                    const diffMin = Math.round((currTime - prevTime) / 60000);
+                                    intervalStr = diffMin + '分钟';
+                                    // 仅签收时间超过18分钟标红加粗
+                                    if (fields[i] === '签收时间' && diffMin > 18) {
+                                        intervalColor = '#e74c3c';
+                                        intervalBold = true;
+                                    } else {
+                                        intervalColor = '#3a3a58';
+                                    }
+                                }
+                            }
+                            // 间隔时间替代复制按钮，签收时间超过18分钟标红
+                            popupContent += `<div class="info-row"><span class="info-label">${escapeHTML(fields[i])}</span><span class="info-value">${escapeHTML(val)}</span><span class="info-copy-btn" style="cursor:default;color:${intervalColor};${intervalBold ? 'font-weight:700;' : ''}">${intervalStr}</span></div>`;
+                        }
+                        showDetailPopup(btn, popupContent);
+                    });
+                    td.appendChild(btn);
+                } else {
+                    const btn = document.createElement('span'); btn.className='cell-btn no-data'; btn.textContent='无数据'; td.appendChild(btn);
+                }
+                return td;
+            }
+
+            function formatTime(str, onlyTime) {
+                if (!str) return '';
+                const s = String(str).trim();
+                let fullStr = '';
+                // 支持整数和小数Excel序列号（如46183.74715）
+                if (/^\d+(\.\d+)?$/.test(s)) {
+                    const num = parseFloat(s);
+                    if (num > 40000 && num < 60000) {
+                        const d = new Date((num - 25569) * 86400 * 1000);
+                        fullStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+                    }
+                }
+                if (!fullStr) {
+                    const m = s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[\sT]?(\d{1,2})?:(\d{1,2})?:(\d{1,2})?/);
+                    if (m) {
+                        fullStr = m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0')+' '+(m[4]||'00').padStart(2,'0')+':'+(m[5]||'00').padStart(2,'0')+':'+(m[6]||'00').padStart(2,'0');
+                    } else {
+                        const d = new Date(s);
+                        if (!isNaN(d)) fullStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+                        else fullStr = s;
+                    }
+                }
+                if (onlyTime) {
+                    const timeMatch = fullStr.match(/(\d{2}:\d{2}:\d{2})$/);
+                    return timeMatch ? timeMatch[1] : fullStr;
+                }
+                return fullStr;
+            }
+            function createStarCell(row) {
+                const td = document.createElement('td');
+                const v = parseInt(getColValue(row,'评价星级'));
+                if (!isNaN(v) && v > 0) td.innerHTML = '<span class="star-rating">'+'★'.repeat(v)+'☆'.repeat(5-v)+'</span>';
+                else td.textContent = getColValue(row,'评价星级')||'-';
+                return td;
+            }
+            function createSelectCell(row, key, options, map, defaultIdx) {
+                const td = document.createElement('td');
+                const defIdx = defaultIdx || 0;
+                const saved = map.get(row._rowId) || {};
+                let currentIdx = options.indexOf(saved[key]);
+                if (currentIdx === -1) currentIdx = defIdx;
+                // 颜色类型映射
+                const colorMap = {
+                    '有责': 'responsible', '无责': 'irresponsible',
+                    '不规范': 'nonstandard', '规范': 'standard',
+                    '是': 'yes', '否': 'no'
+                };
+                const btn = document.createElement('span');
+                btn.className = 'cell-toggle-btn';
+                btn.setAttribute('data-type', colorMap[options[currentIdx]] || '');
+                const hint = document.createElement('span');
+                hint.className = 'toggle-hint';
+                hint.textContent = '🔄';
+                btn.textContent = options[currentIdx];
+                btn.appendChild(hint);
+                // 首次加载呼吸动画引导
+                setTimeout(() => btn.classList.add('pulse'), 100);
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    currentIdx = (currentIdx + 1) % options.length;
+                    btn.textContent = options[currentIdx];
+                    btn.setAttribute('data-type', colorMap[options[currentIdx]] || '');
+                    btn.appendChild(hint);
+                    btn.classList.remove('pulse');
+                    saved[key] = options[currentIdx];
+                    map.set(row._rowId, saved);
+                    renderResponsibilityPanel();
+                });
+                td.appendChild(btn); return td;
+            }
+            function createInputCell(row, key, map, defaultVal) {
+                const td = document.createElement('td');
+                const inp = document.createElement('textarea'); inp.className='cell-textarea';
+                inp.rows = 1;
+                inp.style.cssText = 'min-height:28px;max-height:120px;resize:none;overflow-y:auto;width:100%;box-sizing:border-box;';
+                const saved = map.get(row._rowId) || {};
+                inp.value = saved[key] || defaultVal || '';
+                // 自动调整高度
+                const autoResize = () => { inp.style.height = 'auto'; inp.style.height = Math.min(inp.scrollHeight, 120) + 'px'; };
+                inp.addEventListener('input', () => { saved[key] = inp.value; map.set(row._rowId, saved); autoResize(); renderResponsibilityPanel(); });
+                // 初始化高度
+                setTimeout(autoResize, 0);
+                td.appendChild(inp); return td;
+            }
+            function parseImageUrls(v) {
+                if (!v) return [];
+                return String(v).trim().split(/[,，]+/).map(s => s.trim()).filter(s => s && s.length > 3 && !['无','空','none','null'].includes(s.toLowerCase()));
+            }
+
+            // 一键复制冷链数据
+            async function copyAllColdThawData() {
+                // 检测店仓规范、配送规范、核实原因是否规范/填写
+                const issues = { storeStandard: [], deliveryStandard: [], verifyReason: [] };
+                filteredColdThawData.forEach(row => {
+                    const ct = coldThawManualMap.get(row._rowId) || {};
+                    const orderInfo = `【${getColValue(row,'门店名称')||'-'} - ${getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-'}】`;
+                    if (ct.storeStandard === '不规范') {
+                        issues.storeStandard.push(orderInfo);
+                    }
+                    if (ct.deliveryStandard === '不规范') {
+                        issues.deliveryStandard.push(orderInfo);
+                    }
+                    if (!ct.verifyReason || !ct.verifyReason.trim()) {
+                        issues.verifyReason.push(orderInfo);
+                    }
+                });
+                // 汇总所有问题，使用一个弹窗提示
+                const allIssues = [];
+                if (issues.storeStandard.length > 0) allIssues.push(`店仓不规范（${issues.storeStandard.length}条）`);
+                if (issues.deliveryStandard.length > 0) allIssues.push(`配送不规范（${issues.deliveryStandard.length}条）`);
+                if (issues.verifyReason.length > 0) allIssues.push(`核实原因未填（${issues.verifyReason.length}条）`);
+
+                if (allIssues.length > 0) {
+                    const confirmed = await showConfirmDialog(`<div style="text-align:center;">检测到冷链数据存在以下问题：<br><b style="color:#e74c3c;">${allIssues.join('、<br>')}</b><br>是否继续复制？</div>`);
+                    if (!confirmed) return;
+                }
+                const now = new Date();
+                const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                let text = '';
+                filteredColdThawData.forEach(row => {
+                    const ct = coldThawManualMap.get(row._rowId) || {};
+                    text += `门店：${getColValue(row,'门店名称')||'-'}（${dateStr}冷链化冻核实）\n`;
+                    text += `配送员：${getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-'}\n`;
+                    text += `履约单号：${getColValue(row,'履约单号')||getColValue(row,'配送单号')||'-'}\n`;
+                    text += `商品名称：${getColValue(row,'sku名称')||getColValue(row,'SKU名称')||'-'}\n`;
+                    text += `订单属性：${ct.orderAttr||'内环'}\n`;
+                    text += `是否化冻问题：${ct.isThawIssue||'是'}\n`;
+                    text += `店仓规范：${ct.storeStandard||'不规范'}\n`;
+                    text += `配送规范：${ct.deliveryStandard||'不规范'}\n`;
+                    text += `核实原因：${ct.verifyReason||'-'}\n`;
+                    text += `是否有责：${ct.isResponsible||'有责'}\n`;
+                    text += '\n\n\n';
+                });
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(() => toast('✅ 已复制冷链数据到剪贴板'));
+                } else {
+                    toast('❌ 浏览器不支持剪贴板操作');
+                }
+            }
+
+            // 一键复制差评数据
+            async function copyAllBadReviewData() {
+                // 检测核实原因是否为空
+                const emptyRows = filteredBadReviewData.filter(row => {
+                    const br = badReviewManualMap.get(row._rowId) || {};
+                    return !br.verify || !br.verify.trim();
+                });
+                if (emptyRows.length > 0) {
+                    const confirmed = await showConfirmDialog(`检测到 <b style="color:#e74c3c;">${emptyRows.length}</b> 条差评数据的「核实原因」未填写，是否继续复制？`);
+                    if (!confirmed) return;
+                }
+                const now = new Date();
+                const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                let text = '';
+                filteredBadReviewData.forEach(row => {
+                    const br = badReviewManualMap.get(row._rowId) || {};
+                    const tag = (getColValue(row,'评价标签')||'').trim().replace(/^\d+[:：]/, '') || '-';
+                    text += `门店：${getColValue(row,'门店')||'-'}（${dateStr}差评核实）\n`;
+                    text += `配送员：${getColValue(row,'配送员名称')||'-'}\n`;
+                    text += `履约单号：${getColValue(row,'评价父订单')||getColValue(row,'盒马主订单')||getColValue(row,'外部主订单')||getColValue(row,'履约单号')||'-'}\n`;
+                    text += `评价标签：${tag}\n`;
+                    text += `客户原声：${getColValue(row,'评价文本')||'-'}\n`;
+                    text += `核实原因：${br.verify||'-'}\n`;
+                    text += `是否有责：${br.isResponsible||'-'}\n`;
+                    text += '\n\n\n';
+                });
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(() => toast('✅ 已复制差评数据到剪贴板'));
+                } else {
+                    toast('❌ 浏览器不支持剪贴板操作');
+                }
+            }
+
+            function openImagePreview(urls, startIdx = 0) {
+                if (!urls || !urls.length) return;
+                previewUrls = [...urls]; previewIdx = Math.max(0, Math.min(startIdx, urls.length - 1));
+                showPreviewImage();
+                $('#previewBubble').style.display = 'block';
+                setTimeout(() => document.addEventListener('click', closePreviewOnClickOutside), 50);
+            }
+            function closePreviewOnClickOutside(e) {
+                const pb = $('#previewBubble');
+                if (pb.style.display === 'none') { document.removeEventListener('click', closePreviewOnClickOutside); return; }
+                if (pb.contains(e.target) || e.target.closest('.cell-view-btn')) return;
+                closeImagePreview();
+            }
+            function closeImagePreview() {
+                $('#previewBubble').style.display = 'none';
+                previewUrls = [];
+                document.removeEventListener('click', closePreviewOnClickOutside);
+            }
+            function showPreviewImage() {
+                const pb = $('#previewBubble');
+                pb.innerHTML = `
+                    <button class="preview-close" id="previewClose">✕</button>
+                    <img src="${previewUrls[previewIdx]}" alt="预览" onclick="event.stopPropagation();">
+                    <div class="preview-controls">
+                        <button id="prevPreview" ${previewIdx===0?'disabled':''}>◀</button>
+                        <span class="preview-counter">${previewIdx+1}/${previewUrls.length}</span>
+                        <button id="nextPreview" ${previewIdx>=previewUrls.length-1?'disabled':''}>▶</button>
+                        <button id="openFullscreen">🖥 全屏</button>
+                    </div>
+                `;
+                pb.style.top = '50%'; pb.style.left = '50%'; pb.style.transform = 'translate(-50%,-50%)';
+                document.getElementById('previewClose').addEventListener('click', (e) => { e.stopPropagation(); closeImagePreview(); });
+                document.getElementById('prevPreview').addEventListener('click', (e) => { e.stopPropagation(); if (previewIdx > 0) { previewIdx--; showPreviewImage(); } });
+                document.getElementById('nextPreview').addEventListener('click', (e) => { e.stopPropagation(); if (previewIdx < previewUrls.length-1) { previewIdx++; showPreviewImage(); } });
+                document.getElementById('openFullscreen').addEventListener('click', (e) => { e.stopPropagation(); openFullscreen(previewUrls[previewIdx]); });
+            }
+            function openFullscreen(url) { $('#fullscreenImage').src = url; $('#fullscreenOverlay').style.display = 'flex'; }
+            $('#btnCloseFullscreen').addEventListener('click', () => $('#fullscreenOverlay').style.display = 'none');
+            $('#fullscreenOverlay').addEventListener('click', e => { if (e.target === $('#fullscreenOverlay')) $('#fullscreenOverlay').style.display = 'none'; });
+
+            // 分页
+            function renderPagination(cfd) {
+                const bar = $('#paginationBar');
+                bar.innerHTML = '';
+                const totalPages = Math.ceil(cfd.length / pageSize) || 1;
+                if (totalPages <= 1 && cfd.length <= pageSize) {
+                    if (cfd.length) bar.innerHTML = '<span class="page-info">显示全部 ' + cfd.length + ' 条</span>';
+                    return;
+                }
+                const cp = getCurrentPage();
+
+                const btnFirst = document.createElement('button'); btnFirst.textContent = '首页';
+                btnFirst.disabled = cp === 1;
+                btnFirst.addEventListener('click', () => { setCurrentPage(1); applyFilters(); });
+                bar.appendChild(btnFirst);
+
+                const btnPrev = document.createElement('button'); btnPrev.textContent = '上一页';
+                btnPrev.disabled = cp === 1;
+                btnPrev.addEventListener('click', () => { setCurrentPage(cp - 1); applyFilters(); });
+                bar.appendChild(btnPrev);
+
+                let sp = Math.max(1, cp - 3), ep = Math.min(totalPages, cp + 3);
+                for (let p = sp; p <= ep; p++) {
+                    const bp = document.createElement('button');
+                    bp.textContent = p;
+                    if (p === cp) bp.classList.add('active-page');
+                    bp.addEventListener('click', () => { setCurrentPage(p); applyFilters(); });
+                    bar.appendChild(bp);
+                }
+
+                const btnNext = document.createElement('button'); btnNext.textContent = '下一页';
+                btnNext.disabled = cp >= totalPages;
+                btnNext.addEventListener('click', () => { setCurrentPage(cp + 1); applyFilters(); });
+                bar.appendChild(btnNext);
+
+                const btnLast = document.createElement('button'); btnLast.textContent = '末页';
+                btnLast.disabled = cp >= totalPages;
+                btnLast.addEventListener('click', () => { setCurrentPage(totalPages); applyFilters(); });
+                bar.appendChild(btnLast);
+
+                const sel = document.createElement('select');
+                [10, 20, 30, 50, 100].forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = '每页' + n + '条'; if (n === pageSize) o.selected = true; sel.appendChild(o); });
+                sel.addEventListener('change', () => { pageSize = +sel.value; setCurrentPage(1); applyFilters(); });
+                bar.appendChild(sel);
+
+                const info = document.createElement('span'); info.className = 'page-info';
+                info.textContent = '共 ' + totalPages + ' 页 / ' + cfd.length + ' 条';
+                bar.appendChild(info);
+            }
+
+            function updateViewBubblesVisibility() {
+                const showBad = badReviewData.length && (!selectedStore || badReviewData.some(r => String(getColValue(r,'门店')||'').trim() === selectedStore));
+                $('#viewBubbleBadReview').style.display = showBad ? 'inline-flex' : 'none';
+                if (showBad) $('#badReviewBadge').textContent = selectedStore ? badReviewData.filter(r => String(getColValue(r,'门店')||'').trim()===selectedStore).length : badReviewData.length;
+                const showCold = coldThawData.length && (!selectedStore || coldThawData.some(r => String(getColValue(r,'门店名称')||'').trim() === selectedStore));
+                $('#viewBubbleColdThaw').style.display = showCold ? 'inline-flex' : 'none';
+                if (showCold) $('#coldThawBadge').textContent = selectedStore ? coldThawData.filter(r => String(getColValue(r,'门店名称')||'').trim()===selectedStore).length : coldThawData.length;
+                const showLogistics = logisticsDamageData.length && (!selectedStore || logisticsDamageData.some(r => String(getColValue(r,'门店名称')||'').trim() === selectedStore));
+                $('#viewBubbleLogistics').style.display = showLogistics ? 'inline-flex' : 'none';
+                if (showLogistics) $('#logisticsBadge').textContent = selectedStore ? logisticsDamageData.filter(r => String(getColValue(r,'门店名称')||'').trim()===selectedStore).length : logisticsDamageData.length;
+                const defaultData = allData.filter(r => {
+                    const reason = (getColValue(r,'问题原因名称')||'').trim();
+                    return reason !== '冷链商品化冻' && reason !== '物流损';
+                });
+                $('#defaultBadge').textContent = selectedStore ? defaultData.filter(r => String(getColValue(r,'门店名称')||'').trim()===selectedStore).length : defaultData.length;
+                // 一键复制按钮在冷链和差评视图时显示
+                if (currentView === 'coldThaw') {
+                    $('#copyAllBtn').style.display = 'inline-flex';
+                    $('#copyAllBtn').textContent = '📋 一键复制冷链';
+                } else if (currentView === 'badReview') {
+                    $('#copyAllBtn').style.display = 'inline-flex';
+                    $('#copyAllBtn').textContent = '📋 一键复制差评';
+                } else {
+                    $('#copyAllBtn').style.display = 'none';
+                }
+                updateViewBubbleActiveState();
+                if (currentView !== 'default') $('#bubbleContainer').innerHTML = '<span class="no-bubbles">当前视图不支持筛选</span>';
+            }
+
+            function updateViewBubbleActiveState() {
+                $('#viewBubbleDefault').className = 'view-switch-bubble' + (currentView==='default'?' active-default':'');
+                $('#viewBubbleBadReview').className = 'view-switch-bubble' + (currentView==='badReview'?' active-bad':'');
+                $('#viewBubbleColdThaw').className = 'view-switch-bubble' + (currentView==='coldThaw'?' active-cold':'');
+                $('#viewBubbleLogistics').className = 'view-switch-bubble' + (currentView==='logistics'?' active-logistics':'');
+            }
+
+            $('#viewBubbleDefault').addEventListener('click', () => switchView('default'));
+            $('#viewBubbleBadReview').addEventListener('click', () => switchView('badReview'));
+            $('#viewBubbleColdThaw').addEventListener('click', () => switchView('coldThaw'));
+            $('#viewBubbleLogistics').addEventListener('click', () => switchView('logistics'));
+            $('#copyAllBtn').addEventListener('click', function() {
+                if (currentView === 'coldThaw') copyAllColdThawData();
+                else if (currentView === 'badReview') copyAllBadReviewData();
+            });
+
+            function switchView(v) {
+                if (currentView === v) return;
+                currentView = v; setCurrentPage(1);
+                updateViewBubbleActiveState(); updateBubbles(); applyFilters();
+                updateViewBubblesVisibility();
+            }
+
+            document.getElementById('headerMenuBtn').addEventListener('click', e => { e.stopPropagation(); $('#headerMenuDropdown').classList.toggle('show'); });
+            document.addEventListener('click', e => { if (!e.target.closest('.header-menu-btn')) $('#headerMenuDropdown').classList.remove('show'); });
+            document.getElementById('menuReupload').addEventListener('click', () => {
+                openGuideView('📂 导入文件', '请导入物流问单Excel',
+                    '<div class="file-upload-area" id="guideUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div><div class="upload-hint">💡 选择大文件时页面可能出现短暂卡顿，请耐心等待加载完成。<br>如页面提示"无响应"，请点击<b>「等待」</b>按钮，切勿关闭页面。</div><div class="upload-progress-wrap" id="guideProgressWrap"><div class="upload-progress-bar"><div class="upload-progress-fill" id="guideProgressFill"></div></div><div class="upload-progress-text" id="guideProgressText">准备中...</div></div>',
+                    '<button class="guide-btn primary" id="guideConfirmBtn">确认</button>');
+                document.getElementById('guideUploadArea').addEventListener('click', () => hiddenFileInput.click());
+                hiddenFileInput.onchange = e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); };
+            });
+            document.getElementById('menuSelectStore').addEventListener('click', showStoreSelection);
+            document.getElementById('menuExportImage').addEventListener('click', showExportImageOptions);
+
+            function showExportImageOptions() {
+                const panelHTML = `
+                    <div class="export-select-panel">
+                        <div class="export-select-title">🖼️ 选择导出内容</div>
+                        <div class="export-checkbox-list">
+                            <label class="export-checkbox-item checked" data-key="analysis">
+                                <input type="checkbox" value="analysis" checked>
+                                <span>📊 问单分析（达成情况 + 责任分析）</span>
+                            </label>
+                            <label class="export-checkbox-item checked" data-key="default">
+                                <input type="checkbox" value="default" checked>
+                                <span>📋 问单明细</span>
+                            </label>
+                            <label class="export-checkbox-item checked" data-key="logistics">
+                                <input type="checkbox" value="logistics" checked>
+                                <span>📦 物流损明细</span>
+                            </label>
+                            <label class="export-checkbox-item checked" data-key="coldThaw">
+                                <input type="checkbox" value="coldThaw" checked>
+                                <span>❄️ 冷链明细</span>
+                            </label>
+                            <label class="export-checkbox-item checked" data-key="badReview">
+                                <input type="checkbox" value="badReview" checked>
+                                <span>💬 差评明细</span>
+                            </label>
+                        </div>
+                        <div class="export-select-footer">
+                            <button class="guide-btn secondary" id="exportImgCancel">取消</button>
+                            <button class="guide-btn primary" id="exportImgConfirm">📥 导出图片</button>
+                        </div>
+                    </div>
+                `;
+                openGuideView('', '', panelHTML, '');
+                // 隐藏guide-card默认的标题和关闭按钮区域
+                guideCard.querySelector('.guide-title').style.display = 'none';
+                guideCard.querySelector('.guide-subtitle').style.display = 'none';
+                guideCard.querySelector('.guide-close-btn').style.display = 'none';
+                guideCard.querySelector('.guide-footer').style.display = 'none';
+                guideCard.style.padding = '0';
+                guideCard.style.background = 'transparent';
+                guideCard.style.boxShadow = 'none';
+
+                // checkbox联动样式
+                document.querySelectorAll('.export-checkbox-item').forEach(item => {
+                    const cb = item.querySelector('input[type="checkbox"]');
+                    cb.addEventListener('change', () => {
+                        item.classList.toggle('checked', cb.checked);
+                    });
+                });
+
+                document.getElementById('exportImgCancel').addEventListener('click', () => {
+                    guideOverlay.style.display = 'none';
+                    // 恢复guide-card样式
+                    guideCard.style.padding = '';
+                    guideCard.style.background = '';
+                    guideCard.style.boxShadow = '';
+                    guideCard.querySelector('.guide-title').style.display = '';
+                    guideCard.querySelector('.guide-subtitle').style.display = '';
+                    guideCard.querySelector('.guide-close-btn').style.display = '';
+                });
+                document.getElementById('exportImgConfirm').addEventListener('click', () => {
+                    const selected = [];
+                    document.querySelectorAll('.export-checkbox-item input:checked').forEach(cb => selected.push(cb.value));
+                    guideOverlay.style.display = 'none';
+                    // 恢复guide-card样式
+                    guideCard.style.padding = '';
+                    guideCard.style.background = '';
+                    guideCard.style.boxShadow = '';
+                    guideCard.querySelector('.guide-title').style.display = '';
+                    guideCard.querySelector('.guide-subtitle').style.display = '';
+                    guideCard.querySelector('.guide-close-btn').style.display = '';
+                    if (selected.length === 0) {
+                        toast('❌ 请至少选择一项导出内容');
+                        return;
+                    }
+                    doExportImage(selected);
+                });
+            }
+
+            function exportHTMLReport() {
+                const storeName = selectedStore || '全部门店';
+                const now = new Date();
+                const timestamp = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+                const title = `${storeName}-${timestamp}问单核实`;
+
+                const buildStaticTable = (data, viewType) => {
+                    if (!data || !data.length) return '<p style="text-align:center;color:#b0b0c0;">暂无数据</p>';
+                    // 问单视图：双"-"排后排序
+                    if (viewType === 'default') {
+                        data = [...data].sort((a, b) => {
+                            const aR = (getColValue(a,'app退款原因')||getColValue(a,'APP退款原因')||'').trim();
+                            const bR = (getColValue(b,'app退款原因')||getColValue(b,'APP退款原因')||'').trim();
+                            const aD = (getColValue(a,'app退款描述')||getColValue(a,'APP退款描述')||'').trim();
+                            const bD = (getColValue(b,'app退款描述')||getColValue(b,'APP退款描述')||'').trim();
+                            const aPri = (aR==='-'&&aD==='-')?2:(aD==='-'?1:0);
+                            const bPri = (bR==='-'&&bD==='-')?2:(bD==='-'?1:0);
+                            if (aPri !== bPri) return aPri - bPri;
+                            return 0;
+                        });
+                    }
+                    let html = '<div class="table-scroll"><table>';
+                    if (viewType === 'default') {
+                        html += '<thead><tr><th>问题原因名称</th><th>SKU名称</th><th>APP退款原因</th><th>APP退款描述</th><th>退款凭证</th><th>是否有责</th><th>核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = manualDataMap.get(row._rowId) || {};
+                            const urls = parseImageUrls(getColValue(row,'退款凭证')||'');
+                            const voucherHTML = urls.length ? `<img src="${urls[0]}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e6e8f0;" />` : '无凭证';
+                            html += `<tr><td>${escapeHTML(getColValue(row,'问题原因名称'))}</td><td>${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td>${escapeHTML(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因'))}</td><td>${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td>${voucherHTML}</td><td>${escapeHTML(item.isResponsible||'有责')}</td><td>${escapeHTML(item.reason||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'logistics') {
+                        html += '<thead><tr><th>问题原因名称</th><th>SKU名称</th><th>APP退款原因</th><th>APP退款描述</th><th>退款凭证</th><th>是否有责</th><th>核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = logisticsManualMap.get(row._rowId) || {};
+                            const urls = parseImageUrls(getColValue(row,'退款凭证')||'');
+                            const voucherHTML = urls.length ? `<img src="${urls[0]}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e6e8f0;" />` : '无凭证';
+                            html += `<tr><td>${escapeHTML(getColValue(row,'问题原因名称'))}</td><td>${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td>${escapeHTML(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因'))}</td><td>${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td>${voucherHTML}</td><td>${escapeHTML(item.isResponsible||'有责')}</td><td>${escapeHTML(item.reason||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'badReview') {
+                        html += '<thead><tr><th>交易日期</th><th>门店</th><th>配送员名称</th><th>评价文本</th><th>评价标签</th><th>评价星级</th><th>是否有责</th><th>核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = badReviewManualMap.get(row._rowId) || {};
+                            html += `<tr><td>${escapeHTML(getColValue(row,'交易日期'))}</td><td>${escapeHTML(getColValue(row,'门店'))}</td><td>${escapeHTML(getColValue(row,'配送员名称'))}</td><td>${escapeHTML(getColValue(row,'评价文本'))}</td><td>${escapeHTML(getColValue(row,'评价标签'))}</td><td>${escapeHTML(getColValue(row,'评价星级'))}</td><td>${escapeHTML(item.isResponsible||'有责')}</td><td>${escapeHTML(item.verify||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'coldThaw') {
+                        html += '<thead><tr><th>门店</th><th>配送员</th><th>商品名称</th><th>订单属性</th><th>是否化冻问题</th><th>店仓规范</th><th>配送规范</th><th>顾客原声</th><th>退款凭证</th><th>单号</th><th>时间戳</th><th>核实原因</th><th>是否有责</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const ct = coldThawManualMap.get(row._rowId) || {};
+                            const urls = parseImageUrls(getColValue(row,'退款凭证')||'');
+                            const voucherHTML = urls.length ? `<img src="${urls[0]}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #e6e8f0;" />` : '无凭证';
+                            html += `<tr><td>${escapeHTML(getColValue(row,'门店名称'))}</td><td>${escapeHTML(getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-')}</td><td>${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td>${escapeHTML(ct.orderAttr||'内环')}</td><td>${escapeHTML(ct.isThawIssue||'是')}</td><td>${escapeHTML(ct.storeStandard||'不规范')}</td><td>${escapeHTML(ct.deliveryStandard||'不规范')}</td><td>${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td>${voucherHTML}</td><td>${escapeHTML(getColValue(row,'淘系主订单id')||getColValue(row,'批次号')||getColValue(row,'配送单号')||'-')}</td><td>查看</td><td>${escapeHTML(ct.verifyReason||'')}</td><td>${escapeHTML(ct.isResponsible||'有责')}</td></tr>`;
+                        });
+                    }
+                    html += '</tbody></table></div>';
+                    return html;
+                };
+
+                // 构建问单达成静态HTML
+                const buildAchievementHTML = () => {
+                    if (!selectedStore || !storeAchievements[selectedStore]) return '';
+                    const storeData = storeAchievements[selectedStore];
+                    const storeType = storeData.type;
+                    const limits = storeType === 'qianzhicang' ? qianzhicangLimits : shengxianLimits;
+                    const achievements = storeData.achievements;
+                    if (!achievementCategories.length) return '';
+                    let html = '<div class="achievement-panel" style="display:block;"><div class="achievement-title">📊 问单达成情况</div><div class="achievement-grid">';
+                    achievementCategories.forEach((category, catIndex) => {
+                        const actualValue = achievements[category] || 0;
+                        const limitValue = limits[category] || 0;
+                        const displayValue = formatAchievementValue(actualValue, category, catIndex);
+                        const displayLimit = formatLimitValue(limitValue, category, catIndex);
+                        let statusClass = 'normal';
+                        if (limitValue > 0 && actualValue > limitValue) statusClass = 'danger';
+                        else if (limitValue > 0 && actualValue >= limitValue * 0.9) statusClass = 'warning';
+                        html += `<div class="achievement-item"><div class="achievement-item-name" title="${escapeHTML(category)}">${escapeHTML(category)}</div><div class="achievement-item-value ${statusClass}">${displayValue}</div><div class="achievement-item-limit">上限: ${displayLimit}</div></div>`;
+                    });
+                    html += '</div></div>';
+                    return html;
+                };
+
+                const achievementHTML = buildAchievementHTML();
+
+                // 获取工具显示名称和版本号用于导出报告
+                const toolName = document.getElementById('pageTitle').textContent;
+                const toolVersion = document.getElementById('pageVersion').textContent;
+
+                const exportHTML = `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, viewport-fit=cover">
+            <title>${title}</title>
+            <style>
+        ${document.querySelector('style').innerHTML}
+        .header-menu-btn, .header-menu-dropdown { display: none !important; }
+        .cell-input, .cell-select { display: none; }
+        .bubble-all.has-selection { display: none !important; }
+        .filter-bar { display: none !important; }
+        .view-switch-bubble { display: none !important; }
+        .preview-bubble, .fullscreen-overlay { display: none !important; }
+        .pagination-bar { display: none !important; }
+        .footer-note { display: none !important; }
+        .copy-all-btn { display: none !important; }
+        .responsibility-panel { display: none !important; }
+        </style>
+        </head>
+        <body>
+        <div class="app-container">
+            <div class="page-header"><h1>📋 ${toolName}</h1></div>
+            <div class="stats-panel">
+                <div class="stats-left"><span class="stats-value">📍 门店：${storeName}</span></div>
+                <div class="stats-right"><span class="stats-value">${$('#dataSourceText').textContent}</span></div>
+            </div>
+            ${achievementHTML}
+            <h2 style="margin:20px 0 10px;font-size:1rem;">📋 ${toolName}</h2>
+            ${buildStaticTable(allData.filter(r => !selectedStore || String(getColValue(r,'门店名称')).trim() === selectedStore).filter(r => { const reason = (getColValue(r,'问题原因名称')||'').trim(); return reason !== '冷链商品化冻' && reason !== '物流损'; }), 'default')}
+            <h2 style="margin:30px 0 10px;font-size:1rem;">📦 物流损明细</h2>
+            ${buildStaticTable(logisticsDamageData.filter(r => !selectedStore || String(getColValue(r,'门店名称')).trim() === selectedStore), 'logistics')}
+            <h2 style="margin:30px 0 10px;font-size:1rem;">❄️ 冷链明细</h2>
+            ${buildStaticTable(coldThawData.filter(r => !selectedStore || String(getColValue(r,'门店名称')).trim() === selectedStore), 'coldThaw')}
+            <h2 style="margin:30px 0 10px;font-size:1rem;">💬 差评明细</h2>
+            ${buildStaticTable(badReviewData.filter(r => !selectedStore || String(getColValue(r,'门店')).trim() === selectedStore), 'badReview')}
+            <div class="footer-note">报告由${toolName} · ${toolVersion}生成 · ${storeName} · ${timestamp}</div>
+        </div>
+        </body>
+        </html>`;
+
+                const blob = new Blob([exportHTML], { type:'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = title + '.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast('📥 报告已导出：' + title + '.html');
+            }
+
+            async function doExportImage(selectedSections) {
+                // ===== 弹窗1：检测所有「核实原因」未填写情况 =====
+                // 根据当前门店重新计算各视图的过滤数据（不依赖当前浏览的视图）
+                const storeFilteredData = selectedStore ? allData.filter(r => {
+                    const reason = (getColValue(r,'问题原因名称')||'').trim();
+                    return reason !== '冷链商品化冻' && reason !== '物流损' && String(getColValue(r,'门店名称')).trim() === selectedStore;
+                }) : allData.filter(r => {
+                    const reason = (getColValue(r,'问题原因名称')||'').trim();
+                    return reason !== '冷链商品化冻' && reason !== '物流损';
+                });
+                const storeFilteredBadReviewData = selectedStore ? badReviewData.filter(r => String(getColValue(r,'门店')||'').trim() === selectedStore) : badReviewData;
+                const storeFilteredColdThawData = selectedStore ? coldThawData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore) : coldThawData;
+                const storeFilteredLogisticsData = selectedStore ? logisticsDamageData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore) : logisticsDamageData;
+
+                const verifyIssues = [];
+                // 差评核实原因
+                if (selectedSections.includes('badReview')) {
+                    const emptyCount = storeFilteredBadReviewData.filter(row => {
+                        const br = badReviewManualMap.get(row._rowId) || {};
+                        return !br.verify || !br.verify.trim();
+                    }).length;
+                    if (emptyCount > 0) verifyIssues.push(`差评(${emptyCount}条)`);
+                }
+                // 冷链核实原因
+                if (selectedSections.includes('coldThaw')) {
+                    const emptyCount = storeFilteredColdThawData.filter(row => {
+                        const ct = coldThawManualMap.get(row._rowId) || {};
+                        return !ct.verifyReason || !ct.verifyReason.trim();
+                    }).length;
+                    if (emptyCount > 0) verifyIssues.push(`冷链(${emptyCount}条)`);
+                }
+                // 问单核实原因
+                if (selectedSections.includes('default')) {
+                    const emptyCount = storeFilteredData.filter(row => {
+                        const item = manualDataMap.get(row._rowId) || {};
+                        return !item.reason || !item.reason.trim();
+                    }).length;
+                    if (emptyCount > 0) verifyIssues.push(`问单(${emptyCount}条)`);
+                }
+                // 物流损核实原因
+                if (selectedSections.includes('logistics')) {
+                    const emptyCount = storeFilteredLogisticsData.filter(row => {
+                        const item = logisticsManualMap.get(row._rowId) || {};
+                        return !item.reason || !item.reason.trim();
+                    }).length;
+                    if (emptyCount > 0) verifyIssues.push(`物流损(${emptyCount}条)`);
+                }
+                // 责任分析核实原因 - 仅检测当前门店的数据
+                const allReasonNames = new Set();
+                if (selectedSections.includes('analysis')) {
+                    // 根据是否选择了门店，过滤数据
+                    const filteredAllData = selectedStore ? allData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore) : allData;
+                    const filteredBadReviewDataForAnalysis = selectedStore ? badReviewData.filter(r => String(getColValue(r,'门店')||'').trim() === selectedStore) : badReviewData;
+                    const filteredColdThawDataForAnalysis = selectedStore ? coldThawData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore) : coldThawData;
+                    const filteredLogisticsDataForAnalysis = selectedStore ? logisticsDamageData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore) : logisticsDamageData;
+
+                    filteredAllData.forEach(r => {
+                        const reason = (getColValue(r,'问题原因名称')||'').trim();
+                        if (reason && reason !== '冷链商品化冻' && reason !== '物流损') allReasonNames.add(reason);
+                    });
+                    filteredBadReviewDataForAnalysis.forEach(r => {
+                        const reason = (getColValue(r,'评价标签')||'').trim().replace(/^\d+[:：]/, '');
+                        if (reason) allReasonNames.add('差评-' + reason);
+                    });
+                    filteredColdThawDataForAnalysis.forEach(() => allReasonNames.add('冷链商品化冻'));
+                    filteredLogisticsDataForAnalysis.forEach(() => allReasonNames.add('物流损'));
+                }
+                const emptyResponsibilityReasons = [];
+                allReasonNames.forEach(reason => {
+                    const value = responsibilityReasonMap.get(reason);
+                    if (!value || !value.trim()) {
+                        emptyResponsibilityReasons.push(reason);
+                    }
+                });
+                if (emptyResponsibilityReasons.length > 0) {
+                    verifyIssues.push(`责任分析(${emptyResponsibilityReasons.length}条)`);
+                }
+                // 弹窗1：显示所有核实原因未填写
+                if (verifyIssues.length > 0) {
+                    const confirmed = await showConfirmDialog(`<div style="text-align:center;">检测到：<br><b style="color:#e74c3c;">${verifyIssues.join('、')}</b><br>「核实原因」未填写是否继续导出？</div>`);
+                    if (!confirmed) return;
+                }
+
+                // ===== 弹窗2：检测店仓不规范、配送不规范、有责率 =====
+                const standardIssues = [];
+                // 店仓不规范、配送不规范（仅冷链视图）- 使用按门店过滤后的数据
+                if (selectedSections.includes('coldThaw')) {
+                    const storeStandardCount = storeFilteredColdThawData.filter(row => {
+                        const ct = coldThawManualMap.get(row._rowId) || {};
+                        return ct.storeStandard === '不规范';
+                    }).length;
+                    const deliveryStandardCount = storeFilteredColdThawData.filter(row => {
+                        const ct = coldThawManualMap.get(row._rowId) || {};
+                        return ct.deliveryStandard === '不规范';
+                    }).length;
+                    if (storeStandardCount > 0) standardIssues.push(`店仓不规范(${storeStandardCount}条)`);
+                    if (deliveryStandardCount > 0) standardIssues.push(`配送不规范(${deliveryStandardCount}条)`);
+                }
+                // 有责率统计 - 使用按门店过滤后的数据
+                const allViewData = [];
+                storeFilteredData.forEach(r => allViewData.push(r));
+                storeFilteredColdThawData.forEach(r => allViewData.push(r));
+                storeFilteredLogisticsData.forEach(r => allViewData.push(r));
+                storeFilteredBadReviewData.forEach(r => allViewData.push(r));
+                let totalResp = 0, totalAll = 0;
+                allViewData.forEach(row => {
+                    const map = badReviewData.includes(row) ? badReviewManualMap :
+                                coldThawData.includes(row) ? coldThawManualMap :
+                                logisticsDamageData.includes(row) ? logisticsManualMap : manualDataMap;
+                    const saved = map.get(row._rowId) || {};
+                    const isResponsible = saved.isResponsible || '有责';
+                    totalAll++;
+                    if (isResponsible === '有责') totalResp++;
+                });
+                if (totalResp > 0) {
+                    const rate = (totalResp / totalAll * 100).toFixed(1);
+                    standardIssues.push(`有责率<b style="color:#e74c3c;">${rate}%</b>（${totalResp}/${totalAll}）`);
+                }
+                // 弹窗2：显示店仓/配送不规范和有责率
+                if (standardIssues.length > 0) {
+                    const confirmed = await showConfirmDialog(`<div style="text-align:center;">检测到以下问题：<br><b style="color:#e74c3c;">${standardIssues.join('、<br>')}</b><br>是否继续导出？</div>`);
+                    if (!confirmed) return;
+                }
+
+                const storeName = selectedStore || '全部门店';
+                const now = new Date();
+                const timestamp = String(now.getFullYear()).slice(2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+                const title = `${storeName}-${timestamp}问单核实`;
+
+                // 创建临时容器用于渲染报告
+                const tempContainer = document.createElement('div');
+                tempContainer.style.cssText = `
+                    position: fixed;
+                    left: -9999px;
+                    top: 0;
+                    width: 1400px;
+                    background: #f0f2f7;
+                    padding: 20px;
+                    z-index: -1;
+                `;
+                document.body.appendChild(tempContainer);
+
+                // 构建静态表格HTML
+                const buildStaticTable = (data, viewType) => {
+                    if (!data || !data.length) return '<p style="text-align:center;color:#b0b0c0;padding:20px;">暂无数据</p>';
+                    // 问单视图：双"-"排后排序
+                    if (viewType === 'default') {
+                        data = [...data].sort((a, b) => {
+                            const aR = (getColValue(a,'app退款原因')||getColValue(a,'APP退款原因')||'').trim();
+                            const bR = (getColValue(b,'app退款原因')||getColValue(b,'APP退款原因')||'').trim();
+                            const aD = (getColValue(a,'app退款描述')||getColValue(a,'APP退款描述')||'').trim();
+                            const bD = (getColValue(b,'app退款描述')||getColValue(b,'APP退款描述')||'').trim();
+                            const aPri = (aR==='-'&&aD==='-')?2:(aD==='-'?1:0);
+                            const bPri = (bR==='-'&&bD==='-')?2:(bD==='-'?1:0);
+                            if (aPri !== bPri) return aPri - bPri;
+                            return 0;
+                        });
+                    }
+                    // 物流损视图：APP退款原因和APP退款描述都为"-"时后置排序
+                    if (viewType === 'logistics') {
+                        data = [...data].sort((a, b) => {
+                            const aR = (getColValue(a,'app退款原因')||getColValue(a,'APP退款原因')||'').trim();
+                            const aD = (getColValue(a,'app退款描述')||getColValue(a,'APP退款描述')||'').trim();
+                            const bR = (getColValue(b,'app退款原因')||getColValue(b,'APP退款原因')||'').trim();
+                            const bD = (getColValue(b,'app退款描述')||getColValue(b,'APP退款描述')||'').trim();
+                            const aIsDash = (aR==='-'||aR==='') && (aD==='-'||aD==='');
+                            const bIsDash = (bR==='-'||bR==='') && (bD==='-'||bD==='');
+                            if (aIsDash && !bIsDash) return 1;
+                            if (!aIsDash && bIsDash) return -1;
+                            return 0;
+                        });
+                    }
+                    let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:800px;">';
+                    if (viewType === 'default') {
+                        html += '<thead><tr style="background:#f8f9fd;"><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">问题原因名称</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:15%;">SKU名称</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">APP退款原因</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:20%;">APP退款描述</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:15%;">单号</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">配送员名</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">是否有责</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;width:20%;">核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = manualDataMap.get(row._rowId) || {};
+                            html += `<tr style="background:#fff;"><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'问题原因名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;">${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:20%;">${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;">${escapeHTML(getColValue(row,'淘系主订单id')||getColValue(row,'批次号')||getColValue(row,'配送单号')||'-')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(item.isResponsible||'有责')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:20%;word-break:break-all;line-height:1.3;">${escapeHTML(item.reason||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'logistics') {
+                        html += '<thead><tr style="background:#f8f9fd;"><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">问题原因名称</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:15%;">SKU名称</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">APP退款原因</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:20%;">APP退款描述</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:15%;">单号</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">配送员名</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">是否有责</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;width:20%;">核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = logisticsManualMap.get(row._rowId) || {};
+                            html += `<tr style="background:#fff;"><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'问题原因名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;">${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'app退款原因')||getColValue(row,'APP退款原因'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:20%;">${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;">${escapeHTML(getColValue(row,'淘系主订单id')||getColValue(row,'批次号')||getColValue(row,'配送单号')||'-')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(item.isResponsible||'有责')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:20%;word-break:break-all;line-height:1.3;">${escapeHTML(item.reason||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'badReview') {
+                        html += '<thead><tr style="background:#f8f9fd;"><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">交易日期</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:15%;">门店</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">配送员名称</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">评价文本</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:25%;">评价标签</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">评价星级</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">是否有责</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;width:15%;">核实原因</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const item = badReviewManualMap.get(row._rowId) || {};
+                            html += `<tr style="background:#fff;"><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(getColValue(row,'交易日期'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;">${escapeHTML(getColValue(row,'门店'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(getColValue(row,'配送员名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'评价文本'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:25%;">${escapeHTML(getColValue(row,'评价标签'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'评价星级'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(item.isResponsible||'有责')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;word-break:break-all;line-height:1.3;">${escapeHTML(item.verify||'')}</td></tr>`;
+                        });
+                    } else if (viewType === 'coldThaw') {
+                        // 降序排序：按门店名称降序
+                        data = [...data].sort((a, b) => {
+                            const aStore = String(getColValue(a,'门店名称')||'').trim();
+                            const bStore = String(getColValue(b,'门店名称')||'').trim();
+                            return bStore.localeCompare(aStore);
+                        });
+                        html += '<thead><tr style="background:#f8f9fd;"><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">门店</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">配送员</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:15%;">履约单号</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:10%;">商品名称</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">订单属性</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">是否化冻问题</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">店仓规范</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">配送规范</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:20%;">顾客原声</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;width:15%;">核实原因</th><th style="padding:10px 7px;text-align:center;font-weight:700;font-size:11px;color:#6b6b88;border-bottom:2px solid #e2e5ee;white-space:nowrap;width:5%;">是否有责</th></tr></thead><tbody>';
+                        data.forEach(row => {
+                            const ct = coldThawManualMap.get(row._rowId) || {};
+                            html += `<tr style="background:#fff;"><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'门店名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(getColValue(row,'配送员名')||getColValue(row,'配送员名称')||'-')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;">${escapeHTML(getColValue(row,'履约单号')||getColValue(row,'配送单号')||'-')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:10%;">${escapeHTML(getColValue(row,'sku名称')||getColValue(row,'SKU名称'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(ct.orderAttr||'内环')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(ct.isThawIssue||'是')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(ct.storeStandard||'不规范')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(ct.deliveryStandard||'不规范')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:20%;">${escapeHTML(getColValue(row,'app退款描述')||getColValue(row,'APP退款描述'))}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:15%;word-break:break-all;line-height:1.3;">${escapeHTML(ct.verifyReason||'')}</td><td style="padding:8px 7px;border-bottom:1px solid #f0f2f7;text-align:center;color:#3a3a58;font-size:11px;width:5%;">${escapeHTML(ct.isResponsible||'有责')}</td></tr>`;
+                        });
+                    }
+                    html += '</tbody></table></div>';
+                    return html;
+                };
+
+                // 构建问单达成静态HTML（图片版）
+                const buildAchievementImageHTML = () => {
+                    if (!selectedStore || !storeAchievements[selectedStore]) return '';
+                    const storeData = storeAchievements[selectedStore];
+                    const storeType = storeData.type;
+                    const limits = storeType === 'qianzhicang' ? qianzhicangLimits : shengxianLimits;
+                    const achievements = storeData.achievements;
+                    if (!achievementCategories.length) return '';
+                    
+                    // 收集无上限类目的值用于热力渲染
+                    const noLimitCats = achievementCategories.filter(cat => (limits[cat] || 0) === 0);
+                    const noLimitVals = noLimitCats.map(cat => achievements[cat] || 0).filter(v => v > 0);
+                    const maxNoLimit = noLimitVals.length > 0 ? Math.max(...noLimitVals) : 0;
+                    const minNoLimit = noLimitVals.length > 0 ? Math.min(...noLimitVals) : 0;
+                    
+                    let html = '<div style="background:#fff;border:1px solid #e6e8f0;border-radius:14px;padding:8px 10px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">';
+                    html += '<div style="font-size:12px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">📊 问单达成情况</div>';
+                    html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;">';
+                    achievementCategories.forEach((category, catIndex) => {
+                        const actualValue = achievements[category] || 0;
+                        const limitValue = limits[category] || 0;
+                        const displayValue = formatAchievementValue(actualValue, category, catIndex);
+                        const displayLimit = formatLimitValue(limitValue, category, catIndex);
+                        
+                        // 颜色调度逻辑
+                        let valueColor = '#27ae60';
+                        if (limitValue > 0 && actualValue > limitValue) {
+                            valueColor = '#e74c3c'; // 超标红色
+                        } else if (actualValue === 0) {
+                            valueColor = '#b0b0c0'; // 等于0灰色
+                        } else if (limitValue === 0 && maxNoLimit > minNoLimit && actualValue > 0) {
+                            // 无上限：热力渲染（最大黄色，最小绿色）
+                            const ratio = (actualValue - minNoLimit) / (maxNoLimit - minNoLimit);
+                            const hue = 120 - ratio * 60;
+                            valueColor = `hsl(${Math.round(hue)}, 70%, 45%)`;
+                        } else if (limitValue > 0 && actualValue >= limitValue * 0.9) {
+                            valueColor = '#e67e22';
+                        }
+                        html += '<div style="background:#fafbfd;border:1px solid #eef0f6;border-radius:5px;padding:4px 2px;text-align:center;"><div style="font-size:11px;color:#5c5c78;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHTML(category) + '">' + escapeHTML(category) + '</div><div style="font-size:14px;font-weight:700;color:' + valueColor + ';">' + displayValue + '</div><div style="font-size:10px;color:#8b8ba8;margin-top:2px;">上限: ' + displayLimit + '</div></div>';
+                    });
+                    html += '</div></div>';
+                    return html;
+                };
+
+                const achievementImageHTML = buildAchievementImageHTML();
+
+                // 构建责任分析图片HTML（使用flex布局，彻底避免表格溢出）
+                const buildResponsibilityImageHTML = () => {
+                    const allViewData = [];
+                    const defaultFiltered = allData.filter(r => {
+                        const reason = (getColValue(r,'问题原因名称')||'').trim();
+                        return reason !== '冷链商品化冻' && reason !== '物流损';
+                    });
+                    if (selectedStore) {
+                        defaultFiltered.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore).forEach(r => allViewData.push(r));
+                        coldThawData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore).forEach(r => allViewData.push(r));
+                        logisticsDamageData.filter(r => String(getColValue(r,'门店名称')).trim() === selectedStore).forEach(r => allViewData.push(r));
+                        badReviewData.filter(r => String(getColValue(r,'门店')||'').trim() === selectedStore).forEach(r => allViewData.push(r));
+                    } else {
+                        defaultFiltered.forEach(r => allViewData.push(r));
+                        coldThawData.forEach(r => allViewData.push(r));
+                        logisticsDamageData.forEach(r => allViewData.push(r));
+                        badReviewData.forEach(r => allViewData.push(r));
+                    }
+                    if (!allViewData.length) return '';
+
+                    // 分类统计
+                    let totalNoResp = 0, totalResp = 0;
+                    let coldNoResp = 0, coldResp = 0;
+                    let logisticsNoResp = 0, logisticsResp = 0;
+                    let badReviewNoResp = 0, badReviewResp = 0;
+
+                    // 按问题原因名称统计
+                    const stats = new Map();
+                    allViewData.forEach(row => {
+                        let reason = '';
+                        if (badReviewData.includes(row)) {
+                            const tag = (getColValue(row, '评价标签') || '').trim().replace(/^\d+[:：]/, '') || '';
+                            reason = tag ? '差评-' + tag : '差评';
+                        } else {
+                            reason = (getColValue(row, '问题原因名称') || '').trim() || '未知';
+                        }
+                        const map = badReviewData.includes(row) ? badReviewManualMap :
+                                    coldThawData.includes(row) ? coldThawManualMap :
+                                    logisticsDamageData.includes(row) ? logisticsManualMap : manualDataMap;
+                        const saved = map.get(row._rowId) || {};
+                        const isResponsible = saved.isResponsible || '有责';
+                        const isResp = isResponsible === '有责';
+                        if (isResp) totalResp++; else totalNoResp++;
+                        if (badReviewData.includes(row)) { if (isResp) badReviewResp++; else badReviewNoResp++; }
+                        else if (coldThawData.includes(row)) { if (isResp) coldResp++; else coldNoResp++; }
+                        else if (logisticsDamageData.includes(row)) { if (isResp) logisticsResp++; else logisticsNoResp++; }
+                        if (!stats.has(reason)) stats.set(reason, { name: reason, noResponsible: 0, responsible: 0, coldNoResp: 0, coldResp: 0, logisticsNoResp: 0, logisticsResp: 0 });
+                        const s = stats.get(reason);
+                        if (isResp) s.responsible++; else s.noResponsible++;
+                        if (coldThawData.includes(row)) { if (isResp) s.coldResp++; else s.coldNoResp++; }
+                        if (logisticsDamageData.includes(row)) { if (isResp) s.logisticsResp++; else s.logisticsNoResp++; }
+                    });
+
+                    // 排序：冷链商品化冻=0，物流损=1，其他按总数降序=2，差评=999
+                    const sortOrder = { '冷链商品化冻': 0, '物流损': 1 };
+                    const sortedStats = [...stats.values()].sort((a, b) => {
+                        const aOrder = sortOrder[a.name] !== undefined ? sortOrder[a.name] : (a.name.startsWith('差评') ? 999 : 2);
+                        const bOrder = sortOrder[b.name] !== undefined ? sortOrder[b.name] : (b.name.startsWith('差评') ? 999 : 2);
+                        if (aOrder !== bOrder) return aOrder - bOrder;
+                        const aTotal = a.noResponsible + a.responsible;
+                        const bTotal = b.noResponsible + b.responsible;
+                        return bTotal - aTotal;
+                    });
+                    // 有责率颜色计算
+                    const calcImgRate = (noResp, resp) => {
+                        const total = noResp + resp;
+                        const rate = total > 0 ? (resp / total * 100) : 0;
+                        const rateStr = rate.toFixed(1) + '%';
+                        let color = '#27ae60';
+                        if (rate >= 50) color = '#e74c3c';
+                        else if (rate >= 30) color = '#f39c12';
+                        return { rateStr, color };
+                    };
+
+                    // 汇总卡片（与面板一致，无蓝色背景）
+                    let html = '<div style="background:#fff;border:1px solid #e6e8f0;border-radius:14px;padding:8px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">';
+                    html += '<div style="font-size:12px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">📊 责任分析</div>';
+                    html += '<div style="background:#f0f2f7;border-radius:8px;padding:6px;margin-bottom:8px;border:1px solid #e6e8f0;">';
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+                    const tAll = totalNoResp + totalResp;
+                    const tRate = calcImgRate(totalNoResp, totalResp);
+                    html += `<div style="flex:1;min-width:100px;text-align:center;padding:4px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:10px;color:#5c5c78;">整体有责率</div><div style="font-size:16px;font-weight:700;color:${tRate.color};">${tRate.rateStr}</div><div style="font-size:9px;color:#8b8ba8;">(${totalResp}/${tAll})</div></div>`;
+                    const cTotal = coldNoResp + coldResp;
+                    const cRate = calcImgRate(coldNoResp, coldResp);
+                    html += `<div style="flex:1;min-width:80px;text-align:center;padding:4px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:10px;color:#5c5c78;">冷链化冻</div><div style="font-size:16px;font-weight:700;color:${cRate.color};">${cRate.rateStr}</div><div style="font-size:9px;color:#8b8ba8;">(${coldResp}/${cTotal})</div></div>`;
+                    const lTotal = logisticsNoResp + logisticsResp;
+                    const lRate = calcImgRate(logisticsNoResp, logisticsResp);
+                    html += `<div style="flex:1;min-width:80px;text-align:center;padding:4px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:10px;color:#5c5c78;">物流损</div><div style="font-size:16px;font-weight:700;color:${lRate.color};">${lRate.rateStr}</div><div style="font-size:9px;color:#8b8ba8;">(${logisticsResp}/${lTotal})</div></div>`;
+                    const bTotal = badReviewNoResp + badReviewResp;
+                    const bRate = calcImgRate(badReviewNoResp, badReviewResp);
+                    html += `<div style="flex:1;min-width:80px;text-align:center;padding:4px;background:#fff;border-radius:6px;border:1px solid #e6e8f0;"><div style="font-size:10px;color:#5c5c78;">差评</div><div style="font-size:16px;font-weight:700;color:${bRate.color};">${bRate.rateStr}</div><div style="font-size:9px;color:#8b8ba8;">(${badReviewResp}/${bTotal})</div></div>`;
+                    html += '</div></div>';
+
+                    // 表头行 - 百分比列宽不变，核实原因列固定25个中文字符宽度
+                    html += '<div style="display:flex;border-bottom:2px solid #e2e5ee;padding:3px 0;background:#f8f9fd;border-radius:4px 4px 0 0;">';
+                    html += '<div style="width:30%;padding:2px 4px;text-align:center;font-size:18px;font-weight:700;color:#6b6b88;">问题原因名称</div>';
+                    html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;font-weight:700;color:#6b6b88;">总计</div>';
+                    html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;font-weight:700;color:#6b6b88;">无责</div>';
+                    html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;font-weight:700;color:#6b6b88;">有责</div>';
+                    html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;font-weight:700;color:#6b6b88;">有责率</div>';
+                    html += '<div style="width:30%;padding:2px 4px;text-align:center;font-size:18px;font-weight:700;color:#6b6b88;">核实原因</div>';
+                    html += '</div>';
+                    // 数据行
+                    sortedStats.forEach(s => {
+                        const total = s.noResponsible + s.responsible;
+                        const rate = total > 0 ? (s.responsible / total * 100) : 0;
+                        const rateStr = rate.toFixed(1) + '%';
+                        let rateColor = '#27ae60';
+                        if (rate >= 50) rateColor = '#e74c3c';
+                        else if (rate >= 30) rateColor = '#f39c12';
+                        // 从页面输入框读取核实原因（优先用户值，否则读取动态默认值）
+                        const inputEl = document.querySelector('.responsibility-input[data-reason="' + escapeHTML(s.name).replace(/"/g, '\\"') + '"]');
+                        const verifyReason = inputEl
+                            ? ((inputEl.value || '').trim() || (inputEl.dataset.defaultValue || '').trim())
+                            : '-';
+                        // 核实原因：按25个中文字符宽度换行（中文=2宽度，英文=1宽度，总宽度50）
+                        const wrapReason = (text) => {
+                            if (!text || text === '-') return escapeHTML(text);
+                            const lines = [];
+                            let currentLine = '';
+                            let currentWidth = 0;
+                            for (const ch of text) {
+                                const w = ch.charCodeAt(0) > 127 ? 2 : 1;
+                                if (currentWidth + w > 50 && currentLine) {
+                                    lines.push(currentLine);
+                                    currentLine = ch;
+                                    currentWidth = w;
+                                } else {
+                                    currentLine += ch;
+                                    currentWidth += w;
+                                }
+                            }
+                            if (currentLine) lines.push(currentLine);
+                            return lines.map(l => escapeHTML(l)).join('<br>');
+                        };
+                        // 差评标签红色加粗
+                        const isBadReview = s.name.startsWith('差评');
+                        const nameColor = isBadReview ? '#e74c3c' : '#3a3a58';
+                        const nameWeight = isBadReview ? '700' : '400';
+                        html += '<div style="display:flex;align-items:center;border-bottom:1px solid #f0f2f7;padding:3px 0;">';
+                        html += '<div style="width:30%;padding:2px 4px;text-align:center;font-size:18px;color:' + nameColor + ';font-weight:' + nameWeight + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHTML(s.name) + '">' + escapeHTML(s.name) + '</div>';
+                        html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;color:#3a3a58;">' + total + '</div>';
+                        html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;color:#3a3a58;">' + s.noResponsible + '</div>';
+                        html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;color:#3a3a58;">' + s.responsible + '</div>';
+                        html += '<div style="width:10%;padding:2px 4px;text-align:center;font-size:18px;color:' + rateColor + ';font-weight:700;">' + rateStr + '</div>';
+                        html += '<div style="width:30%;padding:2px 4px;text-align:center;font-size:18px;color:#3a3a58;line-height:1.3;">' + wrapReason(verifyReason) + '</div>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    return html;
+                };
+
+                const responsibilityImageHTML = buildResponsibilityImageHTML();
+
+                // 根据选择动态构建报告
+                const getDefaultData = () => allData.filter(r => !selectedStore || String(getColValue(r,'门店名称')).trim() === selectedStore).filter(r => { const reason = (getColValue(r,'问题原因名称')||'').trim(); return reason !== '冷链商品化冻' && reason !== '物流损'; });
+                const getLogisticsData = () => logisticsDamageData.filter(r => !selectedStore || String(getColValue(r,'门店名称')).trim() === selectedStore);
+                const getColdThawData = () => coldThawData.filter(r => !selectedStore || String(getColValue(r,'门店名称')).trim() === selectedStore);
+                const getBadReviewData = () => badReviewData.filter(r => !selectedStore || String(getColValue(r,'门店')||'').trim() === selectedStore);
+
+                const sectionConfigs = [
+                    { key: 'badReview', label: '差评明细', hasData: () => getBadReviewData().length > 0, buildContent: () => '<h2 style="margin:20px 0 10px;font-size:16px;color:#1a1a2e;">💬 差评明细</h2>' + buildStaticTable(getBadReviewData(), 'badReview') },
+                    { key: 'coldThaw', label: '冷链明细', hasData: () => getColdThawData().length > 0, buildContent: () => '<h2 style="margin:20px 0 10px;font-size:16px;color:#1a1a2e;">❄️ 冷链明细</h2>' + buildStaticTable(getColdThawData(), 'coldThaw') },
+                    { key: 'logistics', label: '物流损明细', hasData: () => getLogisticsData().length > 0, buildContent: () => '<h2 style="margin:20px 0 10px;font-size:16px;color:#1a1a2e;">📦 物流损明细</h2>' + buildStaticTable(getLogisticsData(), 'logistics') },
+                    { key: 'default', label: '问单明细', hasData: () => getDefaultData().length > 0, buildContent: () => '<h2 style="margin:20px 0 10px;font-size:16px;color:#1a1a2e;">📋 问单明细</h2>' + buildStaticTable(getDefaultData(), 'default') },
+                    { key: 'analysis', label: '问单分析', hasData: () => (achievementImageHTML + responsibilityImageHTML).length > 0, buildContent: () => achievementImageHTML + responsibilityImageHTML }
+                ];
+
+                const selectedConfigs = sectionConfigs.filter(c => selectedSections.includes(c.key) && c.hasData());
+
+                // 获取工具显示名称和版本号用于导出报告
+                const toolNameForExport = document.getElementById('pageTitle').textContent;
+                const toolVersionForExport = document.getElementById('pageVersion').textContent;
+
+                toast('🎨 正在生成图片报告，请稍候...');
+
+                let exportedCount = 0;
+                for (const config of selectedConfigs) {
+                    const isAnalysis = config.key === 'analysis';
+                    const sectionTitle = `${storeName}-${timestamp}${config.label}`;
+
+                    // 问单分析使用窄宽度+两行布局，其他视图使用原始宽度
+                    if (isAnalysis) {
+                        tempContainer.style.width = '720px';
+                        tempContainer.style.padding = '10px';
+                    } else {
+                        tempContainer.style.width = '1400px';
+                        tempContainer.style.padding = '20px';
+                    }
+
+                    let reportHTML;
+                    if (isAnalysis) {
+                        // 问单分析：窄宽度+与其他视图一致的布局
+                        reportHTML = `
+                            <div style="max-width:700px;margin:0 auto;background:#fff;border-radius:10px;padding:12px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align:center;padding:8px 0 4px;margin-bottom:10px;">
+                                    <h1 style="font-size:18px;font-weight:750;color:#1a1a2e;margin:0;">📋 ${config.label}</h1>
+                                </div>
+                                <div style="background:#fff;border:1px solid #e6e8f0;border-radius:8px;padding:8px 10px;margin-bottom:10px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+                                    <div style="text-align:center;flex:1;min-width:200px;">
+                                        <span style="font-weight:700;font-size:16px;color:#1a1a2e;">📍 门店：${storeName}</span>
+                                    </div>
+                                    <div style="text-align:center;flex:1;min-width:120px;">
+                                        <span style="font-weight:700;font-size:16px;color:#1a1a2e;">时间：${timestamp}</span>
+                                    </div>
+                                </div>
+                                ${config.buildContent()}
+                                <div style="text-align:center;margin-top:12px;padding:8px;font-size:10px;color:#8b8ba8;">报告由${toolNameForExport} · ${toolVersionForExport}生成 · ${storeName} · ${timestamp}</div>
+                            </div>
+                        `;
+                    } else {
+                        // 其他视图：原始宽度+原始布局
+                        reportHTML = `
+                            <div style="max-width:1400px;margin:0 auto;background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align:center;padding:12px 0 6px;margin-bottom:14px;">
+                                    <h1 style="font-size:24px;font-weight:750;color:#1a1a2e;margin:0;">📋 ${config.label}</h1>
+                                </div>
+                                <div style="background:#fff;border:1px solid #e6e8f0;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;">
+                                    <div style="flex:1;text-align:center;">
+                                        <span style="font-weight:750;font-size:28px;color:#1a1a2e;">📍 门店：${storeName}</span>
+                                    </div>
+                                    <div style="flex:1;text-align:center;">
+                                        <span style="font-weight:750;font-size:28px;color:#1a1a2e;">${$('#dataSourceText').textContent}</span>
+                                    </div>
+                                </div>
+                                ${config.buildContent()}
+                                <div style="text-align:center;margin-top:20px;padding:10px;font-size:12px;color:#8b8ba8;">报告由${toolNameForExport} · ${toolVersionForExport}生成 · ${storeName} · ${timestamp}</div>
+                            </div>
+                        `;
+                    }
+
+                    tempContainer.innerHTML = reportHTML;
+
+                    try {
+                        const canvas = await html2canvas(tempContainer, {
+                            scale: 2,
+                            useCORS: true,
+                            allowTaint: true,
+                            backgroundColor: '#f0f2f7',
+                            logging: false,
+                            width: isAnalysis ? 740 : 1440,
+                            height: tempContainer.scrollHeight
+                        });
+
+                        const link = document.createElement('a');
+                        link.download = sectionTitle + '.png';
+                        link.href = canvas.toDataURL('image/png', 1.0);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        exportedCount++;
+                    } catch (err) {
+                        console.error('导出' + config.label + '图片失败:', err);
+                    }
+                }
+
+                document.body.removeChild(tempContainer);
+                toast('📥 已导出 ' + exportedCount + ' 张图片报告');
+            }
+
+            function closeAllPopups() { if (currentPopup) { currentPopup.remove(); currentPopup = null; } }
+            document.addEventListener('click', function(e) {
+                if (currentPopup && !currentPopup.contains(e.target) && !e.target.closest('.cell-btn') && !e.target.closest('.cell-clickable') && !e.target.closest('.ratio-main-bubble') && !e.target.closest('.cell-view-btn')) {
+                    closeAllPopups();
+                }
+            });
+
+            function showDetailPopup(anchor, contentHTML, isPlainText = false) {
+                closeAllPopups();
+                const popup = document.createElement('div'); popup.className = 'detail-popup';
+                if (isPlainText) popup.innerHTML = `<div style="max-height:42vh;overflow-y:auto;white-space:pre-wrap;">${escapeHTML(contentHTML)}</div>`;
+                else popup.innerHTML = contentHTML;
+                document.body.appendChild(popup);
+                positionPopup(anchor, popup);
+                currentPopup = popup;
+                popup.querySelectorAll('.info-copy-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const txt = this.dataset.copy || '';
+                        if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => { this.classList.add('copied'); setTimeout(() => this.classList.remove('copied'), 1500); }); }
+                    });
+                });
+            }
+
+            function positionPopup(anchor, popup) {
+                const rect = anchor.getBoundingClientRect();
+                const pw = popup.offsetWidth || 200, ph = popup.offsetHeight || 150;
+                let top = rect.bottom + 8, left = rect.left + rect.width/2 - pw/2;
+                if (top + ph > window.innerHeight - 10) top = rect.top - ph - 8;
+                if (top < 10) top = 10;
+                if (left < 10) left = 10;
+                else if (left + pw > window.innerWidth - 10) left = window.innerWidth - pw - 10;
+                popup.style.top = top + 'px'; popup.style.left = left + 'px';
+            }
+
+            function makePopupRow(label, value) {
+                return `<div class="info-row"><span class="info-label">${escapeHTML(label)}</span><span class="info-value">${escapeHTML(value||'-')}</span><span class="info-copy-btn" data-copy="${escapeHTML(value||'')}">📋 复制</span></div>`;
+            }
+
+            // 初始化
+            ['filterBar','tableWrapper','statsPanel','achievementPanel'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display='none';
+            });
+            openGuideView('📂 选择物流问单Excel', '请选择要处理的"物流问单"',
+                '<div class="file-upload-area" id="initUploadArea"><span class="upload-text-lg">📁 点击选择文件</span></div><div class="upload-hint">💡 选择大文件时页面可能出现短暂卡顿，请耐心等待加载完成。<br>如页面提示"无响应"，请点击<b>「等待」</b>按钮，切勿关闭页面。</div><div class="upload-progress-wrap" id="initProgressWrap"><div class="upload-progress-bar"><div class="upload-progress-fill" id="initProgressFill"></div></div><div class="upload-progress-text" id="initProgressText">准备中...</div></div>', '');
+            document.getElementById('initUploadArea').addEventListener('click', () => hiddenFileInput.click());
+            hiddenFileInput.addEventListener('change', e => { if (e.target.files[0]) handleFileUpload(e.target.files[0]); });
+        })();
+    </script>
+</body>
+</html>
